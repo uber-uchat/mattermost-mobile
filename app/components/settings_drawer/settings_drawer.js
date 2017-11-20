@@ -179,6 +179,64 @@ export default class SettingsDrawer extends PureComponent {
         });
     });
 
+    goToUserProfile = () => {
+        const {currentUser, navigator, theme} = this.props;
+        const {formatMessage} = this.context.intl;
+
+        this.closeSettingsDrawer();
+        navigator.showModal({
+            screen: 'UserProfile',
+            title: formatMessage({id: 'mobile.routes.user_profile', defaultMessage: 'Profile'}),
+            animationType: 'slide-up',
+            animated: true,
+            backButtonTitle: '',
+            passProps: {
+                userId: currentUser.id
+            },
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg
+            },
+            navigatorButtons: {
+                leftButtons: [{
+                    id: 'close-settings',
+                    icon: this.closeButton
+                }]
+            }
+        });
+    };
+
+    goToEditProfile = wrapWithPreventDoubleTap(() => {
+        const {currentUser, navigator, theme} = this.props;
+        const {formatMessage} = this.context.intl;
+
+        this.closeSettingsDrawer();
+        navigator.showModal({
+            screen: 'EditProfile',
+            title: formatMessage({id: 'mobile.routes.edit_profile', defaultMessage: 'Edit Profile'}),
+            animationType: 'slide-up',
+            animated: true,
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg
+            },
+            navigatorButtons: {
+                leftButtons: [{
+                    id: 'close-settings',
+                    icon: this.closeButton
+                }]
+            },
+            passProps: {
+                currentUser
+            }
+        });
+    });
+
     goToSettings = wrapWithPreventDoubleTap(() => {
         const {intl} = this.context;
         const {navigator, theme} = this.props;
@@ -245,15 +303,31 @@ export default class SettingsDrawer extends PureComponent {
                         alwaysBounceVertical={false}
                         contentContainerStyle={style.wrapper}
                     >
-                        <UserInfo user={currentUser}/>
+                        <UserInfo
+                            onPress={this.goToUserProfile}
+                            user={currentUser}
+                        />
                         <View style={style.block}>
                             <DrawerItem
                                 labelComponent={this.renderUserStatusLabel(currentUser.id)}
                                 leftComponent={this.renderUserStatusIcon(currentUser.id)}
-                                separator={true}
+                                separator={false}
                                 onPress={this.handleSetStatus}
                                 theme={theme}
                             />
+                        </View>
+                        <View style={style.separator}/>
+                        <View style={style.block}>
+                            <DrawerItem
+                                defaultMessage='Edit Profile'
+                                i18nId='mobile.routes.edit_profile'
+                                iconName='ios-person'
+                                iconType='ion'
+                                onPress={this.goToEditProfile}
+                                separator={true}
+                                theme={theme}
+                            />
+
                             <DrawerItem
                                 defaultMessage='Settings'
                                 i18nId='mobile.routes.settings'

@@ -40,6 +40,24 @@ class UserProfile extends PureComponent {
         user: PropTypes.object.isRequired
     };
 
+    constructor(props) {
+        super(props);
+
+        props.navigator.setOnNavigatorEvent(this.onNavigatorEvent);
+    }
+
+    onNavigatorEvent = (event) => {
+        if (event.type === 'NavBarButtonPress') {
+            switch (event.id) {
+            case 'close-settings':
+                this.props.navigator.dismissModal({
+                    animationType: 'slide-down'
+                });
+                break;
+            }
+        }
+    };
+
     componentWillReceiveProps(nextProps) {
         if (this.props.theme !== nextProps.theme) {
             setNavigatorStyles(this.props.navigator, nextProps.theme);
