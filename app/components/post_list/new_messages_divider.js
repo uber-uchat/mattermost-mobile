@@ -25,7 +25,7 @@ function NewMessagesDivider(props) {
     if (props.moreMessages) {
         Text = (
             <FormattedText
-                id='posts_view.moreMsg'
+                id='mobile.posts_view.moreMsg'
                 defaultMessage='More New Messages Above'
                 style={style.text}
             />
