@@ -41,6 +41,7 @@ class Post extends PureComponent {
         config: PropTypes.object.isRequired,
         currentTeamUrl: PropTypes.string.isRequired,
         currentUserId: PropTypes.string.isRequired,
+        deviceWidth: PropTypes.number.isRequired,
         highlight: PropTypes.bool,
         intl: intlShape.isRequired,
         style: ViewPropTypes.style,
@@ -398,25 +399,27 @@ class Post extends PureComponent {
                             theme={theme}
                             isFlagged={isFlagged}
                         />
-                        <PostBody
-                            canDelete={this.state.canDelete}
-                            canEdit={this.state.canEdit}
-                            isSearchResult={isSearchResult}
-                            navigator={this.props.navigator}
-                            onAddReaction={this.handleAddReaction}
-                            onCopyPermalink={this.handleCopyPermalink}
-                            onCopyText={this.handleCopyText}
-                            onFailedPostPress={this.handleFailedPostPress}
-                            onPostDelete={this.handlePostDelete}
-                            onPostEdit={this.handlePostEdit}
-                            onPress={this.handlePress}
-                            postId={post.id}
-                            renderReplyBar={commentedOnPost ? this.renderReplyBar : emptyFunction}
-                            toggleSelected={this.toggleSelected}
-                            managedConfig={managedConfig}
-                            isFlagged={isFlagged}
-                            isReplyPost={isReplyPost}
-                        />
+                        <View style={{width: this.props.deviceWidth - 64}}>
+                            <PostBody
+                                canDelete={this.state.canDelete}
+                                canEdit={this.state.canEdit}
+                                isSearchResult={isSearchResult}
+                                navigator={this.props.navigator}
+                                onAddReaction={this.handleAddReaction}
+                                onCopyPermalink={this.handleCopyPermalink}
+                                onCopyText={this.handleCopyText}
+                                onFailedPostPress={this.handleFailedPostPress}
+                                onPostDelete={this.handlePostDelete}
+                                onPostEdit={this.handlePostEdit}
+                                onPress={this.handlePress}
+                                postId={post.id}
+                                renderReplyBar={commentedOnPost ? this.renderReplyBar : emptyFunction}
+                                toggleSelected={this.toggleSelected}
+                                managedConfig={managedConfig}
+                                isFlagged={isFlagged}
+                                isReplyPost={isReplyPost}
+                            />
+                        </View>
                     </View>
                 </View>
             </View>
@@ -445,7 +448,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flexDirection: 'row',
             flex: 1
         },
-        profilePictureContainer: {
+        profilePictureContainer: { // deviceWidth - 10 for profile pic gutten and - 12 for right column gutter
             marginBottom: 10,
             marginRight: 10,
             marginLeft: 12,
