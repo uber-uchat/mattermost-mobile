@@ -375,6 +375,9 @@ class Post extends PureComponent {
 
         const onUsernamePress = Config.ExperimentalUsernamePressIsMention ? this.autofillUserMention : this.viewUserProfile;
 
+        // postWidth = deviceWidth - profilePic width - profilePictureContainer margins - right column margin
+        const postWidth = this.props.deviceWidth - 66;
+
         return (
             <View style={[style.container, this.props.style, highlighted, selected]}>
                 <View style={[style.profilePictureContainer, (isPostPendingOrFailed(post) && style.pendingPost)]}>
@@ -399,7 +402,7 @@ class Post extends PureComponent {
                             theme={theme}
                             isFlagged={isFlagged}
                         />
-                        <View style={{width: this.props.deviceWidth - 64}}>
+                        <View style={{maxWidth: postWidth}}>
                             <PostBody
                                 canDelete={this.state.canDelete}
                                 canEdit={this.state.canEdit}
@@ -448,7 +451,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flexDirection: 'row',
             flex: 1
         },
-        profilePictureContainer: { // deviceWidth - 10 for profile pic gutten and - 12 for right column gutter
+        profilePictureContainer: {
             marginBottom: 10,
             marginRight: 10,
             marginLeft: 12,
