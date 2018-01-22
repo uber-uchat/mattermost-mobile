@@ -17,7 +17,6 @@ import ClientUpgrade from 'app/screens/client_upgrade';
 import Code from 'app/screens/code';
 import CreateChannel from 'app/screens/create_channel';
 import EditChannel from 'app/screens/edit_channel';
-import DisplaySettings from 'app/screens/settings/display_settings';
 import EditPost from 'app/screens/edit_post';
 import EditProfile from 'app/screens/edit_profile';
 import ImagePreview from 'app/screens/image_preview';
