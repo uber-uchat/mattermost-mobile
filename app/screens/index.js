@@ -16,6 +16,7 @@ import ChannelPeek from 'app/screens/channel_peek';
 import ClientUpgrade from 'app/screens/client_upgrade';
 import Code from 'app/screens/code';
 import CreateChannel from 'app/screens/create_channel';
+import DisplaySettings from 'app/screens/settings/display_settings';
 import EditChannel from 'app/screens/edit_channel';
 import EditPost from 'app/screens/edit_post';
 import EditProfile from 'app/screens/edit_profile';
