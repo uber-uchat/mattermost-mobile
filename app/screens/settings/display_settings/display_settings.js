@@ -19,12 +19,11 @@ import ClockDisplay from 'app/screens/clock_display';
 export default class DisplaySettings extends PureComponent {
     static propTypes = {
         navigator: PropTypes.object.isRequired,
-        intl: intlShape.isRequired,
         theme: PropTypes.object.isRequired
     };
 
     static contextTypes = {
-        intl: intlShape
+        intl: intlShape.isRequired
     };
 
     state = {
