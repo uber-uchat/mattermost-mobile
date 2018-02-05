@@ -26,6 +26,7 @@ import PushNotifications from 'app/push_notifications';
 import {GlobalStyles} from 'app/styles';
 import {wrapWithPreventDoubleTap} from 'app/utils/tap';
 import tracker from 'app/utils/time_tracker';
+import {autoUpdateTimezone} from 'app/utils/timezone';
 
 import logo from 'assets/images/logo.png';
 
@@ -49,7 +50,9 @@ class Login extends PureComponent {
         loginId: PropTypes.string.isRequired,
         password: PropTypes.string.isRequired,
         checkMfaRequest: PropTypes.object.isRequired,
-        loginRequest: PropTypes.object.isRequired
+        loginRequest: PropTypes.object.isRequired,
+        currentUser: PropTypes.object,
+        enableTimezone: PropTypes.bool
     };
 
     constructor(props) {
@@ -77,7 +80,7 @@ class Login extends PureComponent {
     }
 
     goToLoadTeam = (expiresAt) => {
-        const {intl, navigator} = this.props;
+        const {intl, navigator, currentUser, enableTimezone} = this.props;
         tracker.initialLoad = Date.now();
 
         if (expiresAt) {
@@ -91,6 +94,10 @@ class Login extends PureComponent {
                     localNotification: true
                 }
             });
+        }
+
+        if (currentUser && enableTimezone) {
+            autoUpdateTimezone(currentUser);
         }
 
         navigator.resetTo({

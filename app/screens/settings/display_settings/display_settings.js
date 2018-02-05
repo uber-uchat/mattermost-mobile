@@ -19,7 +19,8 @@ import ClockDisplay from 'app/screens/clock_display';
 export default class DisplaySettings extends PureComponent {
     static propTypes = {
         navigator: PropTypes.object.isRequired,
-        theme: PropTypes.object.isRequired
+        theme: PropTypes.object.isRequired,
+        enableTimezone: PropTypes.bool
     };
 
     static contextTypes = {
@@ -53,12 +54,30 @@ export default class DisplaySettings extends PureComponent {
         this.setState({showClockDisplaySettings: true});
     });
 
+    goToTimezoneSettings = wrapWithPreventDoubleTap(() => {
+        const {navigator, theme} = this.props;
+        const {intl} = this.context;
+
+        navigator.push({
+            screen: 'TimezoneSettings',
+            title: intl.formatMessage({id: 'mobile.advanced_settings.timezone', defaultMessage: 'Timezone'}),
+            animated: true,
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg
+            }
+        });
+    });
+
     closeClockDisplaySettings = () => {
         this.setState({showClockDisplaySettings: false});
     };
 
     render() {
-        const {theme} = this.props;
+        const {theme, enableTimezone} = this.props;
         const {showClockDisplaySettings} = this.state;
         const style = getStyleSheet(theme);
 
@@ -68,6 +87,22 @@ export default class DisplaySettings extends PureComponent {
                 <ClockDisplay
                     showModal={showClockDisplaySettings}
                     onClose={this.closeClockDisplaySettings}
+                />
+            );
+        }
+
+        let timezoneOption;
+        if (enableTimezone) {
+            timezoneOption = (
+                <SettingsItem
+                    defaultMessage='Timezone'
+                    i18nId='mobile.advanced_settings.timezone'
+                    iconName='ios-globe'
+                    iconType='ion'
+                    onPress={this.goToTimezoneSettings}
+                    separator={false}
+                    showArrow={false}
+                    theme={theme}
                 />
             );
         }
@@ -83,10 +118,11 @@ export default class DisplaySettings extends PureComponent {
                         iconName='ios-time'
                         iconType='ion'
                         onPress={this.goToClockDisplaySettings}
-                        separator={false}
+                        separator={true}
                         showArrow={false}
                         theme={theme}
                     />
+                    {timezoneOption}
                     <View style={style.divider}/>
                 </View>
                 {clockDisplayModal}

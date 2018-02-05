@@ -26,6 +26,7 @@ import {logError} from 'mattermost-redux/actions/errors';
 import {loadMe, logout} from 'mattermost-redux/actions/users';
 import {close as closeWebSocket} from 'mattermost-redux/actions/websocket';
 import {Client4} from 'mattermost-redux/client';
+import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {
@@ -55,12 +56,15 @@ import {deleteFileCache} from 'app/utils/file';
 import {init as initAnalytics} from 'app/utils/segment';
 import {captureException, initializeSentry, LOGGER_JAVASCRIPT, LOGGER_NATIVE} from 'app/utils/sentry';
 import tracker from 'app/utils/time_tracker';
+import {autoUpdateTimezone} from 'app/utils/timezone';
 import {stripTrailingSlashes} from 'app/utils/url';
 
 import LocalConfig from 'assets/config';
 
 const {StatusBarManager} = NativeModules;
 const AUTHENTICATION_TIMEOUT = 5 * 60 * 1000;
+
+export const mattermostStore = configureStore(initialState);
 
 export default class Mattermost {
     constructor() {
@@ -72,7 +76,7 @@ export default class Mattermost {
         Client4.setUserAgent(DeviceInfo.getUserAgent());
         Orientation.unlockAllOrientations();
         initializeSentry();
-        this.store = configureStore(initialState);
+        this.store = mattermostStore;
         registerScreens(this.store, Provider);
 
         this.unsubscribeFromStore = this.store.subscribe(this.listenForHydration);
@@ -397,6 +401,11 @@ export default class Mattermost {
 
             if (currentUserId) {
                 Client4.setUserId(currentUserId);
+            }
+
+            const currentUser = getCurrentUser(getState());
+            if (currentUser && config.EnableTimezoneSelection === 'true') {
+                autoUpdateTimezone(currentUser);
             }
 
             if (Platform.OS === 'ios') {

@@ -39,8 +39,10 @@ import SSO from 'app/screens/sso';
 import Search from 'app/screens/search';
 import SelectServer from 'app/screens/select_server';
 import SelectTeam from 'app/screens/select_team';
+import SelectTimezone from 'app/screens/timezone/select_timezone';
 import Settings from 'app/screens/settings/general';
 import Thread from 'app/screens/thread';
+import TimezoneSettings from 'app/screens/timezone';
 import UserProfile from 'app/screens/user_profile';
 
 import IntlWrapper from 'app/components/root';
@@ -93,8 +95,10 @@ export function registerScreens(store, Provider) {
     Navigation.registerComponent('Search', () => wrapWithContextProvider(Search), store, Provider);
     Navigation.registerComponent('SelectServer', () => wrapWithContextProvider(SelectServer), store, Provider);
     Navigation.registerComponent('SelectTeam', () => wrapWithContextProvider(SelectTeam), store, Provider);
+    Navigation.registerComponent('SelectTimezone', () => wrapWithContextProvider(SelectTimezone), store, Provider);
     Navigation.registerComponent('Settings', () => wrapWithContextProvider(Settings), store, Provider);
     Navigation.registerComponent('SSO', () => wrapWithContextProvider(SSO), store, Provider);
     Navigation.registerComponent('Thread', () => wrapWithContextProvider(Thread), store, Provider);
+    Navigation.registerComponent('TimezoneSettings', () => wrapWithContextProvider(TimezoneSettings), store, Provider);
     Navigation.registerComponent('UserProfile', () => wrapWithContextProvider(UserProfile), store, Provider);
 }
