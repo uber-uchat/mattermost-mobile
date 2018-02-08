@@ -425,9 +425,12 @@ export default class Mattermost {
 
                     if (appLaunched) {
                         this.launchApp(); // App is launched -> show UI
-                    } else {
-                        new NativeEventsReceiver().appLaunched(this.launchApp); // App hasn't been launched yet -> show the UI only when needed.
                     }
+
+                    new NativeEventsReceiver().appLaunched(() => {
+                        this.appStarted = false;
+                        this.launchApp();
+                    });
                 });
             } else if (isNotActive) {
                 // for IOS replying from push notification starts the app in the background
@@ -600,7 +603,7 @@ export default class Mattermost {
         });
     };
 
-    startApp = (animationType = 'none') => {
+    startApp = (animationType = 'fade') => {
         if (!this.appStarted) {
             const {dispatch, getState} = this.store;
             const {entities} = getState();
