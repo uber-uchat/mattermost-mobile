@@ -294,8 +294,7 @@ class MoreChannels extends PureComponent {
                             inputStyle={{
                                 backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
                                 color: theme.centerChannelColor,
-                                fontSize: 15,
-                                lineHeight: 66
+                                fontSize: 15
                             }}
                             placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.5)}
                             tintColorSearch={changeOpacity(theme.centerChannelColor, 0.5)}
