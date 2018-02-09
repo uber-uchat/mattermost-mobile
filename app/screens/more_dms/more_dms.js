@@ -476,6 +476,7 @@ class MoreDirectMessages extends PureComponent {
                         onChangeText={this.onSearch}
                         onSearchButtonPress={this.onSearch}
                         onCancelButtonPress={this.cancelSearch}
+                        autoCapitalize='none'
                         value={term}
                     />
                     <SelectedUsers

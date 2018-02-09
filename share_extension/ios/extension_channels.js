@@ -217,6 +217,7 @@ export default class ExtensionChannels extends PureComponent {
                     tintColorDelete={changeOpacity(theme.centerChannelColor, 0.3)}
                     titleCancelColor={theme.linkColor}
                     onChangeText={this.handleSearch}
+                    autoCapitalize='none'
                     value={this.state.term}
                 />
             </View>
