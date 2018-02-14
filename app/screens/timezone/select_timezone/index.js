@@ -6,12 +6,13 @@ import {connect} from 'react-redux';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
+import {getSupportedTimezones} from 'app/utils/timezone';
 import SelectTimezone from './select_timezone';
 
 function mapStateToProps(state, props) {
     const {selectedTimezone} = props;
     const config = getConfig(state);
-    const supportedTimezones = config.SupportedTimezones || [];
+    const supportedTimezones = getSupportedTimezones(config.SupportedTimezones);
 
     let index = 0;
 

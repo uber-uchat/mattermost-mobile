@@ -5,6 +5,13 @@ import DeviceInfo from 'react-native-device-info';
 import {updateUser} from 'app/actions/views/edit_profile';
 import {mattermostStore} from 'app/mattermost';
 
+export function getSupportedTimezones(supportedTimezones) {
+    if (supportedTimezones) {
+        return supportedTimezones.split(',');
+    }
+    return [];
+}
+
 export function getDeviceTimezone() {
     return DeviceInfo.getTimezone();
 }
