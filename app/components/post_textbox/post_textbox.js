@@ -42,6 +42,7 @@ export default class PostTextbox extends PureComponent {
         channelIsLoading: PropTypes.bool.isRequired,
         currentUserId: PropTypes.string.isRequired,
         deactivatedChannel: PropTypes.bool.isRequired,
+        disablePostToChannel: PropTypes.bool,
         files: PropTypes.array,
         navigator: PropTypes.object,
         rootId: PropTypes.string,
@@ -51,6 +52,7 @@ export default class PostTextbox extends PureComponent {
     };
 
     static defaultProps = {
+        disablePostToChannel: false,
         files: [],
         rootId: '',
         value: ''
@@ -391,6 +393,10 @@ export default class PostTextbox extends PureComponent {
     };
 
     render() {
+        if (this.props.disablePostToChannel) {
+            return null;
+        }
+
         const {intl} = this.context;
         const {
             canUploadFiles,

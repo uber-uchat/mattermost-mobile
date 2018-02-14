@@ -32,6 +32,7 @@ class PostBody extends PureComponent {
         }).isRequired,
         canDelete: PropTypes.bool,
         canEdit: PropTypes.bool,
+        channelIsReadOnly: PropTypes.bool.isRequired,
         fileIds: PropTypes.array,
         hasBeenDeleted: PropTypes.bool,
         hasBeenEdited: PropTypes.bool,
@@ -136,6 +137,7 @@ class PostBody extends PureComponent {
         const {
             canDelete,
             canEdit,
+            channelIsReadOnly,
             hasBeenDeleted,
             hasBeenEdited,
             hasReactions,
@@ -170,10 +172,12 @@ class PostBody extends PureComponent {
 
         // we should check for the user roles and permissions
         if (!isPendingOrFailedPost && !isSearchResult && !isSystemMessage && !isPostEphemeral) {
-            actions.push({
-                text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
-                onPress: this.props.onAddReaction
-            });
+            if (!channelIsReadOnly) {
+                actions.push({
+                    text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
+                    onPress: this.props.onAddReaction
+                });
+            }
 
             if (managedConfig.copyAndPasteProtection !== 'true') {
                 actions.push({
@@ -183,23 +187,23 @@ class PostBody extends PureComponent {
                 });
             }
 
-            if (isFlagged) {
+            if (isFlagged && !channelIsReadOnly) {
                 actions.push({
                     text: formatMessage({id: 'post_info.mobile.unflag', defaultMessage: 'Unflag'}),
                     onPress: this.unflagPost
                 });
-            } else {
+            } else if (!channelIsReadOnly) {
                 actions.push({
                     text: formatMessage({id: 'post_info.mobile.flag', defaultMessage: 'Flag'}),
                     onPress: this.flagPost
                 });
             }
 
-            if (canEdit) {
+            if (canEdit && !channelIsReadOnly) {
                 actions.push({text: formatMessage({id: 'post_info.edit', defaultMessage: 'Edit'}), onPress: onPostEdit});
             }
 
-            if (canDelete && !hasBeenDeleted) {
+            if (canDelete && !hasBeenDeleted && !channelIsReadOnly) {
                 actions.push({text: formatMessage({id: 'post_info.del', defaultMessage: 'Delete'}), onPress: onPostDelete});
             }
 

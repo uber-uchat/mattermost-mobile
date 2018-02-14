@@ -10,7 +10,8 @@ import {createPost} from 'mattermost-redux/actions/posts';
 import {getCurrentChannel} from 'mattermost-redux/selectors/entities/channels';
 import {canUploadFilesOnMobile} from 'mattermost-redux/selectors/entities/general';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
-import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
+import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
 
 import {executeCommand} from 'app/actions/views/command';
 import {addReactionToLatestPost} from 'app/actions/views/emoji';
@@ -24,6 +25,7 @@ import {getChannelMembersForDm} from 'app/selectors/channel';
 import PostTextbox from './post_textbox';
 
 function mapStateToProps(state, ownProps) {
+    const {config} = state.entities.general;
     const currentDraft = ownProps.rootId ? getThreadDraft(state, ownProps.rootId) : getCurrentChannelDraft(state);
 
     const currentChannel = getCurrentChannel(state);
@@ -35,12 +37,19 @@ function mapStateToProps(state, ownProps) {
         }
     }
 
+    let disablePostToChannel = false;
+    if (currentChannel.name === General.DEFAULT_CHANNEL) {
+        const roles = getCurrentUserRoles(state);
+        disablePostToChannel = config.ExperimentalTownSquareIsReadOnly === 'true' && !isAdmin(roles) && !isSystemAdmin(roles) && !isChannelAdmin(roles);
+    }
+
     return {
         channelId: ownProps.channelId || currentChannel.id,
         canUploadFiles: canUploadFilesOnMobile(state),
         channelIsLoading: state.views.channel.loading,
         currentUserId: getCurrentUserId(state),
         deactivatedChannel,
+        disablePostToChannel,
         files: currentDraft.files,
         theme: getTheme(state),
         uploadFileRequestStatus: state.requests.files.uploadFiles.status,
