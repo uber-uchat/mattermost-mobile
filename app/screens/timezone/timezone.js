@@ -95,11 +95,7 @@ export default class Timezone extends PureComponent {
             timezone
         };
 
-        const {error} = await this.props.actions.updateUser(updatedUser);
-        if (error) {
-            this.handleRequestError(error);
-            return;
-        }
+        this.props.actions.updateUser(updatedUser);
     };
 
     goToSelectTimezone = () => {

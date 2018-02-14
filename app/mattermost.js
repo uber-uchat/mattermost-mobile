@@ -403,7 +403,7 @@ export default class Mattermost {
                 Client4.setUserId(currentUserId);
             }
 
-            const currentUser = getCurrentUser(getState());
+            const currentUser = getCurrentUser(state);
             if (currentUser && config.EnableTimezoneSelection === 'true') {
                 autoUpdateTimezone(currentUser);
             }
