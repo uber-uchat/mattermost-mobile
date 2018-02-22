@@ -56,7 +56,7 @@ function mapStateToProps(state, ownProps) {//eslint-disable-line complexity
     const {deviceWidth} = getDimensions(state);
 
     let channelIsReadOnly = false;
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
+    if (currentChannel && currentChannel.name === General.DEFAULT_CHANNEL) {
         channelIsReadOnly = config.ExperimentalTownSquareIsReadOnly === 'true' && !(isAdmin(roles) && !isSystemAdmin(roles) && !isChannelAdmin(roles));
     }
 

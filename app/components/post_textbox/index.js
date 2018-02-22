@@ -28,7 +28,7 @@ function mapStateToProps(state, ownProps) {
     const {config} = state.entities.general;
     const currentDraft = ownProps.rootId ? getThreadDraft(state, ownProps.rootId) : getCurrentChannelDraft(state);
 
-    const currentChannel = getCurrentChannel(state);
+    const currentChannel = getCurrentChannel(state) || {};
     let deactivatedChannel = false;
     if (currentChannel.type === General.DM_CHANNEL) {
         const teammate = getChannelMembersForDm(state, currentChannel);
