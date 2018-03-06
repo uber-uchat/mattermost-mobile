@@ -29,6 +29,7 @@ import MoreChannels from 'app/screens/more_channels';
 import MoreDirectMessages from 'app/screens/more_dms';
 import Notification from 'app/screens/notification';
 import NotificationSettings from 'app/screens/settings/notification_settings';
+import NotificationSettingsAutoResponder from 'app/screens/settings/notification_settings_auto_responder';
 import NotificationSettingsEmail from 'app/screens/settings/notification_settings_email';
 import NotificationSettingsMentions from 'app/screens/settings/notification_settings_mentions';
 import NotificationSettingsMentionsKeywords from 'app/screens/settings/notification_settings_mentions_keywords';
@@ -87,6 +88,7 @@ export function registerScreens(store, Provider) {
     Navigation.registerComponent('MoreDirectMessages', () => wrapWithContextProvider(MoreDirectMessages), store, Provider);
     Navigation.registerComponent('Notification', () => wrapWithContextProvider(Notification), store, Provider);
     Navigation.registerComponent('NotificationSettings', () => wrapWithContextProvider(NotificationSettings), store, Provider);
+    Navigation.registerComponent('NotificationSettingsAutoResponder', () => wrapWithContextProvider(NotificationSettingsAutoResponder), store, Provider);
     Navigation.registerComponent('NotificationSettingsEmail', () => wrapWithContextProvider(NotificationSettingsEmail), store, Provider);
     Navigation.registerComponent('NotificationSettingsMentions', () => wrapWithContextProvider(NotificationSettingsMentions), store, Provider);
     Navigation.registerComponent('NotificationSettingsMentionsKeywords', () => wrapWithContextProvider(NotificationSettingsMentionsKeywords), store, Provider);

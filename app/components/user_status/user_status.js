@@ -12,6 +12,7 @@ const statusToIcon = {
     away: AwayIcon,
     dnd: DndIcon,
     offline: OfflineIcon,
+    ooo: OfflineIcon,
     online: OnlineIcon,
 };
 

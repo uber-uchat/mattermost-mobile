@@ -9,6 +9,7 @@ import {getBool, getTeammateNameDisplaySetting, getTheme} from 'mattermost-redux
 import {getUser} from 'mattermost-redux/selectors/entities/users';
 import {isPostPendingOrFailed, isSystemMessage} from 'mattermost-redux/utils/post_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
+import {fromAutoResponder} from 'app/utils/general';
 
 import PostHeader from './post_header';
 
@@ -32,6 +33,7 @@ function makeMapStateToProps() {
             militaryTime,
             isPendingOrFailedPost: isPostPendingOrFailed(post),
             isSystemMessage: isSystemMessage(post),
+            fromAutoResponder: fromAutoResponder(post),
             overrideUsername: post.props && post.props.override_username,
             theme: getTheme(state),
             username: user.username,

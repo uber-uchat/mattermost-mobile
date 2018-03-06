@@ -7,6 +7,7 @@ import {getPost} from 'mattermost-redux/selectors/entities/posts';
 import {isSystemMessage} from 'mattermost-redux/utils/post_utils';
 
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
+import {fromAutoResponder} from 'app/utils/general';
 
 import PostProfilePicture from './post_profile_picture';
 
@@ -18,6 +19,7 @@ function mapStateToProps(state, ownProps) {
         enablePostIconOverride: config.EnablePostIconOverride === 'true',
         fromWebHook: post.props && post.props.from_webhook === 'true',
         isSystemMessage: isSystemMessage(post),
+        fromAutoResponder: fromAutoResponder(post),
         overrideIconUrl: post.props && post.props.override_icon_url,
         userId: post.user_id,
         theme: getTheme(state),
