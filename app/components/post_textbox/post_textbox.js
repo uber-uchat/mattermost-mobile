@@ -5,7 +5,7 @@ import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {Alert, BackHandler, Keyboard, Platform, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {intlShape} from 'react-intl';
-import {RequestStatus} from 'mattermost-redux/constants';
+import {General, RequestStatus} from 'mattermost-redux/constants';
 
 import AttachmentButton from 'app/components/attachment_button';
 import Autocomplete from 'app/components/autocomplete';
@@ -372,8 +372,8 @@ export default class PostTextbox extends PureComponent {
     };
 
     isStatusSlashCommand = (command) => {
-        return command === 'online' || command === 'away' ||
-            command === 'dnd' || command === 'offline';
+        return command === General.ONLINE || command === General.AWAY ||
+            command === General.DND || command === General.OFFLINE;
     };
 
     updateStatus = (status) => {
