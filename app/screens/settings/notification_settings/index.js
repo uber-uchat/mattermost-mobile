@@ -4,7 +4,7 @@
 import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
 
-import {getCurrentUser} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentUser, getStatusForUserId} from 'mattermost-redux/selectors/entities/users';
 import {getMyPreferences, getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import {handleUpdateUserNotifyProps} from 'app/actions/views/account_notifications';
@@ -12,9 +12,13 @@ import {handleUpdateUserNotifyProps} from 'app/actions/views/account_notificatio
 import NotificationSettings from './notification_settings';
 
 function mapStateToProps(state) {
+    const currentUser = getCurrentUser(state);
+    const currentUserStatus = getStatusForUserId(state, currentUser.id);
+
     return {
         config: state.entities.general.config,
-        currentUser: getCurrentUser(state),
+        currentUser,
+        currentUserStatus,
         myPreferences: getMyPreferences(state),
         updateMeRequest: state.requests.users.updateMe,
         theme: getTheme(state),

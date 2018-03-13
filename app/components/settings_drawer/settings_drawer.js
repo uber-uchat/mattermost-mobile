@@ -22,6 +22,7 @@ import Drawer from 'app/components/drawer';
 import UserStatus from 'app/components/user_status';
 import {NavigationTypes} from 'app/constants';
 import {preventDoubleTap} from 'app/utils/tap';
+import {confirmOutOfOfficeDisabled} from 'app/utils/status';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 import DrawerItem from './drawer_item';
@@ -39,6 +40,7 @@ export default class SettingsDrawer extends PureComponent {
         blurPostTextBox: PropTypes.func.isRequired,
         children: PropTypes.node,
         currentUser: PropTypes.object.isRequired,
+        status: PropTypes.string.isRequired,
         navigator: PropTypes.object,
         theme: PropTypes.object.isRequired,
     };
@@ -314,12 +316,31 @@ export default class SettingsDrawer extends PureComponent {
         );
     };
 
-    setStatus = (status) => {
+    confirmReset = (status) => {
+        const {intl} = this.context;
+        confirmOutOfOfficeDisabled(intl, status, this.updateStatus);
+    };
+
+    updateStatus = (status) => {
         const {currentUser: {id: currentUserId}} = this.props;
         this.props.actions.setStatus({
             user_id: currentUserId,
             status,
         });
+    };
+
+    setStatus = (status) => {
+        const {status: currentUserStatus, navigator} = this.props;
+
+        if (currentUserStatus === General.OUT_OF_OFFICE) {
+            navigator.dismissModal({
+                animationType: 'none',
+            });
+            this.closeSettingsDrawer();
+            this.confirmReset(status);
+            return;
+        }
+        this.updateStatus(status);
         EventEmitter.emit(NavigationTypes.NAVIGATION_CLOSE_MODAL);
     };
 
