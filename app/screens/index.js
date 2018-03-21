@@ -41,6 +41,7 @@ import SelectServer from 'app/screens/select_server';
 import SelectTeam from 'app/screens/select_team';
 import Settings from 'app/screens/settings/general';
 import Thread from 'app/screens/thread';
+import ClockDisplay from 'app/screens/clock_display';
 import UserProfile from 'app/screens/user_profile';
 
 import IntlWrapper from 'app/components/root';
@@ -96,5 +97,6 @@ export function registerScreens(store, Provider) {
     Navigation.registerComponent('Settings', () => wrapWithContextProvider(Settings), store, Provider);
     Navigation.registerComponent('SSO', () => wrapWithContextProvider(SSO), store, Provider);
     Navigation.registerComponent('Thread', () => wrapWithContextProvider(Thread), store, Provider);
+    Navigation.registerComponent('ClockDisplay', () => wrapWithContextProvider(ClockDisplay), store, Provider);
     Navigation.registerComponent('UserProfile', () => wrapWithContextProvider(UserProfile), store, Provider);
 }

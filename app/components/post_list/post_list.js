@@ -37,6 +37,7 @@ export default class PostList extends PureComponent {
         deviceHeight: PropTypes.number.isRequired,
         highlightPostId: PropTypes.string,
         indicateNewMessages: PropTypes.bool,
+        initialBatchToRender: PropTypes.number.isRequired,
         isSearchResult: PropTypes.bool,
         lastViewedAt: PropTypes.number, // Used by container // eslint-disable-line no-unused-prop-types
         loadMore: PropTypes.func,
@@ -302,6 +303,7 @@ export default class PostList extends PureComponent {
         const {
             channelId,
             highlightPostId,
+            initialBatchToRender,
             loadMore,
             postIds,
             showLoadMore

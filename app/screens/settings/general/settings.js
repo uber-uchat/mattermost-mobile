@@ -278,6 +278,15 @@ class Settings extends PureComponent {
                         theme={theme}
                     />
                     <SettingsItem
+                        defaultMessage='Display'
+                        i18nId='user.settings.modal.display'
+                        iconName='ios-apps'
+                        iconType='ion'
+                        onPress={this.goToDisplaySettings}
+                        showArrow={showArrow}
+                        theme={theme}
+                    />
+                    <SettingsItem
                         defaultMessage='Advanced Settings'
                         i18nId='mobile.advanced_settings.title'
                         iconName='ios-hammer'
