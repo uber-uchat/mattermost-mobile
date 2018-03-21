@@ -354,10 +354,6 @@ export default class EditProfile extends PureComponent {
         const {nickname} = this.state;
 
         const {auth_service: service} = currentUser;
-        if (service === 'saml') {
-            return null;
-        }
-
         const disabled = (service === 'ldap' && config.LdapNicknameAttributeSet === 'true') ||
             (service === 'saml' && config.SamlNicknameAttributeSet === 'true');
 
@@ -383,7 +379,7 @@ export default class EditProfile extends PureComponent {
         const {position} = this.state;
 
         const {auth_service: service} = currentUser;
-        const disabled = service === 'saml';
+        const disabled = (service === 'ldap' || service === 'saml') && config.PositionAttribute === 'true';
 
         return (
             <EditProfileItem

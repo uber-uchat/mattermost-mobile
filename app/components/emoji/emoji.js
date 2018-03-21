@@ -3,7 +3,13 @@
 
 import React from 'react';
 import PropTypes from 'prop-types';
-import {Image, Platform, Text} from 'react-native';
+import {
+    Image,
+    PixelRatio,
+    Platform,
+    StyleSheet,
+    Text
+} from 'react-native';
 import FastImage from 'react-native-fast-image';
 
 import CustomPropTypes from 'app/constants/custom_prop_types';
@@ -11,13 +17,19 @@ import {EmojiIndicesByAlias, Emojis} from 'app/utils/emojis';
 
 import {Client4} from 'mattermost-redux/client';
 
+const scaleEmojiBasedOnDevice = (size) => {
+    if (Platform.OS === 'ios') {
+        return size * 1.1; // slightly larger emojis look better on ios
+    }
+    return size * PixelRatio.get();
+};
+
 export default class Emoji extends React.PureComponent {
     static propTypes = {
         customEmojis: PropTypes.object,
         emojiName: PropTypes.string.isRequired,
-        fontSize: PropTypes.number,
         literal: PropTypes.string,
-        size: PropTypes.number.isRequired,
+        size: PropTypes.number,
         textStyle: CustomPropTypes.Style,
         token: PropTypes.string.isRequired
     };
@@ -99,12 +111,18 @@ export default class Emoji extends React.PureComponent {
 
     render() {
         const {
-            fontSize,
             literal,
-            size,
             textStyle,
             token
         } = this.props;
+
+        let size = this.props.size;
+        let fontSize = size;
+        if (!size && textStyle) {
+            const flatten = StyleSheet.flatten(textStyle);
+            fontSize = flatten.fontSize;
+            size = scaleEmojiBasedOnDevice(fontSize);
+        }
 
         if (!this.state.imageUrl) {
             return <Text style={textStyle}>{literal}</Text>;
@@ -126,24 +144,24 @@ export default class Emoji extends React.PureComponent {
 
         let width = size;
         let height = size;
-        if (this.state.originalHeight && this.state.originalWidth) {
-            if (this.state.originalWidth > this.state.originalHeight) {
-                height = (size * this.state.originalHeight) / this.state.originalWidth;
-            } else if (this.state.originalWidth < this.state.originalHeight) {
+        let {originalHeight, originalWidth} = this.state;
+        originalHeight = scaleEmojiBasedOnDevice(originalHeight);
+        originalWidth = scaleEmojiBasedOnDevice(originalWidth);
+        if (originalHeight && originalWidth) {
+            if (originalWidth > originalHeight) {
+                height = (size * originalHeight) / originalWidth;
+            } else if (originalWidth < originalHeight) {
                 // This may cause text to reflow, but its impossible to add a horizontal margin
-                width = (size * this.state.originalWidth) / this.state.originalHeight;
+                width = (size * originalWidth) / originalHeight;
             }
         }
 
         let marginTop = 0;
-        if (fontSize) {
-            // Center the image vertically on iOS (does nothing on Android)
-            marginTop = (height - 16) / 2;
-
+        if (textStyle) {
             // hack to get the vertical alignment looking better
-            if (fontSize === 17) {
+            if (fontSize > 16) {
                 marginTop -= 2;
-            } else if (fontSize === 15) {
+            } else if (fontSize <= 16) {
                 marginTop += 1;
             }
         }

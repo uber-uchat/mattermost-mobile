@@ -1,5 +1,50 @@
 # Mattermost Mobile Apps Changelog
 
+## v1.6.0 Release
+- Release Date: February 6, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Android File Sharing
+- Share files and images from other applications as attached files in Mattermost 
+
+### Improvements
+- Added a right drawer to access settings, edit profile information, change online status and logout
+- Added support for opening a Direct Message channel with yourself
+
+### Bugs
+- Fixed a number of issues causing crashes on Android devices
+- Fixed an issue with auto capitalization on Android keyboards
+- Fixed an issue where the GitLab SSO login button sometimes didn't appear
+- Fixed an issue with link previews not appearing on some accounts
+- Fixed an issue where logging out of the app didn't clear the notification badge on the homescreen icon
+- Fixed an issue where interactive message buttons would not wrap to a new line
+- Fixed an issue where the keyboard would sometimes overlap the text input box
+- Fixed an issue where the Direct Message channel wouldn't open from the profile page
+- Fixed an issue where posts would sometimes overlap
+- Fixed an issue where the app sometimes hangs on logout
+
+## v1.5.3 Release
+- Release Date: February 1, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+- Fixed a login issue when connecting to servers running a Data Retention policy 
+
+## v1.5.2 Release
+- Release Date: January 12, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Bug Fixes
+- Fixed an issue causing some Android devices to crash on launch
+- Fixed an issue with the app occasionally crashing when receiving push notifications in a new channel 
+- Channel footer area is now refreshed when switching between Group and Direct Message channels
+- Fixed an issue on some Android devices so Mattermost verifies it has permissions to access ringtones
+- Fixed an issue where the text box overlapped the keyboard on some iOS devices using multiple keyboard layouts
+- Fixed an issue with video uploads on Android devices
+- Fixed an issue with GIF uploads on iOS devices
+- Fixed an issue with the mention badge flickering on the channel drawer icon when there were over 10 unread mentions
+- Fixed an issue with the app occasionally freezing when requesting the RefreshToken
+
 ## v1.5.1 Release
 
 - Release Date: December 7, 2017

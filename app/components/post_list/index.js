@@ -15,17 +15,13 @@ function makeMapStateToProps() {
     const preparePostIds = makePreparePostIdsForPostList();
     return (state, ownProps) => {
         const postIds = preparePostIds(state, ownProps);
+        const measureCellLayout = postIds.indexOf(START_OF_NEW_MESSAGES) > -1 || Boolean(ownProps.highlightPostId);
 
-        let initialBatchToRender = 15;
-        if (!ownProps.highlistPostId) {
-            const newMessageIndex = postIds.indexOf(START_OF_NEW_MESSAGES);
-            if (newMessageIndex !== -1 && newMessageIndex > 15) {
-                initialBatchToRender = newMessageIndex + 2;
-            }
-        }
+        const {deviceHeight} = state.device.dimension;
 
         return {
-            initialBatchToRender,
+            deviceHeight,
+            measureCellLayout,
             postIds,
             theme: getTheme(state)
         };

@@ -21,9 +21,11 @@ import LoadMorePosts from './load_more_posts';
 import NewMessagesDivider from './new_messages_divider';
 import withLayout from './with_layout';
 
-const DateHeaderWithLayout = withLayout(DateHeader);
-const NewMessagesDividerWithLayout = withLayout(NewMessagesDivider);
 const PostWithLayout = withLayout(Post);
+
+const INITAL_BATCH_TO_RENDER = 15;
+const NEW_MESSAGES_HEIGHT = 28;
+const DATE_HEADER_HEIGHT = 28;
 
 export default class PostList extends PureComponent {
     static propTypes = {
@@ -32,6 +34,7 @@ export default class PostList extends PureComponent {
         }).isRequired,
         channelId: PropTypes.string,
         currentUserId: PropTypes.string,
+        deviceHeight: PropTypes.number.isRequired,
         highlightPostId: PropTypes.string,
         indicateNewMessages: PropTypes.bool,
         initialBatchToRender: PropTypes.number.isRequired,
@@ -78,14 +81,12 @@ export default class PostList extends PureComponent {
         if (this.props.channelId !== nextProps.channelId) {
             this.itemMeasurements = {};
             this.newMessageScrolledTo = false;
+            this.scrollToBottomOffset();
         }
     }
 
-    componentDidUpdate(prevProps) {
-        const initialPosts = !prevProps.postIds.length && prevProps.postIds !== this.props.postIds;
-        if ((prevProps.channelId !== this.props.channelId || initialPosts) && this.refs.list) {
-            this.scrollToBottomOffset();
-        } else if ((this.props.measureCellLayout || this.props.isSearchResult) && this.state.scrollToMessage) {
+    componentDidUpdate() {
+        if ((this.props.measureCellLayout || this.props.isSearchResult) && this.state.scrollToMessage) {
             this.scrollListToMessageOffset();
         }
     }
@@ -103,23 +104,35 @@ export default class PostList extends PureComponent {
     }
 
     getMeasurementOffset = (index) => {
-        const orderedKeys = Object.keys(this.itemMeasurements).sort().slice(0, index);
+        const orderedKeys = Object.keys(this.itemMeasurements).sort((a, b) => {
+            const numA = Number(a);
+            const numB = Number(b);
+
+            if (numA > numB) {
+                return 1;
+            } else if (numA < numB) {
+                return -1;
+            }
+
+            return 0;
+        }).slice(0, index);
+
         return orderedKeys.map((i) => this.itemMeasurements[i]).reduce((a, b) => a + b, 0);
     }
 
     scrollListToMessageOffset = () => {
-        const index = this.moreNewMessages ? this.props.postIds.length : this.newMessagesIndex;
+        const index = this.moreNewMessages ? this.props.postIds.length - 1 : this.newMessagesIndex;
+
         if (index !== -1) {
             let offset = this.getMeasurementOffset(index);
-
             const windowHeight = this.state.postListHeight;
-            if (index !== this.props.postIds.length - 1) {
-                if (offset < windowHeight) {
-                    return; // no need to scroll since item is in view
-                } else if (offset > windowHeight) {
-                    offset = (offset - (windowHeight / 2)) + this.itemMeasurements[index];
-                }
+
+            if (offset < windowHeight) {
+                return;
             }
+
+            const upperBound = offset + windowHeight;
+            offset = offset - ((upperBound - offset) / 2);
 
             InteractionManager.runAfterInteractions(() => {
                 if (this.refs.list) {
@@ -184,14 +197,17 @@ export default class PostList extends PureComponent {
     renderItem = ({item, index}) => {
         if (item === START_OF_NEW_MESSAGES) {
             this.newMessagesIndex = index;
+
+            // postIds includes a date item after the new message indicator so 2
+            // needs to be added to the index for the length check to be correct.
             this.moreNewMessages = this.props.postIds.length === index + 2;
+
+            this.itemMeasurements[index] = NEW_MESSAGES_HEIGHT;
             return (
-                <NewMessagesDividerWithLayout
+                <NewMessagesDivider
                     index={index}
-                    onLayoutCalled={this.measureItem}
                     theme={this.props.theme}
                     moreMessages={this.moreNewMessages}
-                    shouldCallOnLayout={this.props.measureCellLayout && !this.newMessageScrolledTo}
                 />
             );
         } else if (item.indexOf(DATE_LINE) === 0) {
@@ -210,12 +226,11 @@ export default class PostList extends PureComponent {
     };
 
     renderDateHeader = (date, index) => {
+        this.itemMeasurements[index] = DATE_HEADER_HEIGHT;
         return (
-            <DateHeaderWithLayout
+            <DateHeader
                 date={date}
                 index={index}
-                onLayoutCalled={this.measureItem}
-                shouldCallOnLayout={this.props.measureCellLayout && !this.newMessageScrolledTo}
             />
         );
     };
@@ -290,7 +305,8 @@ export default class PostList extends PureComponent {
             highlightPostId,
             initialBatchToRender,
             loadMore,
-            postIds
+            postIds,
+            showLoadMore
         } = this.props;
 
         const refreshControl = {
@@ -306,9 +322,9 @@ export default class PostList extends PureComponent {
                 onLayout={this.onLayout}
                 ref='list'
                 data={postIds}
-                extraData={this.makeExtraData(channelId, highlightPostId)}
-                initialNumToRender={initialBatchToRender}
-                maxToRenderPerBatch={initialBatchToRender + 1}
+                extraData={this.makeExtraData(channelId, highlightPostId, showLoadMore)}
+                initialNumToRender={INITAL_BATCH_TO_RENDER}
+                maxToRenderPerBatch={INITAL_BATCH_TO_RENDER + 1}
                 inverted={true}
                 keyExtractor={this.keyExtractor}
                 ListFooterComponent={this.renderFooter}

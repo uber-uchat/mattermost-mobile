@@ -5,14 +5,14 @@
 .PHONY: build-ios build-android unsigned-ios unsigned-android
 .PHONY: test help
 
-POD := $(shell command -v pod 2> /dev/null)
+POD := $(shell which pod 2> /dev/null)
 OS := $(shell sh -c 'uname -s 2>/dev/null')
 BASE_ASSETS = $(shell find assets/base -type d) $(shell find assets/base -type f -name '*')
 OVERRIDE_ASSETS = $(shell find assets/override -type d 2> /dev/null) $(shell find assets/override -type f -name '*' 2> /dev/null)
 
 .yarninstall: package.json
-	@if ! [ $(shell command -v yarn 2> /dev/null) ]; then \
-		@echo "yarn is not installed https://yarnpkg.com"; \
+	@if ! [ $(shell which yarn 2> /dev/null) ]; then \
+		echo "yarn is not installed https://yarnpkg.com"; \
 		exit 1; \
 	fi
 
@@ -75,12 +75,11 @@ post-install:
 	@sed -i'' -e 's|"./lib/locales": false|"./lib/locales": "./lib/locales"|g' node_modules/intl-relativeformat/package.json
 	@sed -i'' -e 's|"./locale-data/complete.js": false|"./locale-data/complete.js": "./locale-data/complete.js"|g' node_modules/intl/package.json
 	@sed -i'' -e 's|auto("auto", Configuration.ORIENTATION_UNDEFINED, ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED);|auto("auto", Configuration.ORIENTATION_UNDEFINED, ActivityInfo.SCREEN_ORIENTATION_FULL_USER);|g' node_modules/react-native-navigation/android/app/src/main/java/com/reactnativenavigation/params/Orientation.java
-	@sed -i'' -e "s|var AndroidTextInput = requireNativeComponent('AndroidTextInput', null);|var AndroidTextInput = requireNativeComponent('CustomTextInput', null);|g" node_modules/react-native/Libraries/Components/TextInput/TextInput.js
+	@sed -i'' -e "s|super.onBackPressed();|this.moveTaskToBack(true);|g" node_modules/react-native-navigation/android/app/src/main/java/com/reactnativenavigation/controllers/NavigationActivity.java
 	@if [ $(shell grep "const Platform" node_modules/react-native/Libraries/Lists/VirtualizedList.js | grep -civ grep) -eq 0 ]; then \
 		sed $ -i'' -e "s|const ReactNative = require('ReactNative');|const ReactNative = require('ReactNative');`echo $\\\\\\r;`const Platform = require('Platform');|g" node_modules/react-native/Libraries/Lists/VirtualizedList.js; \
 	fi
 	@sed -i'' -e 's|transform: \[{scaleY: -1}\],|...Platform.select({android: {transform: \[{perspective: 1}, {scaleY: -1}\]}, ios: {transform: \[{scaleY: -1}\]}}),|g' node_modules/react-native/Libraries/Lists/VirtualizedList.js
-	@cd ./node_modules/react-native-svg/ios && rm -rf PerformanceBezier QuartzBookPack && yarn run postinstall
 	@cd ./node_modules/mattermost-redux && yarn run build
 
 start: | pre-run ## Starts the React Native packager server
@@ -94,39 +93,39 @@ start: | pre-run ## Starts the React Native packager server
 
 stop: ## Stops the React Native packager server
 	@echo Stopping React Native packager server
-	@if [ $(shell ps -e | grep -i "cli.js start" | grep -civ grep) -eq 1 ]; then \
-		ps -e | grep -i "cli.js start" | grep -iv grep | awk '{print $$1}' | xargs kill -9; \
+	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 1 ]; then \
+		ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9; \
 		echo React Native packager server stopped; \
 	else \
 		echo No React Native packager server running; \
 	fi
 
 check-device-ios:
-	@if ! [ $(shell command -v xcodebuild) ]; then \
+	@if ! [ $(shell which xcodebuild) ]; then \
 		echo "xcode is not installed"; \
 		exit 1; \
 	fi
-	@if ! [ $(shell command -v watchman) ]; then \
+	@if ! [ $(shell which watchman) ]; then \
 		echo "watchman is not installed"; \
 		exit 1; \
 	fi
 
 check-device-android:
 	@if ! [ $(ANDROID_HOME) ]; then \
-		@echo "ANDROID_HOME is not set"; \
-		@exit 1; \
+		echo "ANDROID_HOME is not set"; \
+		exit 1; \
 	fi
-	@if ! [ $(shell command -v adb 2> /dev/null) ]; then \
-		@echo "adb is not installed"; \
-		@exit 1; \
+	@if ! [ $(shell which adb 2> /dev/null) ]; then \
+		echo "adb is not installed"; \
+		exit 1; \
 	fi
 
 	@echo "Connect your Android device or open the emulator"
 	@adb wait-for-device
 
-	@if ! [ $(shell command -v watchman 2> /dev/null) ]; then \
-		@echo "watchman is not installed"; \
-		@exit 1; \
+	@if ! [ $(shell which watchman 2> /dev/null) ]; then \
+		echo "watchman is not installed"; \
+		exit 1; \
 	fi
 
 prepare-android-build:
@@ -150,7 +149,7 @@ run-ios: | check-device-ios pre-run ## Runs the app on an iOS simulator
 run-android: | check-device-android pre-run prepare-android-build ## Runs the app on an Android emulator or dev device
 	@if [ $(shell ps -e | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
         echo Starting React Native packager server; \
-    	node ./node_modules/react-native/local-cli/cli.js start & echo echo Running Android app in development; \
+    	node ./node_modules/react-native/local-cli/cli.js start & echo Running Android app in development; \
     	if [ ! -z ${VARIANT} ]; then \
     		react-native run-android --no-packager --variant=${VARIANT}; \
     	else \
@@ -166,7 +165,7 @@ run-android: | check-device-android pre-run prepare-android-build ## Runs the ap
 		fi; \
     fi
 
-build-ios: | pre-run check-style
+build-ios: | pre-run check-style ## Creates an iOS build
 ifneq ($(IOS_APP_GROUP),)
 	@mkdir -p assets/override
 	@echo "{\n\t\"AppGroupId\": \"$$IOS_APP_GROUP\"\n}" > assets/override/config.json
@@ -180,7 +179,7 @@ endif
 	@ps -e | grep -i "cli.js start" | grep -iv grep | awk '{print $$1}' | xargs kill -9
 	@rm -rf assets/override
 
-build-android: | pre-run check-style prepare-android-build
+build-android: | pre-run check-style prepare-android-build ## Creates an Android build
 	@if [ $(shell ps -e | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		node ./node_modules/react-native/local-cli/cli.js start & echo; \

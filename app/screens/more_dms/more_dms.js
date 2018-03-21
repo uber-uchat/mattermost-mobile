@@ -14,6 +14,7 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import {getGroupDisplayNameFromUserIds} from 'mattermost-redux/utils/channel_utils';
 import {displayUsername, filterProfilesMatchingTerm} from 'mattermost-redux/utils/user_utils';
 
+import CustomFlatList from 'app/components/custom_flat_list';
 import CustomSectionList from 'app/components/custom_section_list';
 import UserListRow from 'app/components/custom_list/user_list_row';
 import Loading from 'app/components/loading';
@@ -91,13 +92,25 @@ class MoreDirectMessages extends PureComponent {
         const {getRequest} = this.props;
         if (getRequest.status === RequestStatus.STARTED &&
             nextProps.getRequest.status === RequestStatus.SUCCESS) {
-            const {page} = this.state;
-            const profiles = nextProps.profiles.slice(0, (page + 1) * General.PROFILE_CHUNK_SIZE);
+            const profiles = this.sliceProfiles(nextProps.profiles);
             this.setState({profiles, showNoResults: true});
         } else if (this.state.searching &&
             nextProps.searchRequest.status === RequestStatus.SUCCESS) {
-            const results = filterProfilesMatchingTerm(nextProps.profiles, this.state.term);
-            this.setState({profiles: results, showNoResults: true});
+            const exactMatches = [];
+            let results = filterProfilesMatchingTerm(nextProps.profiles, this.state.term).filter((p) => {
+                if (p.username === this.state.term || p.username.startsWith(this.state.term)) {
+                    exactMatches.push(p);
+                    return false;
+                }
+
+                return true;
+            });
+
+            if (this.state.selectedCount > 0) {
+                results = this.removeCurrentUserFromProfiles(results);
+            }
+
+            this.setState({profiles: [...exactMatches, ...results], showNoResults: true});
         }
     }
 
@@ -110,6 +123,16 @@ class MoreDirectMessages extends PureComponent {
         } else if (!startEnabled && !wasStartEnabled) {
             this.updateNavigationButtons(false);
         }
+    }
+
+    removeCurrentUserFromProfiles(profiles = []) {
+        return profiles.filter((profile) => {
+            return profile.id !== this.props.currentUserId;
+        });
+    }
+
+    sliceProfiles(profiles = []) {
+        return profiles.slice(0, (this.state.page + 1) * General.PROFILE_CHUNK_SIZE);
     }
 
     isStartEnabled = (state) => {
@@ -163,11 +186,20 @@ class MoreDirectMessages extends PureComponent {
     };
 
     cancelSearch = () => {
+        const {profiles} = this.props;
+
+        let newProfiles;
+        if (this.state.selectedCount > 0) {
+            newProfiles = this.removeCurrentUserFromProfiles(profiles);
+        } else {
+            newProfiles = this.sliceProfiles(profiles);
+        }
+
         this.setState({
             searching: false,
             term: '',
             page: 0,
-            profiles: this.props.profiles
+            profiles: newProfiles
         });
     };
 
@@ -208,42 +240,81 @@ class MoreDirectMessages extends PureComponent {
     };
 
     handleSelectUser = (id) => {
-        this.setState((prevState) => {
-            const wasSelected = prevState.selectedIds[id];
+        const {currentUserId} = this.props;
 
-            // Prevent selecting too many users
-            if (!wasSelected && Object.keys(prevState.selectedIds).length >= General.MAX_USERS_IN_GM - 1) {
-                return {};
-            }
+        if (id === currentUserId) {
+            const selectedId = {};
+            selectedId[currentUserId] = true;
 
-            const selectedIds = {...prevState.selectedIds};
+            this.startConversation(selectedId);
+        } else {
+            this.setState((prevState) => {
+                const {
+                    profiles,
+                    selectedCount,
+                    selectedIds
+                } = prevState;
 
-            if (wasSelected) {
-                Reflect.deleteProperty(selectedIds, id);
-            } else {
-                selectedIds[id] = true;
-            }
+                const wasSelected = selectedIds[id];
 
-            return {
-                selectedIds,
-                selectedCount: Object.keys(selectedIds).length
-            };
-        });
+                // Prevent selecting too many users
+                if (!wasSelected && Object.keys(selectedIds).length >= General.MAX_USERS_IN_GM - 1) {
+                    return {};
+                }
+
+                const newSelectedIds = Object.assign({}, selectedIds);
+
+                let newProfiles = profiles;
+                if (wasSelected) {
+                    Reflect.deleteProperty(newSelectedIds, id);
+                    if (selectedCount === 1) {
+                        newProfiles = this.sliceProfiles(this.props.profiles);
+                    }
+                } else {
+                    newSelectedIds[id] = true;
+                    newProfiles = this.removeCurrentUserFromProfiles(profiles);
+                }
+
+                return {
+                    profiles: newProfiles,
+                    selectedIds: newSelectedIds,
+                    selectedCount: Object.keys(newSelectedIds).length
+                };
+            });
+        }
     };
 
     handleRemoveUser = (id) => {
         this.setState((prevState) => {
-            const selectedIds = {...prevState.selectedIds};
-            Reflect.deleteProperty(selectedIds, id);
+            const {
+                profiles,
+                selectedCount,
+                selectedIds
+            } = prevState;
+
+            const newSelectedIds = Object.assign({}, selectedIds);
+
+            Reflect.deleteProperty(newSelectedIds, id);
+
+            let newProfiles = profiles;
+            if (selectedCount === 1) {
+                newProfiles = this.sliceProfiles(this.props.profiles);
+            }
 
             return {
-                selectedIds,
-                selectedCount: Object.keys(selectedIds).length
+                profiles: newProfiles,
+                selectedIds: newSelectedIds,
+                selectedCount: Object.keys(newSelectedIds).length
             };
         });
     }
 
-    startConversation = async () => {
+    startConversation = async (selectedId) => {
+        const {
+            currentDisplayName,
+            actions
+        } = this.props;
+
         if (this.state.loadingChannel) {
             return;
         }
@@ -253,9 +324,9 @@ class MoreDirectMessages extends PureComponent {
         });
 
         // Save the current channel display name in case it fails
-        const currentChannelDisplayName = this.props.currentDisplayName;
+        const currentChannelDisplayName = currentDisplayName;
 
-        const selectedIds = Object.keys(this.state.selectedIds);
+        const selectedIds = selectedId ? Object.keys(selectedId) : Object.keys(this.state.selectedIds);
         let success;
         if (selectedIds.length === 0) {
             success = false;
@@ -275,19 +346,27 @@ class MoreDirectMessages extends PureComponent {
                 loadingChannel: false
             });
 
-            this.props.actions.setChannelDisplayName(currentChannelDisplayName);
+            actions.setChannelDisplayName(currentChannelDisplayName);
         }
     };
 
     makeGroupChannel = async (ids) => {
-        const result = await this.props.actions.makeGroupChannel(ids);
+        const {
+            actions,
+            allProfiles,
+            currentUserId,
+            intl,
+            teammateNameDisplay
+        } = this.props;
 
-        const displayName = getGroupDisplayNameFromUserIds(ids, this.props.allProfiles, this.props.currentUserId, this.props.teammateNameDisplay);
-        this.props.actions.setChannelDisplayName(displayName);
+        const result = await actions.makeGroupChannel(ids);
+
+        const displayName = getGroupDisplayNameFromUserIds(ids, allProfiles, currentUserId, teammateNameDisplay);
+        actions.setChannelDisplayName(displayName);
 
         if (result.error) {
             alertErrorWithFallback(
-                this.props.intl,
+                intl,
                 result.error,
                 {
                     id: 'mobile.open_gm.error',
@@ -300,16 +379,22 @@ class MoreDirectMessages extends PureComponent {
     };
 
     makeDirectChannel = async (id) => {
+        const {
+            actions,
+            intl,
+            teammateNameDisplay
+        } = this.props;
+
         const user = this.state.profiles[id];
 
-        const displayName = displayUsername(user, this.props.teammateNameDisplay);
-        this.props.actions.setChannelDisplayName(displayName);
+        const displayName = displayUsername(user, teammateNameDisplay);
+        actions.setChannelDisplayName(displayName);
 
-        const result = await this.props.actions.makeDirectChannel(id);
+        const result = await actions.makeDirectChannel(id);
 
         if (result.error) {
             alertErrorWithFallback(
-                this.props.intl,
+                intl,
                 result.error,
                 {
                     id: 'mobile.open_dm.error',
@@ -378,40 +463,25 @@ class MoreDirectMessages extends PureComponent {
             );
         }
 
-        return (
-            <View style={style.container}>
-                <StatusBar/>
-                <View style={style.searchContainer}>
-                    <SearchBar
-                        ref='search_bar'
-                        placeholder={this.props.intl.formatMessage({id: 'search_bar.search', defaultMessage: 'Search'})}
-                        cancelTitle={this.props.intl.formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'})}
-                        backgroundColor='transparent'
-                        inputHeight={33}
-                        inputStyle={{
-                            backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
-                            color: theme.centerChannelColor,
-                            fontSize: 15,
-                            lineHeight: 66
-                        }}
-                        placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.5)}
-                        tintColorSearch={changeOpacity(theme.centerChannelColor, 0.5)}
-                        tintColorDelete={changeOpacity(theme.centerChannelColor, 0.5)}
-                        titleCancelColor={theme.centerChannelColor}
-                        onChangeText={this.onSearch}
-                        onSearchButtonPress={this.onSearch}
-                        onCancelButtonPress={this.cancelSearch}
-                        value={term}
-                    />
-                    <SelectedUsers
-                        selectedIds={this.state.selectedIds}
-                        warnCount={5}
-                        warnMessage={{id: 'mobile.more_dms.add_more', defaultMessage: 'You can add {remaining, number} more users'}}
-                        maxCount={7}
-                        maxMessage={{id: 'mobile.more_dms.cannot_add_more', defaultMessage: 'You cannot add more users'}}
-                        onRemove={this.handleRemoveUser}
-                    />
-                </View>
+        let listComponent;
+        if (term.length) {
+            listComponent = (
+                <CustomFlatList
+                    theme={theme}
+                    items={this.state.profiles}
+                    renderItem={this.renderItem}
+                    showNoResults={showNoResults}
+                    compareItems={this.compareItems}
+                    extraData={this.state.selectedIds}
+                    onListEndReached={this.loadMoreProfiles}
+                    listScrollRenderAheadDistance={50}
+                    onRowPress={this.handleSelectUser}
+                    loading={isLoading}
+                    loadingText={loadingText}
+                />
+            );
+        } else {
+            listComponent = (
                 <CustomSectionList
                     theme={theme}
                     items={this.state.profiles}
@@ -426,6 +496,44 @@ class MoreDirectMessages extends PureComponent {
                     loading={isLoading}
                     loadingText={loadingText}
                 />
+            );
+        }
+
+        return (
+            <View style={style.container}>
+                <StatusBar/>
+                <View style={style.searchContainer}>
+                    <SearchBar
+                        ref='search_bar'
+                        placeholder={this.props.intl.formatMessage({id: 'search_bar.search', defaultMessage: 'Search'})}
+                        cancelTitle={this.props.intl.formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'})}
+                        backgroundColor='transparent'
+                        inputHeight={33}
+                        inputStyle={{
+                            backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
+                            color: theme.centerChannelColor,
+                            fontSize: 15
+                        }}
+                        placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.5)}
+                        tintColorSearch={changeOpacity(theme.centerChannelColor, 0.5)}
+                        tintColorDelete={changeOpacity(theme.centerChannelColor, 0.5)}
+                        titleCancelColor={theme.centerChannelColor}
+                        onChangeText={this.onSearch}
+                        onSearchButtonPress={this.onSearch}
+                        onCancelButtonPress={this.cancelSearch}
+                        autoCapitalize='none'
+                        value={term}
+                    />
+                    <SelectedUsers
+                        selectedIds={this.state.selectedIds}
+                        warnCount={5}
+                        warnMessage={{id: 'mobile.more_dms.add_more', defaultMessage: 'You can add {remaining, number} more users'}}
+                        maxCount={7}
+                        maxMessage={{id: 'mobile.more_dms.cannot_add_more', defaultMessage: 'You cannot add more users'}}
+                        onRemove={this.handleRemoveUser}
+                    />
+                </View>
+                {listComponent}
             </View>
         );
     }
