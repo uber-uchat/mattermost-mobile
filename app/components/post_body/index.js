@@ -12,19 +12,8 @@ import {isEdited, isPostEphemeral, isSystemMessage} from 'mattermost-redux/utils
 
 import PostBody from './post_body';
 
-const POST_TIMEOUT = 20000;
-
 function mapStateToProps(state, ownProps) {
     const post = getPost(state, ownProps.postId);
-
-    let isFailed = post.failed;
-    let isPending = post.id === post.pending_post_id;
-    if (isPending && Date.now() - post.create_at > POST_TIMEOUT) {
-        // Something has prevented the post from being set to failed, so it's safe to assume
-        // that it has actually failed by this point
-        isFailed = true;
-        isPending = false;
-    }
 
     return {
         postProps: post.props || {},
@@ -32,8 +21,8 @@ function mapStateToProps(state, ownProps) {
         hasBeenDeleted: post.state === Posts.POST_DELETED,
         hasBeenEdited: isEdited(post),
         hasReactions: post.has_reactions,
-        isFailed,
-        isPending,
+        isFailed: post.failed,
+        isPending: post.id === post.pending_post_id,
         isPostEphemeral: isPostEphemeral(post),
         isSystemMessage: isSystemMessage(post),
         message: post.message,

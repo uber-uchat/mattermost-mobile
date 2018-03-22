@@ -15,7 +15,6 @@ import DeviceInfo from 'react-native-device-info';
 import IonIcon from 'react-native-vector-icons/Ionicons';
 
 import FormattedText from 'app/components/formatted_text';
-import {ViewTypes} from 'app/constants';
 import checkNetwork from 'app/utils/network';
 
 import {RequestStatus} from 'mattermost-redux/constants';
@@ -24,14 +23,6 @@ const HEIGHT = 38;
 const OFFLINE = 'offline';
 const CONNECTING = 'connecting';
 const CONNECTED = 'connected';
-const {
-    ANDROID_TOP_LANDSCAPE,
-    ANDROID_TOP_PORTRAIT,
-    IOS_TOP_LANDSCAPE,
-    IOS_TOP_PORTRAIT,
-    IOSX_TOP_PORTRAIT,
-    STATUS_BAR_HEIGHT
-} = ViewTypes;
 
 export default class OfflineIndicator extends Component {
     static propTypes = {
@@ -135,23 +126,20 @@ export default class OfflineIndicator extends Component {
     };
 
     getNavBarHeight = (isLandscape) => {
-        if (Platform.OS === 'android') {
-            if (isLandscape) {
-                return ANDROID_TOP_LANDSCAPE;
+        let navBar = 46;
+        if (Platform.OS === 'ios') {
+            if (this.isX && isLandscape) {
+                navBar = 32;
+            } else if (this.isX) {
+                navBar = 88;
+            } else if (isLandscape) {
+                navBar = 52;
+            } else {
+                navBar = 64;
             }
-
-            return ANDROID_TOP_PORTRAIT;
         }
 
-        if (this.isX && isLandscape) {
-            return IOS_TOP_LANDSCAPE;
-        } else if (this.isX) {
-            return IOSX_TOP_PORTRAIT;
-        } else if (isLandscape) {
-            return IOS_TOP_LANDSCAPE + STATUS_BAR_HEIGHT;
-        }
-
-        return IOS_TOP_PORTRAIT;
+        return navBar;
     };
 
     offline = () => {

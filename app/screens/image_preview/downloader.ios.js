@@ -5,7 +5,7 @@ import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {Alert, Animated, CameraRoll, InteractionManager, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
 import RNFetchBlob from 'react-native-fetch-blob';
-import {CircularProgress} from 'react-native-circular-progress';
+import {AnimatedCircularProgress} from 'react-native-circular-progress';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {intlShape} from 'react-intl';
 
@@ -85,16 +85,25 @@ export default class Downloader extends PureComponent {
 
     downloadDidCancel = () => {
         if (this.mounted) {
+            this.setState({progress: 0, started: false, didCancel: false});
+        }
+        this.props.onDownloadCancel();
+    };
+
+    handleCancelDownload = () => {
+        if (this.mounted) {
             this.setState({
                 didCancel: true,
                 progress: 0,
                 started: false
             });
         }
+
         if (this.downloadTask) {
-            this.downloadTask.cancel();
+            this.downloadTask.cancel(() => {
+                this.props.onDownloadCancel();
+            });
         }
-        this.props.onDownloadCancel();
     };
 
     recenterDownloader = (props) => {
@@ -134,7 +143,7 @@ export default class Downloader extends PureComponent {
                     {!isVideo &&
                     <TouchableOpacity
                         style={styles.cancelButton}
-                        onPress={this.downloadDidCancel}
+                        onPress={this.handleCancelDownload}
                     >
                         <FormattedText
                             id='channel_modal.cancel'
@@ -218,12 +227,7 @@ export default class Downloader extends PureComponent {
     saveVideo = (videoPath) => {
         const {deviceHeight} = this.props;
         const top = (deviceHeight / 2) - 100;
-        this.setState({
-            progress: 100,
-            started: true,
-            force: true,
-            isVideo: true
-        });
+        this.setState({progress: 100, started: true, force: true, isVideo: true});
         Animated.spring(this.state.downloaderTop, {
             toValue: top,
             tension: 8,
@@ -292,16 +296,14 @@ export default class Downloader extends PureComponent {
                 options.appendExt = file.extension;
             }
 
-            this.downloadTask = RNFetchBlob.config(options).fetch('GET', imageUrl);
-            this.downloadTask.progress((received, total) => {
-                const progress = (received / total) * 100;
-                if (this.mounted) {
-                    this.setState({
-                        progress,
-                        started: true
-                    });
-                }
-            });
+            this.downloadTask = RNFetchBlob.config(options).fetch('GET', imageUrl).
+                progress((received, total) => {
+                    const progress = (received / total) * 100;
+                    if (this.mounted) {
+                        this.setState({progress, started: true});
+                    }
+                });
+
             const res = await this.downloadTask;
             let path = res.path();
 
@@ -362,11 +364,13 @@ export default class Downloader extends PureComponent {
 
     render() {
         const {show, downloadPath} = this.props;
-        if ((!show || this.state.didCancel) && !this.state.force) {
+        if (!show && !this.state.force) {
             return null;
         }
 
-        const {progress, started} = this.state;
+        const {didCancel, progress, started} = this.state;
+
+        const trueProgress = didCancel ? 0 : progress;
 
         const containerHeight = show ? '100%' : 0;
 
@@ -376,13 +380,14 @@ export default class Downloader extends PureComponent {
         } else {
             component = this.renderProgress;
         }
+
         return (
             <View style={[styles.container, {height: containerHeight}]}>
                 <AnimatedView style={[styles.downloader, {top: this.state.downloaderTop}]}>
                     <View style={styles.progressCircleContent}>
-                        <CircularProgress
+                        <AnimatedCircularProgress
                             size={120}
-                            fill={progress}
+                            fill={trueProgress}
                             width={4}
                             backgroundColor='rgba(255, 255, 255, 0.5)'
                             tintColor='white'
@@ -390,7 +395,7 @@ export default class Downloader extends PureComponent {
                             style={styles.progressCircle}
                         >
                             {component}
-                        </CircularProgress>
+                        </AnimatedCircularProgress>
                     </View>
                 </AnimatedView>
             </View>

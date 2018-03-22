@@ -2,7 +2,7 @@
 // See License.txt for license information.
 
 import {batchActions} from 'redux-batched-actions';
-import {AsyncStorage, Platform} from 'react-native';
+import {AsyncStorage} from 'react-native';
 import {createBlacklistFilter} from 'redux-persist-transform-filter';
 import {createTransform, persistStore} from 'redux-persist';
 
@@ -13,15 +13,11 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {NavigationTypes, ViewTypes} from 'app/constants';
 import appReducer from 'app/reducers';
-import {throttle} from 'app/utils/general';
 import networkConnectionListener from 'app/utils/network';
 import {createSentryMiddleware} from 'app/utils/sentry/middleware';
 import {promiseTimeout} from 'app/utils/promise_timeout';
 
-import mattermostBucket from 'app/mattermost_bucket';
-import Config from 'assets/config';
-
-import {messageRetention, shareExtensionData} from './middleware';
+import {messageRetention} from './middleware';
 import {transformSet} from './utils';
 
 function getAppReducer() {
@@ -47,7 +43,7 @@ const setTransforms = [
 export default function configureAppStore(initialState) {
     const viewsBlackListFilter = createBlacklistFilter(
         'views',
-        ['extension', 'login', 'root']
+        ['login', 'root']
     );
 
     const typingBlackListFilter = createBlacklistFilter(
@@ -55,7 +51,7 @@ export default function configureAppStore(initialState) {
         ['typing']
     );
 
-    const channelViewBlackList = {loading: true, refreshing: true, loadingPosts: true, postVisibility: true, retryFailed: true, loadMorePostsVisible: true};
+    const channelViewBlackList = {loading: true, refreshing: true, loadingPosts: true, postVisibility: true, retryFailed: true};
     const channelViewBlackListFilter = createTransform(
         (inboundState) => {
             const channel = {};
@@ -73,26 +69,6 @@ export default function configureAppStore(initialState) {
         },
         null,
         {whitelist: ['views']} // Only run this filter the views state (or any other entry that ends up being named views)
-    );
-
-    const emojiBlackList = {nonExistentEmoji: true};
-    const emojiBlackListFilter = createTransform(
-        (inboundState) => {
-            const emojis = {};
-
-            for (const emojiKey of Object.keys(inboundState.emojis)) {
-                if (!emojiBlackList[emojiKey]) {
-                    emojis[emojiKey] = inboundState.emojis[emojiKey];
-                }
-            }
-
-            return {
-                ...inboundState,
-                emojis
-            };
-        },
-        null,
-        {whitelist: ['entities']} // Only run this filter on the entities state (or any other entry that ends up being named entities)
     );
 
     const setTransformer = createTransform(
@@ -153,16 +129,6 @@ export default function configureAppStore(initialState) {
             });
 
             let purging = false;
-
-            // for iOS write the entities to a shared file
-            if (Platform.OS === 'ios') {
-                store.subscribe(throttle(() => {
-                    const state = store.getState();
-                    if (state.entities) {
-                        mattermostBucket.writeToFile('entities', JSON.stringify(state.entities), Config.AppGroupId);
-                    }
-                }, 1000));
-            }
 
             // check to see if the logout request was successful
             store.subscribe(async () => {
@@ -240,13 +206,12 @@ export default function configureAppStore(initialState) {
                 setTransformer,
                 viewsBlackListFilter,
                 typingBlackListFilter,
-                channelViewBlackListFilter,
-                emojiBlackListFilter
+                channelViewBlackListFilter
             ]
         }
     };
 
-    const additionalMiddleware = [createSentryMiddleware(), messageRetention, shareExtensionData];
+    const additionalMiddleware = [createSentryMiddleware(), messageRetention];
     return configureStore(initialState, appReducer, offlineOptions, getAppReducer, {
         additionalMiddleware
     });

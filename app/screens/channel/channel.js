@@ -60,8 +60,6 @@ class Channel extends PureComponent {
 
         if (this.props.currentTeamId) {
             this.loadChannels(this.props.currentTeamId);
-        } else {
-            this.props.actions.selectFirstAvailableTeam();
         }
     }
 
@@ -248,6 +246,7 @@ class Channel extends PureComponent {
                             <View style={style.postList}>
                                 <ChannelPostList navigator={navigator}/>
                             </View>
+                            <ChannelLoader theme={theme}/>
                             <PostTextbox
                                 ref={this.attachPostTextbox}
                                 navigator={navigator}

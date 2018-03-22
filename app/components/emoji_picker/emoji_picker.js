@@ -391,7 +391,6 @@ export default class EmojiPicker extends PureComponent {
                             titleCancelColor={theme.centerChannelColor}
                             onChangeText={this.changeSearchTerm}
                             onCancelButtonPress={this.cancelSearch}
-                            autoCapitalize='none'
                             value={searchTerm}
                         />
                     </View>

@@ -313,16 +313,6 @@ function lastGetPosts(state = {}, action) {
     }
 }
 
-function loadMorePostsVisible(state = true, action) {
-    switch (action.type) {
-    case ViewTypes.SET_LOAD_MORE_POSTS_VISIBLE:
-        return action.data;
-
-    default:
-        return state;
-    }
-}
-
 export default combineReducers({
     displayName,
     drafts,
@@ -331,6 +321,5 @@ export default combineReducers({
     postVisibility,
     loadingPosts,
     lastGetPosts,
-    retryFailed,
-    loadMorePostsVisible
+    retryFailed
 });

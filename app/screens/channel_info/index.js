@@ -25,7 +25,7 @@ import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/use
 
 import ChannelInfo from './channel_info';
 
-function mapStateToProps(state) {//eslint-disable-line complexity
+function mapStateToProps(state) {
     const {config, license} = state.entities.general;
     const currentChannel = getCurrentChannel(state) || {};
     const currentChannelCreator = getUser(state, currentChannel.creator_id);
@@ -45,14 +45,9 @@ function mapStateToProps(state) {//eslint-disable-line complexity
         status = getStatusForUserId(state, teammateId);
     }
 
-    let canEditChannel = showManagementOptions(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles));
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
-        canEditChannel = (isAdmin(roles) || isSystemAdmin(roles) || isChannelAdmin(roles)) || config.ExperimentalTownSquareIsReadOnly !== 'true';
-    }
-
     return {
         canDeleteChannel: showDeleteOption(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles)),
-        canEditChannel,
+        canEditChannel: showManagementOptions(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles)),
         currentChannel,
         currentChannelCreatorName,
         currentChannelMemberCount,

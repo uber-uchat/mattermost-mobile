@@ -54,14 +54,12 @@ const ViewTypes = keyMirror({
     INCREASE_POST_VISIBILITY: null,
     RECEIVED_FOCUSED_POST: null,
     LOADING_POSTS: null,
-    SET_LOAD_MORE_POSTS_VISIBLE: null,
 
     RECEIVED_POSTS_FOR_CHANNEL_AT_TIME: null,
 
     SET_LAST_UPGRADE_CHECK: null,
 
-    ADD_RECENT_EMOJI: null,
-    EXTENSION_SELECTED_TEAM_ID: null
+    ADD_RECENT_EMOJI: null
 });
 
 export default {
@@ -69,13 +67,11 @@ export default {
     POST_VISIBILITY_CHUNK_SIZE: 15,
     FEATURE_TOGGLE_PREFIX: 'feature_enabled_',
     EMBED_PREVIEW: 'embed_preview',
-    LINK_PREVIEW_DISPLAY: 'link_previews',
     MIN_CHANNELNAME_LENGTH: 2,
     MAX_CHANNELNAME_LENGTH: 22,
     ANDROID_TOP_LANDSCAPE: 46,
     ANDROID_TOP_PORTRAIT: 56,
     IOS_TOP_LANDSCAPE: 32,
     IOS_TOP_PORTRAIT: 64,
-    IOSX_TOP_PORTRAIT: 88,
     STATUS_BAR_HEIGHT: 20
 };

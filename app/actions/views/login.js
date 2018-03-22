@@ -1,9 +1,7 @@
 // Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
-
-import {getDataRetentionPolicy} from 'mattermost-redux/actions/general';
 import {GeneralTypes} from 'mattermost-redux/action_types';
-import {Client4} from 'mattermost-redux/client';
+import {Client, Client4} from 'mattermost-redux/client';
 
 import {ViewTypes} from 'app/constants';
 
@@ -27,10 +25,8 @@ export function handlePasswordChanged(password) {
 
 export function handleSuccessfulLogin() {
     return async (dispatch, getState) => {
-        const {config, license} = getState().entities.general;
         const token = Client4.getToken();
         const url = Client4.getUrl();
-
         dispatch({
             type: GeneralTypes.RECEIVED_APP_CREDENTIALS,
             data: {
@@ -39,12 +35,8 @@ export function handleSuccessfulLogin() {
             }
         }, getState);
 
-        if (config.DataRetentionEnableMessageDeletion && config.DataRetentionEnableMessageDeletion === 'true' &&
-            license.IsLicensed === 'true' && license.DataRetention === 'true') {
-            getDataRetentionPolicy()(dispatch, getState);
-        } else {
-            dispatch({type: GeneralTypes.RECEIVED_DATA_RETENTION_POLICY, data: {}});
-        }
+        Client.setToken(token);
+        Client.setUrl(url);
 
         return true;
     };

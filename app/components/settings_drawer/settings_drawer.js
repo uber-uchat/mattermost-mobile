@@ -179,6 +179,35 @@ export default class SettingsDrawer extends PureComponent {
         });
     });
 
+    goToUserProfile = () => {
+        const {currentUser, navigator, theme} = this.props;
+        const {formatMessage} = this.context.intl;
+
+        this.closeSettingsDrawer();
+        navigator.showModal({
+            screen: 'UserProfile',
+            title: formatMessage({id: 'mobile.routes.user_profile', defaultMessage: 'Profile'}),
+            animationType: 'slide-up',
+            animated: true,
+            backButtonTitle: '',
+            passProps: {
+                userId: currentUser.id
+            },
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg
+            },
+            navigatorButtons: {
+                leftButtons: [{
+                    id: 'close-settings',
+                    icon: this.closeButton
+                }]
+            }
+        });
+    };
+
     goToEditProfile = wrapWithPreventDoubleTap(() => {
         const {currentUser, navigator, theme} = this.props;
         const {formatMessage} = this.context.intl;
@@ -275,7 +304,7 @@ export default class SettingsDrawer extends PureComponent {
                         contentContainerStyle={style.wrapper}
                     >
                         <UserInfo
-                            onPress={this.goToEditProfile}
+                            onPress={this.goToUserProfile}
                             user={currentUser}
                         />
                         <View style={style.block}>

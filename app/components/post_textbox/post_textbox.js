@@ -3,7 +3,7 @@
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {Alert, BackHandler, Keyboard, Platform, Text, TextInput, TouchableOpacity, View} from 'react-native';
+import {Alert, BackHandler, Keyboard, Platform, TextInput, TouchableOpacity, View} from 'react-native';
 import {intlShape} from 'react-intl';
 import {RequestStatus} from 'mattermost-redux/constants';
 
@@ -41,8 +41,6 @@ export default class PostTextbox extends PureComponent {
         channelId: PropTypes.string.isRequired,
         channelIsLoading: PropTypes.bool.isRequired,
         currentUserId: PropTypes.string.isRequired,
-        deactivatedChannel: PropTypes.bool.isRequired,
-        disablePostToChannel: PropTypes.bool,
         files: PropTypes.array,
         navigator: PropTypes.object,
         rootId: PropTypes.string,
@@ -52,7 +50,6 @@ export default class PostTextbox extends PureComponent {
     };
 
     static defaultProps = {
-        disablePostToChannel: false,
         files: [],
         rootId: '',
         value: ''
@@ -81,7 +78,7 @@ export default class PostTextbox extends PureComponent {
     }
 
     componentWillReceiveProps(nextProps) {
-        if (nextProps.channelId !== this.props.channelId || nextProps.rootId !== this.props.rootId || nextProps.value !== this.state.value) {
+        if (nextProps.channelId !== this.props.channelId || nextProps.rootId !== this.props.rootId) {
             this.setState({value: nextProps.value});
         }
     }
@@ -98,9 +95,7 @@ export default class PostTextbox extends PureComponent {
     };
 
     blur = () => {
-        if (this.refs.input) {
-            this.refs.input.blur();
-        }
+        this.refs.input.blur();
     };
 
     canSend = () => {
@@ -171,6 +166,14 @@ export default class PostTextbox extends PureComponent {
         return false;
     };
 
+    handleBlur = () => {
+        if (this.refs.input && Platform.OS === 'android') {
+            this.refs.input.setNativeProps({
+                autoScroll: false
+            });
+        }
+    };
+
     handleContentSizeChange = (event) => {
         let contentHeight = event.nativeEvent.contentSize.height;
         if (contentHeight < INITIAL_HEIGHT) {
@@ -187,6 +190,14 @@ export default class PostTextbox extends PureComponent {
     handleEndEditing = (e) => {
         if (e && e.nativeEvent) {
             this.changeDraft(e.nativeEvent.text || '');
+        }
+    };
+
+    handleFocus = () => {
+        if (this.refs.input && Platform.OS === 'android') {
+            this.refs.input.setNativeProps({
+                autoScroll: true
+            });
         }
     };
 
@@ -393,37 +404,21 @@ export default class PostTextbox extends PureComponent {
     };
 
     render() {
-        if (this.props.disablePostToChannel) {
-            return null;
-        }
-
         const {intl} = this.context;
         const {
             canUploadFiles,
             channelId,
             channelIsLoading,
-            deactivatedChannel,
             files,
             navigator,
             rootId,
             theme
         } = this.props;
-
-        const style = getStyleSheet(theme);
-        if (deactivatedChannel) {
-            return (
-                <Text style={style.deactivatedMessage}>
-                    {intl.formatMessage({
-                        id: 'create_post.deactivated',
-                        defaultMessage: 'You are viewing an archived channel with a deactivated user.'
-                    })}
-                </Text>
-            );
-        }
-
         const {showFileMaxWarning} = this.state;
 
+        const style = getStyleSheet(theme);
         const textInputHeight = Math.min(this.state.contentHeight, MAX_CONTENT_HEIGHT);
+
         const textValue = channelIsLoading ? '' : this.state.value;
 
         let placeholder;
@@ -484,6 +479,8 @@ export default class PostTextbox extends PureComponent {
                             style={[style.input, {height: textInputHeight}]}
                             onContentSizeChange={this.handleContentSizeChange}
                             keyboardType={this.state.keyboardType}
+                            onFocus={this.handleFocus}
+                            onBlur={this.handleBlur}
                             onEndEditing={this.handleEndEditing}
                             disableFullscreenUI={true}
                         />
@@ -535,19 +532,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             backgroundColor: theme.centerChannelBg,
             borderTopWidth: 1,
             borderTopColor: changeOpacity(theme.centerChannelColor, 0.20)
-        },
-        deactivatedMessage: {
-            color: changeOpacity(theme.centerChannelColor, 0.8),
-            fontSize: 15,
-            lineHeight: 22,
-            alignItems: 'flex-end',
-            flexDirection: 'row',
-            paddingVertical: 4,
-            backgroundColor: theme.centerChannelBg,
-            borderTopWidth: 1,
-            borderTopColor: changeOpacity(theme.centerChannelColor, 0.20),
-            marginLeft: 10,
-            marginRight: 10
         },
         sendButtonContainer: {
             justifyContent: 'flex-end',

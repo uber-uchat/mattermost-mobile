@@ -4,12 +4,11 @@
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
 
-import {getReactionsForPost, removeReaction} from 'mattermost-redux/actions/posts';
+import {addReaction, getReactionsForPost, removeReaction} from 'mattermost-redux/actions/posts';
 import {makeGetReactionsForPost} from 'mattermost-redux/selectors/entities/posts';
 import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
-import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
-import {addReaction} from 'app/actions/views/emoji';
+import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import Reactions from './reactions';
 

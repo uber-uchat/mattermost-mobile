@@ -37,7 +37,7 @@ export default class DisplaySettings extends PureComponent {
         if (Platform.OS === 'ios') {
             navigator.push({
                 screen: 'ClockDisplay',
-                title: intl.formatMessage({id: 'user.settings.display.clockDisplay', defaultMessage: 'Clock Display'}),
+                title: intl.formatMessage({id: 'mobile.advanced_settings.clockDisplay', defaultMessage: 'Clock Display'}),
                 animated: true,
                 backButtonTitle: '',
                 navigatorStyle: {
@@ -67,7 +67,7 @@ export default class DisplaySettings extends PureComponent {
             clockDisplayModal = (
                 <ClockDisplay
                     showModal={showClockDisplaySettings}
-                    onClose={this.closeClockDisplaySettings}
+                    close={this.closeClockDisplaySettings}
                 />
             );
         }

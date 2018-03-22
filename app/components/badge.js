@@ -74,6 +74,8 @@ export default class Badge extends PureComponent {
 
     onLayout = (e) => {
         if (!this.layoutReady) {
+            const height = Math.max(e.nativeEvent.layout.height, this.props.minHeight);
+            const borderRadius = height / 2;
             let width;
 
             if (e.nativeEvent.layout.width <= e.nativeEvent.layout.height) {
@@ -81,11 +83,11 @@ export default class Badge extends PureComponent {
             } else {
                 width = e.nativeEvent.layout.width + this.props.extraPaddingHorizontal;
             }
-            width = Math.max(width + 10, this.props.minWidth);
-            const borderRadius = width / 2;
+            width = Math.max(width, this.props.minWidth);
             this.setNativeProps({
                 style: {
                     width,
+                    height,
                     borderRadius,
                     opacity: 1
                 }
@@ -139,15 +141,14 @@ export default class Badge extends PureComponent {
 
 const styles = StyleSheet.create({
     badge: {
-        backgroundColor: '#444',
-        borderRadius: 20,
-        height: 20,
+        top: 2,
         padding: 12,
         paddingTop: 3,
         paddingBottom: 3,
+        backgroundColor: '#444',
+        borderRadius: 20,
         position: 'absolute',
-        right: 30,
-        top: 2
+        right: 30
     },
     wrapper: {
         alignItems: 'center',

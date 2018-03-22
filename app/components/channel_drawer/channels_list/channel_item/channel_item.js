@@ -25,13 +25,11 @@ export default class ChannelItem extends PureComponent {
         currentChannelId: PropTypes.string.isRequired,
         displayName: PropTypes.string.isRequired,
         fake: PropTypes.bool,
-        isMyUser: PropTypes.bool,
         isUnread: PropTypes.bool,
         mentions: PropTypes.number.isRequired,
         navigator: PropTypes.object,
         onSelectChannel: PropTypes.func.isRequired,
         status: PropTypes.string,
-        teammateDeletedAt: PropTypes.number,
         type: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired
     };
@@ -76,24 +74,12 @@ export default class ChannelItem extends PureComponent {
             channelId,
             currentChannelId,
             displayName,
-            isMyUser,
             isUnread,
             mentions,
             status,
-            teammateDeletedAt,
             theme,
             type
         } = this.props;
-
-        const {intl} = this.context;
-
-        let channelDisplayName = displayName;
-        if (isMyUser) {
-            channelDisplayName = intl.formatMessage({
-                id: 'channel_header.directchannel.you',
-                defaultMessage: '{displayName} (you)'
-            }, {displayname: displayName});
-        }
 
         const style = getStyleSheet(theme);
         const isActive = channelId === currentChannelId;
@@ -135,7 +121,6 @@ export default class ChannelItem extends PureComponent {
                 membersCount={displayName.split(',').length}
                 size={16}
                 status={status}
-                teammateDeletedAt={teammateDeletedAt}
                 theme={theme}
                 type={type}
             />
@@ -157,7 +142,7 @@ export default class ChannelItem extends PureComponent {
                                 ellipsizeMode='tail'
                                 numberOfLines={1}
                             >
-                                {channelDisplayName}
+                                {displayName}
                             </Text>
                             {badge}
                         </View>

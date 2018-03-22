@@ -19,7 +19,7 @@ import {
 import Button from 'react-native-button';
 import urlParse from 'url-parse';
 
-import {Client4} from 'mattermost-redux/client';
+import {Client, Client4} from 'mattermost-redux/client';
 
 import Config from 'assets/config';
 import ErrorText from 'app/components/error_text';
@@ -38,7 +38,6 @@ class SelectServer extends PureComponent {
         actions: PropTypes.shape({
             getPing: PropTypes.func.isRequired,
             handleServerUrlChanged: PropTypes.func.isRequired,
-            loadConfigAndLicense: PropTypes.func.isRequired,
             resetPing: PropTypes.func.isRequired,
             setLastUpgradeCheck: PropTypes.func.isRequired
         }).isRequired,
@@ -61,8 +60,7 @@ class SelectServer extends PureComponent {
         this.state = {
             connected: false,
             connecting: false,
-            error: null,
-            url: props.serverUrl
+            error: null
         };
 
         this.cancelPing = null;
@@ -131,7 +129,7 @@ class SelectServer extends PureComponent {
                 navBarButtonColor: theme.sidebarHeaderTextColor
             },
             passProps: {
-                closeAction: () => this.handleLoginOptions(this.props),
+                closeAction: this.handleLoginOptions,
                 upgradeType
             }
         });
@@ -178,12 +176,8 @@ class SelectServer extends PureComponent {
         this.blur();
     };
 
-    handleTextChanged = (url) => {
-        this.setState({url});
-    };
-
     onClick = wrapWithPreventDoubleTap(async () => {
-        const preUrl = urlParse(this.state.url, true);
+        const preUrl = urlParse(this.props.serverUrl, true);
         const url = stripTrailingSlashes(preUrl.protocol + '//' + preUrl.host);
 
         Keyboard.dismiss();
@@ -211,12 +205,6 @@ class SelectServer extends PureComponent {
     });
 
     pingServer = (url) => {
-        const {
-            getPing,
-            handleServerUrlChanged,
-            loadConfigAndLicense
-        } = this.props.actions;
-
         this.setState({
             connected: false,
             connecting: true,
@@ -224,7 +212,8 @@ class SelectServer extends PureComponent {
         });
 
         Client4.setUrl(url);
-        handleServerUrlChanged(url);
+        Client.setUrl(url);
+        this.props.actions.handleServerUrlChanged(url);
 
         let cancel = false;
         this.cancelPing = () => {
@@ -238,13 +227,9 @@ class SelectServer extends PureComponent {
             this.cancelPing = null;
         };
 
-        getPing().then((result) => {
+        this.props.actions.getPing().then((result) => {
             if (cancel) {
                 return;
-            }
-
-            if (!result.error) {
-                loadConfigAndLicense();
             }
 
             this.setState({
@@ -274,12 +259,14 @@ class SelectServer extends PureComponent {
     };
 
     render() {
-        const {allowOtherServers} = this.props;
+        const {
+            allowOtherServers,
+            serverUrl
+        } = this.props;
         const {
             connected,
             connecting,
-            error,
-            url
+            error
         } = this.state;
 
         let buttonIcon;
@@ -340,9 +327,9 @@ class SelectServer extends PureComponent {
                         </View>
                         <TextInputWithLocalizedPlaceholder
                             ref={this.inputRef}
-                            value={url}
+                            value={serverUrl}
                             editable={!inputDisabled}
-                            onChangeText={this.handleTextChanged}
+                            onChangeText={this.props.actions.handleServerUrlChanged}
                             onSubmitEditing={this.onClick}
                             style={inputStyle}
                             autoCapitalize='none'

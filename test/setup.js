@@ -29,9 +29,6 @@ mockery.registerMock('react-native', {
             addEventListener: () => true,
             fetch: () => Promise.resolve(true)
         }
-    },
-    Platform: {
-        OS: 'ios'
     }
 });
 mockery.registerMock('react-native-device-info', {

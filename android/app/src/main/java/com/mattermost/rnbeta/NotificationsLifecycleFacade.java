@@ -39,11 +39,12 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
 
     private final BroadcastReceiver restrictionsReceiver = new BroadcastReceiver() {
         @Override public void onReceive(Context context, Intent intent) {
-            if (context != null) {
+
+            if (mVisibleActivity != null) {
                 // Get the current configuration bundle
                 RestrictionsManager myRestrictionsMgr =
-                        (RestrictionsManager) context
-                                .getSystemService(Context.RESTRICTIONS_SERVICE);
+                    (RestrictionsManager) mVisibleActivity
+                            .getSystemService(Context.RESTRICTIONS_SERVICE);
                 managedConfig = myRestrictionsMgr.getApplicationRestrictions();
 
                 // Check current configuration settings, change your app's UI and
@@ -65,11 +66,11 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
     @Override
     public void onActivityCreated(Activity activity, Bundle savedInstanceState) {
         MattermostManagedModule managedModule = MattermostManagedModule.getInstance();
-        if (managedModule != null && managedModule.isBlurAppScreenEnabled() && activity != null) {
+        if (managedModule != null && managedModule.isBlurAppScreenEnabled()) {
             activity.getWindow().setFlags(LayoutParams.FLAG_SECURE,
                     LayoutParams.FLAG_SECURE);
         }
-        if (managedConfig!= null && managedConfig.size() > 0 && activity != null) {
+        if (managedConfig!= null && managedConfig.size() > 0) {
             activity.registerReceiver(restrictionsReceiver, restrictionsFilter);
         }
     }
@@ -78,11 +79,9 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
     public void onActivityResumed(Activity activity) {
         switchToVisible(activity);
 
-        ReactContext ctx = getRunningReactContext();
-        if (managedConfig != null && managedConfig.size() > 0 && ctx != null) {
-
+        if (managedConfig != null && managedConfig.size() > 0) {
             RestrictionsManager myRestrictionsMgr =
-                    (RestrictionsManager) ctx
+                    (RestrictionsManager) activity
                             .getSystemService(Context.RESTRICTIONS_SERVICE);
 
             Bundle newConfig = myRestrictionsMgr.getApplicationRestrictions();
@@ -175,15 +174,13 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
         }
     }
 
-    public synchronized void LoadManagedConfig(ReactContext ctx) {
-        if (ctx != null) {
-            RestrictionsManager myRestrictionsMgr =
-                    (RestrictionsManager) ctx
-                            .getSystemService(Context.RESTRICTIONS_SERVICE);
+    public synchronized void LoadManagedConfig(Activity activity) {
+        RestrictionsManager myRestrictionsMgr =
+                (RestrictionsManager) activity
+                        .getSystemService(Context.RESTRICTIONS_SERVICE);
 
-            managedConfig = myRestrictionsMgr.getApplicationRestrictions();
-            myRestrictionsMgr = null;
-        }
+        managedConfig = myRestrictionsMgr.getApplicationRestrictions();
+        myRestrictionsMgr = null;
     }
 
     public synchronized Bundle getManagedConfig() {
@@ -191,10 +188,8 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
             return managedConfig;
         }
 
-        ReactContext ctx = getRunningReactContext();
-
-        if (ctx != null) {
-            LoadManagedConfig(ctx);
+        if (mVisibleActivity != null) {
+            LoadManagedConfig(mVisibleActivity);
             return managedConfig;
         }
 
@@ -203,11 +198,9 @@ public class NotificationsLifecycleFacade extends ActivityCallbacks implements A
 
     public void sendConfigChanged(Bundle config) {
         Object result = Arguments.fromBundle(config);
-        ReactContext ctx = getRunningReactContext();
-        if (ctx != null) {
-            ctx.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).
-                    emit("managedConfigDidChange", result);
-        }
+        getRunningReactContext().
+                getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter.class).
+                emit("managedConfigDidChange", result);
     }
 
     private boolean equalBundles(Bundle one, Bundle two) {

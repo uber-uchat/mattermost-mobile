@@ -20,7 +20,7 @@ import OptionsContext from 'app/components/options_context';
 import PostBodyAdditionalContent from 'app/components/post_body_additional_content';
 
 import {emptyFunction} from 'app/utils/general';
-import {getMarkdownTextStyles, getMarkdownBlockStyles, normalizeFontSizeByDevice} from 'app/utils/markdown';
+import {getMarkdownTextStyles, getMarkdownBlockStyles} from 'app/utils/markdown';
 import {makeStyleSheetFromTheme} from 'app/utils/theme';
 import Reactions from 'app/components/reactions';
 
@@ -32,7 +32,6 @@ class PostBody extends PureComponent {
         }).isRequired,
         canDelete: PropTypes.bool,
         canEdit: PropTypes.bool,
-        channelIsReadOnly: PropTypes.bool.isRequired,
         fileIds: PropTypes.array,
         hasBeenDeleted: PropTypes.bool,
         hasBeenEdited: PropTypes.bool,
@@ -137,7 +136,6 @@ class PostBody extends PureComponent {
         const {
             canDelete,
             canEdit,
-            channelIsReadOnly,
             hasBeenDeleted,
             hasBeenEdited,
             hasReactions,
@@ -172,12 +170,10 @@ class PostBody extends PureComponent {
 
         // we should check for the user roles and permissions
         if (!isPendingOrFailedPost && !isSearchResult && !isSystemMessage && !isPostEphemeral) {
-            if (!channelIsReadOnly) {
-                actions.push({
-                    text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
-                    onPress: this.props.onAddReaction
-                });
-            }
+            actions.push({
+                text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
+                onPress: this.props.onAddReaction
+            });
 
             if (managedConfig.copyAndPasteProtection !== 'true') {
                 actions.push({
@@ -187,23 +183,23 @@ class PostBody extends PureComponent {
                 });
             }
 
-            if (isFlagged && !channelIsReadOnly) {
+            if (isFlagged) {
                 actions.push({
                     text: formatMessage({id: 'post_info.mobile.unflag', defaultMessage: 'Unflag'}),
                     onPress: this.unflagPost
                 });
-            } else if (!channelIsReadOnly) {
+            } else {
                 actions.push({
                     text: formatMessage({id: 'post_info.mobile.flag', defaultMessage: 'Flag'}),
                     onPress: this.flagPost
                 });
             }
 
-            if (canEdit && !channelIsReadOnly) {
+            if (canEdit) {
                 actions.push({text: formatMessage({id: 'post_info.edit', defaultMessage: 'Edit'}), onPress: onPostEdit});
             }
 
-            if (canDelete && !hasBeenDeleted && !channelIsReadOnly) {
+            if (canDelete && !hasBeenDeleted) {
                 actions.push({text: formatMessage({id: 'post_info.del', defaultMessage: 'Delete'}), onPress: onPostDelete});
             }
 
@@ -335,8 +331,8 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         message: {
             color: theme.centerChannelColor,
-            fontSize: normalizeFontSizeByDevice(13),
-            lineHeight: normalizeFontSizeByDevice(16)
+            fontSize: 15,
+            lineHeight: 20
         },
         messageContainerWithReplyBar: {
             flexDirection: 'row',

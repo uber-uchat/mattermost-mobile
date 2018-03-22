@@ -61,7 +61,15 @@ export default class PostHeader extends PureComponent {
             overrideUsername
         } = this.props;
 
-        if (fromWebHook) {
+        if (isSystemMessage) {
+            return (
+                <FormattedText
+                    id='post_info.system'
+                    defaultMessage='System'
+                    style={style.displayName}
+                />
+            );
+        } else if (fromWebHook) {
             let name = this.props.displayName;
             if (overrideUsername && enablePostUsernameOverride) {
                 name = overrideUsername;
@@ -76,14 +84,6 @@ export default class PostHeader extends PureComponent {
                         {BOT_NAME}
                     </Text>
                 </View>
-            );
-        } else if (isSystemMessage) {
-            return (
-                <FormattedText
-                    id='post_info.system'
-                    defaultMessage='System'
-                    style={style.displayName}
-                />
             );
         } else if (this.props.displayName) {
             return (

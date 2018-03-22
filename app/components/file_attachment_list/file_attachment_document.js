@@ -12,7 +12,7 @@ import {
 } from 'react-native';
 import OpenFile from 'react-native-doc-viewer';
 import RNFetchBlob from 'react-native-fetch-blob';
-import {CircularProgress} from 'react-native-circular-progress';
+import {AnimatedCircularProgress} from 'react-native-circular-progress';
 import {intlShape} from 'react-intl';
 
 import {changeOpacity} from 'app/utils/theme';
@@ -110,13 +110,13 @@ export default class FileAttachmentDocument extends PureComponent {
                 this.openDocument(file, 0);
             } else {
                 this.setState({downloading: true});
-                this.downloadTask = RNFetchBlob.config(options).fetch('GET', getFileUrl(file.id));
-                this.downloadTask.progress((received, total) => {
-                    const progress = (received / total) * 100;
-                    if (this.mounted) {
-                        this.setState({progress});
-                    }
-                });
+                this.downloadTask = RNFetchBlob.config(options).fetch('GET', getFileUrl(file.id)).
+                    progress((received, total) => {
+                        const progress = (received / total) * 100;
+                        if (this.mounted) {
+                            this.setState({progress});
+                        }
+                    });
 
                 await this.downloadTask;
                 if (this.mounted) {
@@ -252,7 +252,7 @@ export default class FileAttachmentDocument extends PureComponent {
         let fileAttachmentComponent;
         if (downloading) {
             fileAttachmentComponent = (
-                <CircularProgress
+                <AnimatedCircularProgress
                     size={wrapperHeight}
                     fill={progress}
                     width={4}
@@ -262,7 +262,7 @@ export default class FileAttachmentDocument extends PureComponent {
                     style={style.circularProgress}
                 >
                     {this.renderProgress}
-                </CircularProgress>
+                </AnimatedCircularProgress>
             );
         } else {
             fileAttachmentComponent = (

@@ -1,6 +1,5 @@
 package com.mattermost.rnbeta;
 
-import com.mattermost.share.SharePackage;
 import android.app.Application;
 import android.support.annotation.NonNull;
 import android.content.Context;
@@ -71,8 +70,7 @@ public class MainApplication extends NavigationApplication implements INotificat
             new ReactNativeExceptionHandlerPackage(),
             new ReactNativeYouTube(),
             new ReactVideoPackage(),
-            new RNReactNativeDocViewerPackage(),
-            new SharePackage()
+            new RNReactNativeDocViewerPackage()
     );
   }
 
@@ -91,13 +89,6 @@ public class MainApplication extends NavigationApplication implements INotificat
     setActivityCallbacks(notificationsLifecycleFacade);
 
     SoLoader.init(this, /* native exopackage */ false);
-  }
-
-  @Override
-  public boolean clearHostOnActivityDestroy() {
-    // This solves the issue where the splash screen does not go away
-    // after the app is killed by the OS cause of memory or a long time in the background
-    return false;
   }
 
   @Override

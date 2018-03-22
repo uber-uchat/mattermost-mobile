@@ -67,7 +67,11 @@ export default class ChannelNavBar extends PureComponent {
         return (
             <View style={[style.header, padding, {height}]}>
                 <ChannelDrawerButton openDrawer={openChannelDrawer}/>
-                <ChannelTitle onPress={onPress}/>
+                <ChannelTitle
+                    onPress={onPress}
+                    height={height}
+                />
+                <View style={{flex: 1}}/>
                 <ChannelSearchButton
                     navigator={navigator}
                     theme={theme}

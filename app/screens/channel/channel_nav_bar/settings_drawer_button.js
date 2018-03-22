@@ -57,14 +57,16 @@ class SettingDrawerButton extends PureComponent {
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
-            width: 44
+            width: 44,
+            zIndex: 45
         },
         wrapper: {
             alignItems: 'center',
             flex: 1,
             flexDirection: 'column',
             justifyContent: 'center',
-            marginLeft: 8
+            marginLeft: 8,
+            zIndex: 30
         },
         mention: {
             color: theme.mentionColor,

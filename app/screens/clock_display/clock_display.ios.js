@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Platform,
     View
 } from 'react-native';
 
@@ -15,7 +16,7 @@ import ClockDisplayBase from './clock_display_base';
 export default class ClockDisplay extends ClockDisplayBase {
     render() {
         const {theme} = this.props;
-        const {newMilitaryTime} = this.state;
+        const {militaryTime} = this.state;
         const style = getStyleSheet(theme);
 
         return (
@@ -38,7 +39,7 @@ export default class ClockDisplay extends ClockDisplayBase {
                             action={this.setMilitaryTime}
                             actionType='select'
                             actionValue='false'
-                            selected={newMilitaryTime === 'false'}
+                            selected={militaryTime === 'false'}
                             theme={theme}
                         />
                         <View style={style.separator}/>
@@ -52,7 +53,7 @@ export default class ClockDisplay extends ClockDisplayBase {
                             action={this.setMilitaryTime}
                             actionType='select'
                             actionValue='true'
-                            selected={newMilitaryTime === 'true'}
+                            selected={militaryTime === 'true'}
                             theme={theme}
                         />
                     </Section>
@@ -71,7 +72,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         wrapper: {
             backgroundColor: changeOpacity(theme.centerChannelColor, 0.06),
             flex: 1,
-            paddingTop: 35
+            ...Platform.select({
+                ios: {
+                    paddingTop: 35
+                }
+            })
         }
     };
 });

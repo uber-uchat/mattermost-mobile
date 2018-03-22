@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import Button from 'react-native-button';
 import Orientation from 'react-native-orientation';
+import semver from 'semver';
 
 import {ViewTypes} from 'app/constants';
 import FormattedText from 'app/components/formatted_text';
@@ -29,6 +30,7 @@ class LoginOptions extends PureComponent {
         navigator: PropTypes.object,
         config: PropTypes.object.isRequired,
         license: PropTypes.object.isRequired,
+        serverVersion: PropTypes.string.isRequired,
         theme: PropTypes.object
     };
 
@@ -161,30 +163,35 @@ class LoginOptions extends PureComponent {
     };
 
     renderGitlabOption = () => {
-        const {config} = this.props;
+        const {config, serverVersion} = this.props;
 
         const forceHideFromLocal = LocalConfig.HideGitLabLoginExperimental;
 
-        if (!forceHideFromLocal && config.EnableSignUpWithGitLab === 'true') {
-            return (
-                <Button
-                    key='gitlab'
-                    onPress={() => preventDoubleTap(this.goToSSO, this, ViewTypes.GITLAB)}
-                    containerStyle={[GlobalStyles.signupButton, {backgroundColor: '#548'}]}
-                >
-                    <Image
-                        source={gitlab}
-                        style={{height: 18, marginRight: 5, width: 18}}
-                    />
-                    <Text
-                        style={[GlobalStyles.signupButtonText, {color: 'white'}]}
+        const match = serverVersion.match(/^[0-9]*.[0-9]*.[0-9]*(-[a-zA-Z0-9.-]*)?/g);
+        if (match) {
+            const version = match[0];
+            if (!forceHideFromLocal && config.EnableSignUpWithGitLab === 'true' && semver.valid(version) && semver.gte(version, 'v3.10.0')) {
+                return (
+                    <Button
+                        key='gitlab'
+                        onPress={() => preventDoubleTap(this.goToSSO, this, ViewTypes.GITLAB)}
+                        containerStyle={[GlobalStyles.signupButton, {backgroundColor: '#548'}]}
                     >
-                        {'GitLab'}
-                    </Text>
-                </Button>
-            );
-        }
+                        <Image
+                            source={gitlab}
+                            style={{height: 18, marginRight: 5, width: 18}}
+                        />
+                        <Text
+                            style={[GlobalStyles.signupButtonText, {color: 'white'}]}
+                        >
+                            {'GitLab'}
+                        </Text>
+                    </Button>
+                );
+            }
 
+            return null;
+        }
         return null;
     };
 

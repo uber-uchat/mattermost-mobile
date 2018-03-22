@@ -237,15 +237,6 @@ class Settings extends PureComponent {
                         showArrow={showArrow}
                         theme={theme}
                     />
-                    <SettingsItem
-                        defaultMessage='Display'
-                        i18nId='user.settings.modal.display'
-                        iconName='ios-apps'
-                        iconType='ion'
-                        onPress={this.goToDisplaySettings}
-                        showArrow={showArrow}
-                        theme={theme}
-                    />
                     {showTeams &&
                     <SettingsItem
                         defaultMessage='Open teams you can join'

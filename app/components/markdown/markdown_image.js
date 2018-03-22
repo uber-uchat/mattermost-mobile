@@ -31,7 +31,6 @@ export default class MarkdownImage extends React.Component {
         children: PropTypes.node,
         linkDestination: PropTypes.string,
         onLongPress: PropTypes.func,
-        serverURL: PropTypes.string.isRequired,
         source: PropTypes.string.isRequired,
         errorTextStyle: CustomPropTypes.Style
     };
@@ -54,7 +53,7 @@ export default class MarkdownImage extends React.Component {
     }
 
     componentWillMount() {
-        this.loadImageSize(this.getSource());
+        this.loadImageSize(this.props.source);
     }
 
     componentDidMount() {
@@ -69,24 +68,13 @@ export default class MarkdownImage extends React.Component {
                 failed: false
             });
 
-            // getSource also depends on serverURL, but that shouldn't change while this is mounted
-            this.loadImageSize(this.getSource(nextProps));
+            this.loadImageSize(nextProps.source);
         }
     }
 
     componentWillUnmount() {
         this.mounted = false;
     }
-
-    getSource = (props = this.props) => {
-        let source = props.source;
-
-        if (source.startsWith('/')) {
-            source = props.serverURL + '/' + source;
-        }
-
-        return source;
-    };
 
     loadImageSize = (source) => {
         Image.getSize(source, this.handleSizeReceived, this.handleSizeFailed);
@@ -192,7 +180,7 @@ export default class MarkdownImage extends React.Component {
                 // React Native complains if we try to pass resizeMode as a style
                 image = (
                     <Image
-                        source={{uri: this.getSource()}}
+                        source={{uri: this.props.source}}
                         resizeMode='contain'
                         style={[{width, height}, style.image]}
                     />

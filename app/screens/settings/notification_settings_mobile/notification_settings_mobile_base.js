@@ -100,24 +100,24 @@ export default class NotificationSettingsMobileBase extends PureComponent {
             channel,
             comments,
             desktop,
-            desktop_duration: desktopDuration,
+            desktop_duration,
             email,
-            first_name: firstName,
-            mention_keys: mentionKeys,
+            first_name,
+            mention_keys,
             push,
-            push_status: pushStatus
+            push_status
         } = this.state;
 
         this.props.onBack({
             channel,
             comments,
             desktop,
-            desktop_duration: desktopDuration,
+            desktop_duration,
             email,
-            first_name: firstName,
-            mention_keys: mentionKeys,
+            first_name,
+            mention_keys,
             push,
-            push_status: pushStatus,
+            push_status,
             user_id: this.props.currentUser.id
         });
     };
