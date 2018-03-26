@@ -9,8 +9,8 @@
   "dependencies": {
     "analytics-react-native": "1.2.0",
     "babel-polyfill": "6.26.0",
-    "commonmark": "hmhealey/commonmark.js#dda6d89198252d5fd4bb04c4cc0668766c22fd77",
-    "commonmark-react-renderer": "hmhealey/commonmark-react-renderer#1f078d53b7993d30b2762dd7d78fdd21ee84dd21",
+    "commonmark": "hmhealey/commonmark.js",
+    "commonmark-react-renderer": "hmhealey/commonmark-react-renderer",
     "deep-equal": "1.0.1",
     "fuse.js": "^3.2.0",
     "intl": "1.2.5",
@@ -42,12 +42,12 @@
     "react-native-permissions": "1.1.1",
     "react-native-safe-area": "0.2.3",
     "react-native-section-list-get-item-layout": "2.2.1",
-    "react-native-sentry": "0.15.1",
+    "react-native-sentry": "0.34.0",
     "react-native-slider": "0.11.0",
     "react-native-status-bar-size": "0.3.3",
     "react-native-svg": "6.1.3",
     "react-native-tableview": "2.1.0",
-    "react-native-tooltip": "enahum/react-native-tooltip",
+    "react-native-tooltip": "5.2.0",
     "react-native-vector-icons": "4.5.0",
     "react-native-video": "2.0.0",
     "react-native-youtube": "1.1.0",
@@ -105,6 +105,8 @@
   },
   "scripts": {
     "test": "NODE_ENV=test nyc --reporter=text mocha --exit --opts test/mocha.opts",
+    "check": "eslint --ignore-path .gitignore --ignore-pattern node_modules --quiet .",
+    "fix": "eslint --ignore-path .gitignore --ignore-pattern node_modules --quiet . --fix",
     "postinstall": "make post-install"
   },
   "rnpm": {

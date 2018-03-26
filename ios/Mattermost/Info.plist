@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>85</string>
+	<string>91</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -68,6 +68,8 @@
 	<string>Upload Photos and Videos to your Mattermost instance or save them to your device</string>
 	<key>NSSpeechRecognitionUsageDescription</key>
 	<string>Send voice messages to your Mattermost instance</string>
+	<key>NSAppleMusicUsageDescription</key>
+    <string>Let Mattermost access your Media files</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Entypo.ttf</string>
