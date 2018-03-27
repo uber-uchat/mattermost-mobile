@@ -26,7 +26,6 @@ import PostTextbox from './post_textbox';
 const MAX_MESSAGE_LENGTH = 4000;
 
 function mapStateToProps(state, ownProps) {
-    const {config} = state.entities.general;
     const currentDraft = ownProps.rootId ? getThreadDraft(state, ownProps.rootId) : getCurrentChannelDraft(state);
     const config = getConfig(state);
 
