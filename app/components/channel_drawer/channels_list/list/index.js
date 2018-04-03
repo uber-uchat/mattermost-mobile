@@ -49,7 +49,7 @@ function mapStateToProps(state) {
     const publicChannelIds = townHallFilter(state, hideTownHall);
 
     return {
-        canCreatePrivateChannels: showCreateOption(config, license, General.PRIVATE_CHANNEL, isAdmin, isSystemAdmin),
+        canCreatePrivateChannels: showCreateOption(state, config, license, General.PRIVATE_CHANNEL, isAdmin(roles), isSystemAdmin(roles)),
         unreadChannelIds,
         favoriteChannelIds,
         publicChannelIds,
