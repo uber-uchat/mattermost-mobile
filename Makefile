@@ -67,7 +67,13 @@ post-install:
 	@# Must remove the .babelrc for 0.42.0 to work correctly
 	@# Need to copy custom ImagePickerModule.java that implements correct permission checks for android
 	@rm node_modules/react-native-image-picker/android/src/main/java/com/imagepicker/ImagePickerModule.java
-	@cp ./ImagePickerModule.java node_modules/react-native-image-picker/android/src/main/java/com/imagepicker
+	@cp ./native_modules/ImagePickerModule.java node_modules/react-native-image-picker/android/src/main/java/com/imagepicker
+	@# Add caching support for native module constants
+	@rm node_modules/react-native-device-info/android/src/main/java/com/learnium/RNDeviceInfo/RNDeviceModule.java
+	@rm node_modules/react-native-fetch-blob/android/src/main/java/com/RNFetchBlob/RNFetchBlob.java
+	@cp ./native_modules/RNDeviceModule.java node_modules/react-native-device-info/android/src/main/java/com/learnium/RNDeviceInfo
+	@cp ./native_modules/RNFetchBlob.java node_modules/react-native-fetch-blob/android/src/main/java/com/RNFetchBlob
+
 	@rm -f node_modules/intl/.babelrc
 	@# Hack to get react-intl and its dependencies to work with react-native
 	@# Based off of https://github.com/este/este/blob/master/gulp/native-fix.js
