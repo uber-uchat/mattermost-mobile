@@ -27,6 +27,7 @@ import {makeStyleSheetFromTheme} from 'app/utils/theme';
 import PostTextbox from 'app/components/post_textbox';
 import networkConnectionListener from 'app/utils/network';
 import tracker from 'app/utils/time_tracker';
+import telemetry from 'app/utils/telemetry';
 import LocalConfig from 'assets/config';
 
 import ChannelNavBar from './channel_nav_bar';
@@ -72,6 +73,8 @@ class Channel extends PureComponent {
         }
 
         if (tracker.initialLoad) {
+            telemetry.captureEnd('channel.render');
+            telemetry.captureStart('post_list.render');
             this.props.actions.recordLoadTime('Start time', 'initialLoad');
         }
     }
@@ -202,6 +205,7 @@ class Channel extends PureComponent {
 
         loadChannelsIfNecessary(teamId).then(() => {
             loadProfilesAndTeamMembersForDMSidebar(teamId);
+            telemetry.captureStart('loadChannelData');
             return selectInitialChannel(teamId);
         }).catch(() => {
             return selectInitialChannel(teamId);

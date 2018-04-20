@@ -15,6 +15,7 @@ import {DATE_LINE, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 import mattermostManaged from 'app/mattermost_managed';
 import {makeExtraData} from 'app/utils/list_view';
 import {changeOpacity} from 'app/utils/theme';
+import telemetry from 'app/utils/telemetry';
 
 import DateHeader from './date_header';
 import NewMessagesDivider from './new_messages_divider';
@@ -73,6 +74,8 @@ export default class PostList extends PureComponent {
     }
 
     componentDidMount() {
+        telemetry.captureSinceLaunch('timeToPostList');
+        telemetry.captureEnd('post_list.render');
         this.setManagedConfig();
     }
 

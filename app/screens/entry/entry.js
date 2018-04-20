@@ -23,6 +23,7 @@ import {ViewTypes} from 'app/constants';
 import PushNotifications from 'app/push_notifications';
 import {stripTrailingSlashes} from 'app/utils/url';
 import {makeStyleSheetFromTheme} from 'app/utils/theme';
+import telemetry from 'app/utils/telemetry';
 
 
 import EmptyToolbar from 'app/components/start/empty_toolbar';
@@ -76,10 +77,14 @@ export default class Entry extends PureComponent {
 
     componentDidMount() {
         Client4.setUserAgent(DeviceInfo.getUserAgent());
+        telemetry.captureStart('redux.rehydration');
         this.unsubscribeFromStore = store.subscribe(this.listenForHydration);
 
         EventEmitter.on(ViewTypes.LAUNCH_LOGIN, this.handleLaunchLogin);
         EventEmitter.on(ViewTypes.LAUNCH_CHANNEL, this.handleLaunchChannel);
+
+        telemetry.captureSinceLaunch('entryScreen');
+        telemetry.captureEnd('launchEntryScreen');
     }
 
     componentWillUnmount() {
@@ -96,6 +101,7 @@ export default class Entry extends PureComponent {
     };
 
     handleLaunchChannel = (initializeModules) => {
+        telemetry.captureEnd('launchForAndroid');
         this.setState({launchChannel: true});
 
         if (initializeModules) {
@@ -112,6 +118,7 @@ export default class Entry extends PureComponent {
         }
 
         if (state.views.root.hydrationComplete) {
+            telemetry.captureEnd('redux.rehydration');
             this.unsubscribeFromStore();
 
             this.setAppCredentials();
@@ -176,6 +183,7 @@ export default class Entry extends PureComponent {
     };
 
     launchForAndroid = () => {
+        telemetry.captureStart('launchForAndroid');
         const launchAndroidApp = (appLaunched) => {
             if (app.startAppFromPushNotification) {
                 return false;
@@ -229,8 +237,11 @@ export default class Entry extends PureComponent {
     };
 
     renderChannel = () => {
+        telemetry.captureStart('channel.lazyLoad');
         const ChannelScreen = lazyLoadChannel();
+        telemetry.captureEnd('channel.lazyLoad');
 
+        telemetry.captureStart('channel.render');
         return (
             <ChannelScreen
                 navigator={this.props.navigator}

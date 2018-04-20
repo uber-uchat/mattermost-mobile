@@ -34,6 +34,7 @@ import {getPreferencesByCategory} from 'mattermost-redux/utils/preference_utils'
 
 import {INSERT_TO_COMMENT, INSERT_TO_DRAFT} from 'app/constants/post_textbox';
 import {isDirectChannelVisible, isGroupChannelVisible} from 'app/utils/channels';
+import telemetry from 'app/utils/telemetry';
 
 const MAX_POST_TRIES = 3;
 
@@ -202,6 +203,9 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
                 time,
             });
         }
+
+        telemetry.captureEnd('loadChannelData');
+        telemetry.sendMetrics();
 
         dispatch(setLoadMorePostsVisible(loadMorePostsVisible));
     };

@@ -1,6 +1,9 @@
 // Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
+import telemetry from 'app/utils/telemetry';
+telemetry.captureSinceLaunch('index.js');
+
 /* eslint-disable no-unused-vars */
 import {AppRegistry, Platform} from 'react-native';
 

@@ -2,6 +2,8 @@
 // See License.txt for license information.
 
 import 'babel-polyfill';
+import telemetry from 'app/utils/telemetry';
+telemetry.captureStart('mattermostInitiliaze');
 import {
     Alert,
     AppState,
@@ -58,7 +60,23 @@ if (Platform.OS === 'android') {
         app.setNativeAppLaunched(true);
         DeviceEventEmitter.removeSubscription(subscription);
     });
+
+    const jsBundleMetrics = 'JS_BUNDLE_METRICS';
+    const metricsSubscription = DeviceEventEmitter.addListener(jsBundleMetrics, (metrics) => {
+        telemetry.capture('jsBundleRun', metrics.jsBundleRunStartTime, metrics.jsBundleRunEndTime);
+        DeviceEventEmitter.removeSubscription(metricsSubscription);
+    });
 }
+
+const unsubscribeFromStore = store.subscribe(() => {
+    const {getState} = store;
+    const state = getState();
+
+    if (state.views.root.hydrationComplete) {
+        unsubscribeFromStore();
+        telemetry.captureEnd('redux-persist.hydration');
+    }
+});
 
 const lazyLoadExternalModules = () => {
     const Orientation = require('react-native-orientation');
@@ -81,6 +99,7 @@ const lazyLoadAnalytics = () => {
 
 // TEST ON IOS
 const initializeModules = () => {
+    telemetry.captureStart('initializeModules');
     const {
         Orientation,
         StatusBarSizeIOS,
@@ -118,6 +137,7 @@ const initializeModules = () => {
             }
         );
     }
+    telemetry.captureEnd('initializeModules');
 };
 
 const configureAnalytics = (config) => {
@@ -417,6 +437,8 @@ const handleAppInActive = () => {
 };
 
 AppState.addEventListener('change', handleAppStateChange);
+telemetry.captureEnd('mattermostInitiliaze');
+telemetry.captureStart('launchEntryScreen');
 Navigation.startSingleScreenApp({
     screen: {
         screen: 'Entry',

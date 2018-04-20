@@ -71,8 +71,10 @@ post-install:
 	@# Add caching support for native module constants
 	@rm node_modules/react-native-device-info/android/src/main/java/com/learnium/RNDeviceInfo/RNDeviceModule.java
 	@rm node_modules/react-native-fetch-blob/android/src/main/java/com/RNFetchBlob/RNFetchBlob.java
+	@rm node_modules/react-native-navigation/android/app/src/main/java/com/reactnativenavigation/NavigationApplication.java
 	@cp ./native_modules/RNDeviceModule.java node_modules/react-native-device-info/android/src/main/java/com/learnium/RNDeviceInfo
 	@cp ./native_modules/RNFetchBlob.java node_modules/react-native-fetch-blob/android/src/main/java/com/RNFetchBlob
+	@cp ./native_modules/NavigationApplication.java node_modules/react-native-navigation/android/app/src/main/java/com/reactnativenavigation
 
 	@rm -f node_modules/intl/.babelrc
 	@# Hack to get react-intl and its dependencies to work with react-native
@@ -153,7 +155,7 @@ run-ios: | check-device-ios pre-run ## Runs the app on an iOS simulator
 		react-native run-ios --simulator="${SIMULATOR}"; \
 	fi
 
-run-android: | check-device-android pre-run prepare-android-build ## Runs the app on an Android emulator or dev device
+run-android: | pre-run prepare-android-build ## Runs the app on an Android emulator or dev device
 	@if [ $(shell ps -e | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
         echo Starting React Native packager server; \
     	node ./node_modules/react-native/local-cli/cli.js start & echo Running Android app in development; \

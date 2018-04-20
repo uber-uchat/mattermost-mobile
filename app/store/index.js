@@ -16,6 +16,7 @@ import appReducer from 'app/reducers';
 import {throttle} from 'app/utils/general';
 import networkConnectionListener from 'app/utils/network';
 import {createSentryMiddleware} from 'app/utils/sentry/middleware';
+import telemetry from 'app/utils/telemetry';
 
 import mattermostBucket from 'app/mattermost_bucket';
 import Config from 'assets/config';
@@ -137,6 +138,7 @@ export default function configureAppStore(initialState) {
         },
         detectNetwork: (callback) => networkConnectionListener(callback),
         persist: (store, options) => {
+            telemetry.captureStart('redux-persist.hydration');
             const persistor = persistStore(store, {storage: AsyncStorage, ...options}, () => {
                 store.dispatch({
                     type: General.STORE_REHYDRATION_COMPLETE,
