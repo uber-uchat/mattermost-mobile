@@ -38,14 +38,13 @@ const ViewTypes = keyMirror({
     REMOVE_FILE_FROM_POST_DRAFT: null,
     REMOVE_LAST_FILE_FROM_POST_DRAFT: null,
 
-    ADD_FILE_TO_FETCH_CACHE: null,
-
     SET_CHANNEL_LOADER: null,
     SET_CHANNEL_REFRESHING: null,
     SET_CHANNEL_RETRY_FAILED: null,
     SET_CHANNEL_DISPLAY_NAME: null,
 
     SET_LAST_CHANNEL_FOR_TEAM: null,
+    REMOVE_LAST_CHANNEL_FOR_TEAM: null,
 
     GITLAB: null,
     SAML: null,

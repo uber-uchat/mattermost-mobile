@@ -35,6 +35,7 @@ export default class PostBody extends PureComponent {
             flagPost: PropTypes.func.isRequired,
             unflagPost: PropTypes.func.isRequired,
         }).isRequired,
+        canAddReaction: PropTypes.bool,
         canDelete: PropTypes.bool,
         canEdit: PropTypes.bool,
         channelIsReadOnly: PropTypes.bool.isRequired,
@@ -65,6 +66,7 @@ export default class PostBody extends PureComponent {
         postId: PropTypes.string.isRequired,
         postProps: PropTypes.object,
         renderReplyBar: PropTypes.func,
+        showAddReaction: PropTypes.bool,
         showLongPost: PropTypes.bool.isRequired,
         theme: PropTypes.object,
         toggleSelected: PropTypes.func,
@@ -115,6 +117,8 @@ export default class PostBody extends PureComponent {
         const {
             canEdit,
             canDelete,
+            canAddReaction,
+            channelIsReadOnly,
             hasBeenDeleted,
             isPending,
             isFailed,
@@ -125,16 +129,19 @@ export default class PostBody extends PureComponent {
             onCopyText,
             onPostDelete,
             onPostEdit,
+            showAddReaction,
         } = this.props;
         const actions = [];
         const isPendingOrFailedPost = isPending || isFailed;
 
         // we should check for the user roles and permissions
         if (!isPendingOrFailedPost && !isSystemMessage && !isPostEphemeral) {
-            actions.push({
-                text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
-                onPress: this.props.onAddReaction,
-            });
+            if (showAddReaction && canAddReaction && !channelIsReadOnly) {
+                actions.push({
+                    text: formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
+                    onPress: this.props.onAddReaction,
+                });
+            }
 
             if (managedConfig.copyAndPasteProtection !== 'true') {
                 actions.push({
@@ -144,16 +151,18 @@ export default class PostBody extends PureComponent {
                 });
             }
 
-            if (isFlagged) {
-                actions.push({
-                    text: formatMessage({id: 'post_info.mobile.unflag', defaultMessage: 'Unflag'}),
-                    onPress: this.unflagPost,
-                });
-            } else {
-                actions.push({
-                    text: formatMessage({id: 'post_info.mobile.flag', defaultMessage: 'Flag'}),
-                    onPress: this.flagPost,
-                });
+            if (!channelIsReadOnly) {
+                if (isFlagged) {
+                    actions.push({
+                        text: formatMessage({id: 'post_info.mobile.unflag', defaultMessage: 'Unflag'}),
+                        onPress: this.unflagPost,
+                    });
+                } else {
+                    actions.push({
+                        text: formatMessage({id: 'post_info.mobile.flag', defaultMessage: 'Flag'}),
+                        onPress: this.flagPost,
+                    });
+                }
             }
 
             if (canEdit) {

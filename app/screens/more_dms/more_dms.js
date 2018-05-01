@@ -411,15 +411,12 @@ class MoreDirectMessages extends PureComponent {
     };
 
     sectionKeyExtractor = (user) => {
-        // Group items alphabetically by first letter
-        return displayUsername(user, this.props.teammateNameDisplay)[0].toUpperCase();
+        // Group items alphabetically by first letter of username
+        return user.username[0].toUpperCase();
     }
 
     compareItems = (a, b) => {
-        const aName = displayUsername(a, this.props.teammateNameDisplay);
-        const bName = displayUsername(b, this.props.teammateNameDisplay);
-
-        return aName.localeCompare(bName);
+        return a.username.localeCompare(b.username);
     };
 
     renderItem = (props) => {
@@ -474,6 +471,39 @@ class MoreDirectMessages extends PureComponent {
                 },
             }),
         };
+
+        let listComponent;
+        if (term.length) {
+            listComponent = (
+                <CustomFlatList
+                    theme={theme}
+                    items={this.state.profiles}
+                    renderItem={this.renderItem}
+                    showNoResults={showNoResults}
+                    extraData={this.state.selectedIds}
+                    onRowPress={this.handleSelectUser}
+                    loading={isLoading}
+                    loadingText={loadingText}
+                />
+            );
+        } else {
+            listComponent = (
+                <CustomSectionList
+                    theme={theme}
+                    items={this.state.profiles}
+                    renderItem={this.renderItem}
+                    showNoResults={showNoResults}
+                    sectionKeyExtractor={this.sectionKeyExtractor}
+                    compareItems={this.compareItems}
+                    extraData={this.state.selectedIds}
+                    onListEndReached={this.loadMoreProfiles}
+                    listScrollRenderAheadDistance={50}
+                    onRowPress={this.handleSelectUser}
+                    loading={isLoading}
+                    loadingText={loadingText}
+                />
+            );
+        }
 
         return (
             <View style={style.container}>

@@ -21,21 +21,32 @@ import {
     getCurrentChannelStats,
     getSortedFavoriteChannelIds,
     getMyCurrentChannelMembership,
+    isCurrentChannelReadOnly,
 } from 'mattermost-redux/selectors/entities/channels';
-import {getCurrentUserId, getUser, getStatusForUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
-import {getUserIdFromChannelName, isChannelMuted, showDeleteOption, showManagementOptions} from 'mattermost-redux/utils/channel_utils';
-import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
-
 import {
-    closeDMChannel,
-    closeGMChannel,
-    leaveChannel,
-    loadChannelsByTeamName,
-} from 'app/actions/views/channel';
+    getCurrentUserId,
+    getUser,
+    getStatusForUserId,
+    getCurrentUserRoles,
+} from 'mattermost-redux/selectors/entities/users';
+import {
+    getUserIdFromChannelName,
+    isChannelMuted,
+    showDeleteOption,
+    showManagementOptions,
+} from 'mattermost-redux/utils/channel_utils';
+import {
+    isAdmin as checkIsAdmin,
+    isChannelAdmin as checkIsChannelAdmin,
+    isSystemAdmin as checkIsSystemAdmin,
+} from 'mattermost-redux/utils/user_utils';
+
+import {closeDMChannel, closeGMChannel, leaveChannel, loadChannelsByTeamName} from 'app/actions/views/channel';
 
 import ChannelInfo from './channel_info';
 
-function mapStateToProps(state) {//eslint-disable-line complexity
+function mapStateToProps(state) {
+    //eslint-disable-line complexity
     const {config, license} = state.entities.general;
     const currentChannel = getCurrentChannel(state) || {};
     const currentChannelCreator = getUser(state, currentChannel.creator_id);
@@ -56,13 +67,25 @@ function mapStateToProps(state) {//eslint-disable-line complexity
         status = getStatusForUserId(state, teammateId);
     }
 
-    let canEditChannel = showManagementOptions(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles));
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
-        canEditChannel = (isAdmin(roles) || isSystemAdmin(roles) || isChannelAdmin(roles)) || config.ExperimentalTownSquareIsReadOnly !== 'true';
-    }
+    const isAdmin = checkIsAdmin(roles);
+    const isChannelAdmin = checkIsChannelAdmin(roles);
+    const isSystemAdmin = checkIsSystemAdmin(roles);
+
+    const channelIsReadOnly = isCurrentChannelReadOnly(state);
+    const canEditChannel =
+        !channelIsReadOnly &&
+        showManagementOptions(state, config, license, currentChannel, isAdmin, isSystemAdmin, isChannelAdmin);
 
     return {
-        canDeleteChannel: showDeleteOption(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles)),
+        canDeleteChannel: showDeleteOption(
+            state,
+            config,
+            license,
+            currentChannel,
+            isAdmin,
+            isSystemAdmin,
+            isChannelAdmin
+        ),
         canEditChannel,
         currentChannel,
         currentChannelCreatorName,
@@ -79,19 +102,22 @@ function mapStateToProps(state) {//eslint-disable-line complexity
 
 function mapDispatchToProps(dispatch) {
     return {
-        actions: bindActionCreators({
-            closeDMChannel,
-            closeGMChannel,
-            deleteChannel,
-            getChannelStats,
-            leaveChannel,
-            loadChannelsByTeamName,
-            favoriteChannel,
-            unfavoriteChannel,
-            getCustomEmojisInText,
-            selectFocusedPostId,
-            updateChannelNotifyProps,
-        }, dispatch),
+        actions: bindActionCreators(
+            {
+                closeDMChannel,
+                closeGMChannel,
+                deleteChannel,
+                getChannelStats,
+                leaveChannel,
+                loadChannelsByTeamName,
+                favoriteChannel,
+                unfavoriteChannel,
+                getCustomEmojisInText,
+                selectFocusedPostId,
+                updateChannelNotifyProps,
+            },
+            dispatch
+        ),
     };
 }
 

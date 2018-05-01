@@ -2,11 +2,9 @@
 // See License.txt for license information.
 
 import {connect} from 'react-redux';
-import {createSelector} from 'reselect';
 
 import {General} from 'mattermost-redux/constants';
 import {
-    getDefaultChannel,
     getSortedUnreadChannelIds,
     getSortedFavoriteChannelIds,
     getSortedPublicChannelIds,
@@ -14,24 +12,12 @@ import {
     getSortedDirectChannelIds,
 } from 'mattermost-redux/selectors/entities/channels';
 import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
 import {getTheme, getFavoritesPreferences} from 'mattermost-redux/selectors/entities/preferences';
 import {showCreateOption} from 'mattermost-redux/utils/channel_utils';
 import {isAdmin as checkIsAdmin, isSystemAdmin as checkIsSystemAdmin} from 'mattermost-redux/utils/user_utils';
 
 import List from './list';
-
-const townHallFilter = createSelector(
-    (state, hideTownHall) => hideTownHall,
-    getDefaultChannel,
-    getSortedPublicChannelIds,
-    (hideTownHall, defaultChannel, publicChannelIds) => {
-        if (!hideTownHall) {
-            return publicChannelIds;
-        }
-
-        return publicChannelIds.filter((p) => p !== defaultChannel.id);
-    }
-);
 
 function mapStateToProps(state) {
     const {config, license} = state.entities.general;
@@ -40,16 +26,22 @@ function mapStateToProps(state) {
     const favoriteChannelIds = getSortedFavoriteChannelIds(state);
     const privateChannelIds = getSortedPrivateChannelIds(state);
     const directChannelIds = getSortedDirectChannelIds(state);
+    const currentTeamId = getCurrentTeamId(state);
+    const publicChannelIds = getSortedPublicChannelIds(state);
 
     const isAdmin = checkIsAdmin(roles);
     const isSystemAdmin = checkIsSystemAdmin(roles);
 
-    const hideTownHall = !isAdmin && !isSystemAdmin && config.ExperimentalTownSquareIsReadOnly === 'true';
-
-    const publicChannelIds = townHallFilter(state, hideTownHall);
-
     return {
-        canCreatePrivateChannels: showCreateOption(state, config, license, General.PRIVATE_CHANNEL, isAdmin(roles), isSystemAdmin(roles)),
+        canCreatePrivateChannels: showCreateOption(
+            state,
+            config,
+            license,
+            currentTeamId,
+            General.PRIVATE_CHANNEL,
+            isAdmin,
+            isSystemAdmin
+        ),
         unreadChannelIds,
         favoriteChannelIds,
         publicChannelIds,

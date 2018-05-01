@@ -31,6 +31,7 @@ export default class ChannelItem extends PureComponent {
         mentions: PropTypes.number.isRequired,
         navigator: PropTypes.object,
         onSelectChannel: PropTypes.func.isRequired,
+        shouldHideChannel: PropTypes.bool,
         status: PropTypes.string,
         teammateDeletedAt: PropTypes.number,
         type: PropTypes.string.isRequired,
@@ -81,11 +82,16 @@ export default class ChannelItem extends PureComponent {
             isMyUser,
             isUnread,
             mentions,
+            shouldHideChannel,
             status,
             teammateDeletedAt,
             theme,
             type,
         } = this.props;
+
+        if (shouldHideChannel) {
+            return null;
+        }
 
         const {intl} = this.context;
 
@@ -188,7 +194,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         item: {
             alignItems: 'center',
-            height: 44,
             flex: 1,
             flexDirection: 'row',
             paddingLeft: 16,
@@ -199,11 +204,13 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         text: {
             color: changeOpacity(theme.sidebarText, 0.4),
-            flex: 1,
             fontSize: 14,
             fontWeight: '600',
-            lineHeight: 16,
             paddingRight: 40,
+            height: '100%',
+            flex: 1,
+            textAlignVertical: 'center',
+            lineHeight: 44,
         },
         textActive: {
             color: theme.sidebarTextActiveColor,
@@ -225,7 +232,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             fontSize: 10,
         },
         muted: {
-            opacity: 0.3,
+            opacity: 0.5,
         },
     };
 });

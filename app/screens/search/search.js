@@ -20,13 +20,16 @@ import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import {RequestStatus} from 'mattermost-redux/constants';
 
 import Autocomplete from 'app/components/autocomplete';
+import DateHeader from 'app/components/post_list/date_header';
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
 import PostListRetry from 'app/components/post_list_retry';
+import PostSeparator from 'app/components/post_separator';
 import SafeAreaView from 'app/components/safe_area_view';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
 import mattermostManaged from 'app/mattermost_managed';
+import {DATE_LINE} from 'app/selectors/post_list';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
@@ -78,6 +81,7 @@ export default class Search extends PureComponent {
         this.isX = DeviceInfo.getModel() === 'iPhone X';
         this.state = {
             channelName: '',
+            cursorPosition: 0,
             value: '',
             managedConfig: {},
         };
@@ -119,10 +123,6 @@ export default class Search extends PureComponent {
     componentWillUnmount() {
         mattermostManaged.removeEventListener(this.listenerId);
     }
-
-    attachAutocomplete = (c) => {
-        this.autocomplete = c;
-    };
 
     cancelSearch = preventDoubleTap(() => {
         const {navigator} = this.props;
@@ -170,9 +170,10 @@ export default class Search extends PureComponent {
     };
 
     handleSelectionChange = (event) => {
-        if (this.autocomplete) {
-            this.autocomplete.getWrappedInstance().handleSelectionChange(event);
-        }
+        const cursorPosition = event.nativeEvent.selection.end;
+        this.setState({
+            cursorPosition,
+        });
     };
 
     handleTextChanged = (value, selectionChanged) => {
@@ -259,6 +260,15 @@ export default class Search extends PureComponent {
         actions.removeSearchTerms(currentTeamId, item.terms);
     });
 
+    renderDateHeader = (date, index) => {
+        return (
+            <DateHeader
+                date={date}
+                index={index}
+            />
+        );
+    };
+
     renderModifiers = ({item}) => {
         const {theme} = this.props;
         const style = getStyleFromTheme(theme);
@@ -306,9 +316,15 @@ export default class Search extends PureComponent {
             );
         }
 
+        if (item.indexOf(DATE_LINE) === 0) {
+            const date = item.substring(DATE_LINE.length);
+            return this.renderDateHeader(new Date(date), index);
+        }
+
         let separator;
-        if (index === postIds.length - 1) {
-            separator = this.renderPostSeparator();
+        const nextPost = postIds[index + 1];
+        if (nextPost && nextPost.indexOf(DATE_LINE) === -1) {
+            separator = <PostSeparator theme={theme}/>;
         }
 
         return (
@@ -333,17 +349,6 @@ export default class Search extends PureComponent {
 
         return (
             <View style={style.separatorContainer}>
-                <View style={style.separator}/>
-            </View>
-        );
-    };
-
-    renderPostSeparator = () => {
-        const {theme} = this.props;
-        const style = getStyleFromTheme(theme);
-
-        return (
-            <View style={[style.separatorContainer, style.postsSeparator]}>
                 <View style={style.separator}/>
             </View>
         );
@@ -483,7 +488,10 @@ export default class Search extends PureComponent {
         } = this.props;
 
         const {intl} = this.context;
-        const {value} = this.state;
+        const {
+            cursorPosition,
+            value,
+        } = this.state;
         const style = getStyleFromTheme(theme);
         const sections = [{
             data: [{
@@ -569,7 +577,6 @@ export default class Search extends PureComponent {
                 title: intl.formatMessage({id: 'search_header.results', defaultMessage: 'Search Results'}),
                 renderItem: this.renderPost,
                 keyExtractor: this.keyPostExtractor,
-                ItemSeparatorComponent: this.renderPostSeparator,
             });
         }
 
@@ -619,7 +626,7 @@ export default class Search extends PureComponent {
                         stickySectionHeadersEnabled={Platform.OS === 'ios'}
                     />
                     <Autocomplete
-                        ref={this.attachAutocomplete}
+                        cursorPosition={cursorPosition}
                         onChangeText={this.handleTextChanged}
                         isSearch={true}
                         value={value}

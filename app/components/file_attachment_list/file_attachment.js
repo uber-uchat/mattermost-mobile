@@ -9,19 +9,22 @@ import {
     View,
 } from 'react-native';
 
-import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 import * as Utils from 'mattermost-redux/utils/file_utils.js';
 
-import FileAttachmentDocument, {SUPPORTED_DOCS_FORMAT} from './file_attachment_document';
+import {isDocument, isGif} from 'app/utils/file';
+import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+
+import FileAttachmentDocument from './file_attachment_document';
 import FileAttachmentIcon from './file_attachment_icon';
 import FileAttachmentImage from './file_attachment_image';
 
 export default class FileAttachment extends PureComponent {
     static propTypes = {
-        addFileToFetchCache: PropTypes.func.isRequired,
         deviceWidth: PropTypes.number.isRequired,
-        fetchCache: PropTypes.object.isRequired,
         file: PropTypes.object.isRequired,
+        index: PropTypes.number.isRequired,
+        onCaptureRef: PropTypes.func,
+        onCapturePreviewRef: PropTypes.func,
         onInfoPress: PropTypes.func,
         onPreviewPress: PropTypes.func,
         theme: PropTypes.object.isRequired,
@@ -33,29 +36,51 @@ export default class FileAttachment extends PureComponent {
         onPreviewPress: () => true,
     };
 
+    handleCaptureRef = (ref) => {
+        const {onCaptureRef, index} = this.props;
+
+        if (onCaptureRef) {
+            onCaptureRef(ref, index);
+        }
+    };
+
+    handleCapturePreviewRef = (ref) => {
+        const {onCapturePreviewRef, index} = this.props;
+
+        if (onCapturePreviewRef) {
+            onCapturePreviewRef(ref, index);
+        }
+    };
+
     handlePreviewPress = () => {
-        this.props.onPreviewPress(this.props.file);
+        this.props.onPreviewPress(this.props.index);
     };
 
     renderFileInfo() {
         const {file, theme} = this.props;
+        const {data} = file;
         const style = getStyleSheet(theme);
 
-        if (!file.id) {
+        if (!data || !data.id) {
             return null;
         }
 
         return (
             <View style={style.attachmentContainer}>
                 <Text
-                    numberOfLines={4}
+                    numberOfLines={2}
+                    ellipsizeMode='tail'
                     style={style.fileName}
                 >
-                    {file.name.trim()}
+                    {file.caption.trim()}
                 </Text>
                 <View style={style.fileDownloadContainer}>
-                    <Text style={style.fileInfo}>
-                        {`${file.extension.toUpperCase()} ${Utils.getFormattedFileSize(file)}`}
+                    <Text
+                        numberOfLines={2}
+                        ellipsizeMode='tail'
+                        style={style.fileInfo}
+                    >
+                        {`${data.extension.toUpperCase()} ${Utils.getFormattedFileSize(data)}`}
                     </Text>
                 </View>
             </View>
@@ -63,39 +88,43 @@ export default class FileAttachment extends PureComponent {
     }
 
     render() {
-        const {deviceWidth, file, onInfoPress, theme, navigator} = this.props;
+        const {
+            deviceWidth,
+            file,
+            onInfoPress,
+            theme,
+            navigator,
+        } = this.props;
+        const {data} = file;
         const style = getStyleSheet(theme);
 
-        let mime = file.mime_type;
-        if (mime && mime.includes(';')) {
-            mime = mime.split(';')[0];
-        }
-
         let fileAttachmentComponent;
-        if (file.has_preview_image || file.loading || file.mime_type === 'image/gif') {
+        if ((data && data.has_preview_image) || file.loading || isGif(data)) {
             fileAttachmentComponent = (
                 <TouchableOpacity onPress={this.handlePreviewPress}>
                     <FileAttachmentImage
-                        addFileToFetchCache={this.props.addFileToFetchCache}
-                        fetchCache={this.props.fetchCache}
-                        file={file}
+                        file={data || {}}
+                        onCaptureRef={this.handleCaptureRef}
+                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>
             );
-        } else if (SUPPORTED_DOCS_FORMAT.includes(mime)) {
+        } else if (isDocument(data)) {
             fileAttachmentComponent = (
                 <FileAttachmentDocument
                     file={file}
-                    theme={theme}
                     navigator={navigator}
+                    theme={theme}
                 />
             );
         } else {
             fileAttachmentComponent = (
                 <TouchableOpacity onPress={this.handlePreviewPress}>
                     <FileAttachmentIcon
-                        file={file}
+                        file={data}
+                        onCaptureRef={this.handleCaptureRef}
+                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>

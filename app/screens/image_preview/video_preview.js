@@ -5,7 +5,9 @@ import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     Alert,
+    Platform,
     StyleSheet,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import Video from 'react-native-video';
@@ -27,7 +29,7 @@ export default class VideoPreview extends PureComponent {
         deviceWidth: PropTypes.number.isRequired,
         file: PropTypes.object.isRequired,
         onFullScreen: PropTypes.func.isRequired,
-        onSeeking: PropTypes.func.isRequired,
+        onSeeking: PropTypes.func,
         theme: PropTypes.object.isRequired,
     };
 
@@ -61,8 +63,9 @@ export default class VideoPreview extends PureComponent {
 
     async initializeComponent() {
         const {file} = this.props;
-        const path = `${VIDEOS_PATH}/${file.id}.${file.extension}`;
-        const exist = await RNFetchBlob.fs.exists(path);
+        const prefix = Platform.OS === 'android' ? 'file:/' : '';
+        const path = `${VIDEOS_PATH}/${file.data.id}-${file.caption}`;
+        const exist = await RNFetchBlob.fs.exists(`${prefix}${path}`);
 
         if (exist) {
             this.setState({path});
@@ -71,24 +74,24 @@ export default class VideoPreview extends PureComponent {
 
     exitFullScreen = () => {
         this.setState({isFullScreen: false});
-        this.props.onFullScreen();
+        this.props.onFullScreen(true);
     };
 
     enterFullScreen = () => {
         this.setState({isFullScreen: true});
-        this.props.onFullScreen();
+        this.props.onFullScreen(false);
     };
 
     onDownloadSuccess = () => {
         const {file} = this.props;
-        const path = `${VIDEOS_PATH}/${file.id}.${file.extension}`;
+        const path = `${VIDEOS_PATH}/${file.data.id}-${file.caption}`;
 
         this.setState({showDownloader: false, path});
     };
 
     onEnd = () => {
         if (this.state.isFullScreen) {
-            this.props.onFullScreen();
+            this.props.onFullScreen(true);
         }
 
         this.setState({playerState: PLAYER_STATE.ENDED, isFullScreen: false, paused: true});
@@ -154,7 +157,9 @@ export default class VideoPreview extends PureComponent {
 
     onSeek = (seek) => {
         if (this.refs.videoPlayer) {
-            this.refs.videoPlayer.seek(seek);
+            this.setState({currentTime: seek}, () => {
+                this.refs.videoPlayer.seek(seek);
+            });
         }
     };
 
@@ -191,20 +196,26 @@ export default class VideoPreview extends PureComponent {
         }
 
         return (
-            <View style={[styles.container, {height: deviceHeight, width: deviceWidth}]}>
-                <Video
-                    ref='videoPlayer'
-                    style={[styles.mediaPlayer, {width: deviceWidth}]}
-                    resizeMode='contain'
-                    source={{uri: path}}
-                    volume={1.0}
-                    paused={paused}
-                    onEnd={this.onEnd}
-                    onLoad={this.onLoad}
-                    onLoadStart={this.onLoadStart}
-                    onProgress={this.onProgress}
-                    onError={this.onError}
-                />
+            <View style={StyleSheet.absoluteFill}>
+                <TouchableOpacity
+                    style={StyleSheet.absoluteFill}
+                    activeOpacity={1}
+                    onPress={() => this.refs.controls.fadeInControls()}
+                >
+                    <Video
+                        ref='videoPlayer'
+                        style={[StyleSheet.absoluteFill, {position: 'absolute'}]}
+                        resizeMode='contain'
+                        source={{uri: path}}
+                        volume={1.0}
+                        paused={paused}
+                        onEnd={this.onEnd}
+                        onLoad={this.onLoad}
+                        onLoadStart={this.onLoadStart}
+                        onProgress={this.onProgress}
+                        onError={this.onError}
+                    />
+                </TouchableOpacity>
                 <VideoControls
                     ref='controls'
                     mainColor={theme.linkColor}
@@ -223,17 +234,3 @@ export default class VideoPreview extends PureComponent {
         );
     }
 }
-
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-    },
-    mediaPlayer: {
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        bottom: 0,
-        right: 0,
-        backgroundColor: 'black',
-    },
-});

@@ -80,3 +80,37 @@ export function makePreparePostIdsForPostList() {
         }
     );
 }
+
+export function makePreparePostIdsForSearchPosts() {
+    const getMyPosts = makeGetPostsForIds();
+
+    return createIdsSelector(
+        (state, postIds) => getMyPosts(state, postIds),
+        getCurrentUser,
+        (posts, currentUser) => {
+            if (posts.length === 0 || !currentUser) {
+                return [];
+            }
+
+            const out = [];
+            for (let i = 0; i < posts.length; i++) {
+                const post = posts[i];
+
+                // give chance for the post to be loaded
+                if (!post) {
+                    continue;
+                }
+
+                if (post.state === Posts.POST_DELETED && post.user_id === currentUser.id) {
+                    continue;
+                }
+
+                const postDate = new Date(post.create_at);
+
+                out.push(DATE_LINE + postDate.toString(), post.id);
+            }
+
+            return out;
+        }
+    );
+}

@@ -6,12 +6,14 @@ import PropTypes from 'prop-types';
 import {Image, Platform, View} from 'react-native';
 import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
+import {Client4} from 'mattermost-redux/client';
+
 import UserStatus from 'app/components/user_status';
+import ImageCacheManager from 'app/utils/image_cache_manager';
+import {emptyFunction} from 'app/utils/general';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 import placeholder from 'assets/images/profile.jpg';
-
-import {Client4} from 'mattermost-redux/client';
 
 const STATUS_BUFFER = Platform.select({
     ios: 3,
@@ -21,7 +23,6 @@ const STATUS_BUFFER = Platform.select({
 export default class ProfilePicture extends PureComponent {
     static propTypes = {
         size: PropTypes.number,
-        statusBorderWidth: PropTypes.number,
         statusSize: PropTypes.number,
         user: PropTypes.object,
         showStatus: PropTypes.bool,
@@ -37,29 +38,68 @@ export default class ProfilePicture extends PureComponent {
     static defaultProps = {
         showStatus: true,
         size: 128,
-        statusBorderWidth: 2,
         statusSize: 14,
         edit: false,
     };
+
+    state = {
+        pictureUrl: null,
+    };
+
+    componentWillMount() {
+        const {edit, imageUri, user} = this.props;
+
+        if (edit && imageUri) {
+            this.setImageURL(imageUri);
+        } else if (user) {
+            ImageCacheManager.cache('', Client4.getProfilePictureUrl(user.id, user.last_picture_update), this.setImageURL);
+        }
+    }
 
     componentDidMount() {
         if (!this.props.status && this.props.user) {
             this.props.actions.getStatusForId(this.props.user.id);
         }
+
+        this.mounted = true;
     }
 
+    componentWillReceiveProps(nextProps) {
+        if (this.mounted) {
+            const url = this.props.user ? Client4.getProfilePictureUrl(this.props.user.id, this.props.user.last_picture_update) : null;
+            const nextUrl = nextProps.user ? Client4.getProfilePictureUrl(nextProps.user.id, nextProps.user.last_picture_update) : null;
+
+            if (url !== nextUrl) {
+                this.setState({
+                    pictureUrl: null,
+                });
+
+                if (nextUrl) {
+                    // empty function is so that promise unhandled is not triggered in dev mode
+                    ImageCacheManager.cache('', nextUrl, this.setImageURL).then(emptyFunction).catch(emptyFunction);
+                }
+            }
+
+            if (nextProps.edit && nextProps.imageUri !== this.props.imageUri) {
+                this.setImageURL(nextProps.imageUri);
+            }
+        }
+    }
+
+    componentWillUnmount() {
+        this.mounted = false;
+    }
+
+    setImageURL = (pictureUrl) => {
+        if (this.mounted) {
+            this.setState({pictureUrl});
+        }
+    };
+
     render() {
-        const {edit, imageUri, showStatus, theme} = this.props;
+        const {edit, showStatus, theme} = this.props;
+        const {pictureUrl} = this.state;
         const style = getStyleSheet(theme);
-
-        let pictureUrl;
-        if (this.props.user) {
-            pictureUrl = Client4.getProfilePictureUrl(this.props.user.id, this.props.user.last_picture_update);
-        }
-
-        if (edit && imageUri) {
-            pictureUrl = imageUri;
-        }
 
         let statusIcon;
         let statusStyle;
@@ -86,12 +126,25 @@ export default class ProfilePicture extends PureComponent {
             );
         }
 
+        let source = null;
+        if (pictureUrl) {
+            let prefix = '';
+            if (Platform.OS === 'android' && !pictureUrl.startsWith('content://') &&
+                !pictureUrl.startsWith('http://') && !pictureUrl.startsWith('https://')) {
+                prefix = 'file://';
+            }
+
+            source = {
+                uri: `${prefix}${pictureUrl}`,
+            };
+        }
+
         return (
             <View style={{width: this.props.size + STATUS_BUFFER, height: this.props.size + STATUS_BUFFER}}>
                 <Image
                     key={pictureUrl}
                     style={{width: this.props.size, height: this.props.size, borderRadius: this.props.size / 2}}
-                    source={{uri: pictureUrl}}
+                    source={source}
                     defaultSource={placeholder}
                 />
                 {(showStatus || edit) &&

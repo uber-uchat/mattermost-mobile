@@ -40,6 +40,7 @@ const state = {
         posts: {
             posts: {},
             postsInChannel: {},
+            postsInThread: {},
             selectedPostId: '',
             currentFocusedPostId: '',
         },
@@ -262,7 +263,6 @@ const state = {
         channel: {
             drafts: {},
         },
-        fetchCache: {},
         i18n: {
             locale: '',
         },
