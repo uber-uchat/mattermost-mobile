@@ -10,7 +10,7 @@ import {
     fetchMyChannelsAndMembers,
     markChannelAsRead,
     selectChannel,
-    leaveChannel as serviceLeaveChannel
+    leaveChannel as serviceLeaveChannel,
 } from 'mattermost-redux/actions/channels';
 import {getPosts, getPostsBefore, getPostsSince, getPostThread} from 'mattermost-redux/actions/posts';
 import {getFilesForPost} from 'mattermost-redux/actions/files';
@@ -19,17 +19,20 @@ import {getTeamMembersByIds} from 'mattermost-redux/actions/teams';
 import {getProfilesInChannel} from 'mattermost-redux/actions/users';
 import {General, Preferences} from 'mattermost-redux/constants';
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
+import {getTeamByName} from 'mattermost-redux/selectors/entities/teams';
 
 import {
     getChannelByName,
     getDirectChannelName,
     getUserIdFromChannelName,
     isDirectChannel,
-    isGroupChannel
+    isGroupChannel,
 } from 'mattermost-redux/utils/channel_utils';
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import {getLastCreateAt} from 'mattermost-redux/utils/post_utils';
 import {getPreferencesByCategory} from 'mattermost-redux/utils/preference_utils';
 
+import {INSERT_TO_COMMENT, INSERT_TO_DRAFT} from 'app/constants/post_textbox';
 import {isDirectChannelVisible, isGroupChannelVisible} from 'app/utils/channels';
 
 const MAX_POST_TRIES = 3;
@@ -37,6 +40,18 @@ const MAX_POST_TRIES = 3;
 export function loadChannelsIfNecessary(teamId) {
     return async (dispatch, getState) => {
         await fetchMyChannelsAndMembers(teamId)(dispatch, getState);
+    };
+}
+
+export function loadChannelsByTeamName(teamName) {
+    return async (dispatch, getState) => {
+        const state = getState();
+        const {currentTeamId} = state.entities.teams;
+        const team = getTeamByName(state, teamName);
+
+        if (team && team.id !== currentTeamId) {
+            await dispatch(fetchMyChannelsAndMembers(team.id));
+        }
     };
 }
 
@@ -58,7 +73,7 @@ export function loadProfilesAndTeamMembersForDMSidebar(teamId) {
                 user_id: currentUserId,
                 category: Preferences.CATEGORY_DIRECT_CHANNEL_SHOW,
                 name,
-                value: 'true'
+                value: 'true',
             };
         }
 
@@ -130,7 +145,7 @@ export function loadProfilesAndTeamMembersForDMSidebar(teamId) {
                 actions.push({
                     type: UserTypes.RECEIVED_PROFILE_IN_CHANNEL,
                     data: {user_id: members[i]},
-                    id: channel.id
+                    id: channel.id,
                 });
             }
         }
@@ -149,13 +164,15 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
 
         const time = Date.now();
 
-        let loadMorePostsVisible;
+        let loadMorePostsVisible = true;
         let received;
         if (!postsIds || postsIds.length < ViewTypes.POST_VISIBILITY_CHUNK_SIZE) {
             // Get the first page of posts if it appears we haven't gotten it yet, like the webapp
             received = await retryGetPostsAction(getPosts(channelId), dispatch, getState);
 
-            loadMorePostsVisible = received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+            if (received) {
+                loadMorePostsVisible = received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+            }
         } else {
             const {lastConnectAt} = state.device.websocket;
             const lastGetPosts = state.views.channel.lastGetPosts[channelId];
@@ -173,14 +190,16 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
 
             received = await retryGetPostsAction(getPostsSince(channelId, since), dispatch, getState);
 
-            loadMorePostsVisible = postsIds.length + received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+            if (received) {
+                loadMorePostsVisible = postsIds.length + received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+            }
         }
 
         if (received) {
             dispatch({
                 type: ViewTypes.RECEIVED_POSTS_FOR_CHANNEL_AT_TIME,
                 channelId,
-                time
+                time,
             });
         }
 
@@ -281,14 +300,14 @@ export function handleSelectChannel(channelId) {
         dispatch(batchActions([
             {
                 type: ViewTypes.SET_INITIAL_POST_VISIBILITY,
-                data: channelId
+                data: channelId,
             },
             setChannelLoading(false),
             {
                 type: ViewTypes.SET_LAST_CHANNEL_FOR_TEAM,
                 teamId: currentTeamId,
-                channelId
-            }
+                channelId,
+            },
         ]));
     };
 }
@@ -298,59 +317,19 @@ export function handlePostDraftChanged(channelId, draft) {
         dispatch({
             type: ViewTypes.POST_DRAFT_CHANGED,
             channelId,
-            draft
+            draft,
         }, getState);
-    };
-}
-
-export function handlePostDraftSelectionChanged(channelId, cursorPosition) {
-    return {
-        type: ViewTypes.POST_DRAFT_SELECTION_CHANGED,
-        channelId,
-        cursorPosition
     };
 }
 
 export function insertToDraft(value) {
     return (dispatch, getState) => {
         const state = getState();
-        const channelId = getCurrentChannelId(state);
         const threadId = state.entities.posts.selectedPostId;
 
-        let draft;
-        let cursorPosition;
-        let action;
-        if (state.views.thread.drafts[threadId]) {
-            const threadDraft = state.views.thread.drafts[threadId];
-            draft = threadDraft.draft;
-            cursorPosition = threadDraft.cursorPosition;
-            action = {
-                type: ViewTypes.COMMENT_DRAFT_CHANGED,
-                rootId: threadId
-            };
-        } else if (state.views.channel.drafts[channelId]) {
-            const channelDraft = state.views.channel.drafts[channelId];
-            draft = channelDraft.draft;
-            cursorPosition = channelDraft.cursorPosition;
-            action = {
-                type: ViewTypes.POST_DRAFT_CHANGED,
-                channelId
-            };
-        }
+        const insertEvent = threadId ? INSERT_TO_COMMENT : INSERT_TO_DRAFT;
 
-        let nextDraft = `${value}`;
-        if (cursorPosition > 0) {
-            const beginning = draft.slice(0, cursorPosition);
-            const end = draft.slice(cursorPosition);
-            nextDraft = `${beginning}${value}${end}`;
-        }
-
-        if (action && nextDraft !== draft) {
-            dispatch({
-                ...action,
-                draft: nextDraft
-            });
-        }
+        EventEmitter.emit(insertEvent, value);
     };
 }
 
@@ -363,7 +342,7 @@ export function toggleDMChannel(otherUserId, visible) {
             user_id: currentUserId,
             category: Preferences.CATEGORY_DIRECT_CHANNEL_SHOW,
             name: otherUserId,
-            value: visible
+            value: visible,
         }];
 
         savePreferences(currentUserId, dm)(dispatch, getState);
@@ -379,7 +358,7 @@ export function toggleGMChannel(channelId, visible) {
             user_id: currentUserId,
             category: Preferences.CATEGORY_GROUP_CHANNEL_SHOW,
             name: channelId,
-            value: visible
+            value: visible,
         }];
 
         savePreferences(currentUserId, gm)(dispatch, getState);
@@ -421,39 +400,51 @@ export function refreshChannelWithRetry(channelId) {
 
 export function leaveChannel(channel, reset = false) {
     return async (dispatch, getState) => {
-        const {currentTeamId} = getState().entities.teams;
-        await serviceLeaveChannel(channel.id)(dispatch, getState);
-        if (channel.isCurrent || reset) {
-            await selectInitialChannel(currentTeamId)(dispatch, getState);
+        const state = getState();
+        const {currentChannelId} = state.entities.channels;
+        const {currentTeamId} = state.entities.teams;
+
+        dispatch({
+            type: ViewTypes.REMOVE_LAST_CHANNEL_FOR_TEAM,
+            data: {
+                teamId: currentTeamId,
+                channelId: channel.id,
+            },
+        });
+
+        if (channel.id === currentChannelId || reset) {
+            await dispatch(selectInitialChannel(currentTeamId));
         }
+
+        await serviceLeaveChannel(channel.id)(dispatch, getState);
     };
 }
 
 export function setChannelLoading(loading = true) {
     return {
         type: ViewTypes.SET_CHANNEL_LOADER,
-        loading
+        loading,
     };
 }
 
 export function setChannelRefreshing(loading = true) {
     return {
         type: ViewTypes.SET_CHANNEL_REFRESHING,
-        loading
+        loading,
     };
 }
 
 export function setChannelRetryFailed(failed = true) {
     return {
         type: ViewTypes.SET_CHANNEL_RETRY_FAILED,
-        failed
+        failed,
     };
 }
 
 export function setChannelDisplayName(displayName) {
     return {
         type: ViewTypes.SET_CHANNEL_DISPLAY_NAME,
-        displayName
+        displayName,
     };
 }
 
@@ -478,7 +469,7 @@ export function increasePostVisibility(channelId, focusedPostId) {
                 // We already have the posts, so we just need to show them
                 dispatch(batchActions([
                     doIncreasePostVisibility(channelId),
-                    setLoadMorePostsVisible(true)
+                    setLoadMorePostsVisible(true),
                 ]));
 
                 return;
@@ -488,7 +479,7 @@ export function increasePostVisibility(channelId, focusedPostId) {
         dispatch({
             type: ViewTypes.LOADING_POSTS,
             data: true,
-            channelId
+            channelId,
         });
 
         const pageSize = ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
@@ -504,7 +495,7 @@ export function increasePostVisibility(channelId, focusedPostId) {
         const actions = [{
             type: ViewTypes.LOADING_POSTS,
             data: false,
-            channelId
+            channelId,
         }];
 
         const posts = result.data;
@@ -524,13 +515,13 @@ function doIncreasePostVisibility(channelId) {
     return {
         type: ViewTypes.INCREASE_POST_VISIBILITY,
         data: channelId,
-        amount: ViewTypes.POST_VISIBILITY_CHUNK_SIZE
+        amount: ViewTypes.POST_VISIBILITY_CHUNK_SIZE,
     };
 }
 
 function setLoadMorePostsVisible(visible) {
     return {
         type: ViewTypes.SET_LOAD_MORE_POSTS_VISIBLE,
-        data: visible
+        data: visible,
     };
 }

@@ -5,33 +5,55 @@ import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
 
 import {
-    closeDMChannel,
-    closeGMChannel,
-    leaveChannel
-} from 'app/actions/views/channel';
-import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
-
-import {favoriteChannel, getChannelStats, deleteChannel, unfavoriteChannel} from 'mattermost-redux/actions/channels';
+    favoriteChannel,
+    getChannelStats,
+    deleteChannel,
+    unfavoriteChannel,
+    updateChannelNotifyProps,
+} from 'mattermost-redux/actions/channels';
+import {getCustomEmojisInText} from 'mattermost-redux/actions/emojis';
+import {selectFocusedPostId} from 'mattermost-redux/actions/posts';
 import {General} from 'mattermost-redux/constants';
+import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {
+    canManageChannelMembers,
     getCurrentChannel,
     getCurrentChannelStats,
     getSortedFavoriteChannelIds,
-    canManageChannelMembers
+    getMyCurrentChannelMembership,
+    isCurrentChannelReadOnly,
 } from 'mattermost-redux/selectors/entities/channels';
-import {getCurrentUserId, getUser, getStatusForUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
-import {getUserIdFromChannelName, showDeleteOption, showManagementOptions} from 'mattermost-redux/utils/channel_utils';
-import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
+import {
+    getCurrentUserId,
+    getUser,
+    getStatusForUserId,
+    getCurrentUserRoles,
+} from 'mattermost-redux/selectors/entities/users';
+import {
+    getUserIdFromChannelName,
+    isChannelMuted,
+    showDeleteOption,
+    showManagementOptions,
+} from 'mattermost-redux/utils/channel_utils';
+import {
+    isAdmin as checkIsAdmin,
+    isChannelAdmin as checkIsChannelAdmin,
+    isSystemAdmin as checkIsSystemAdmin,
+} from 'mattermost-redux/utils/user_utils';
+
+import {closeDMChannel, closeGMChannel, leaveChannel, loadChannelsByTeamName} from 'app/actions/views/channel';
 
 import ChannelInfo from './channel_info';
 
-function mapStateToProps(state) {//eslint-disable-line complexity
+function mapStateToProps(state) {
+    //eslint-disable-line complexity
     const {config, license} = state.entities.general;
     const currentChannel = getCurrentChannel(state) || {};
     const currentChannelCreator = getUser(state, currentChannel.creator_id);
     const currentChannelCreatorName = currentChannelCreator && currentChannelCreator.username;
     const currentChannelStats = getCurrentChannelStats(state);
     const currentChannelMemberCount = currentChannelStats && currentChannelStats.member_count;
+    const currentChannelMember = getMyCurrentChannelMembership(state);
     const currentUserId = getCurrentUserId(state);
     const favoriteChannels = getSortedFavoriteChannelIds(state);
     const isCurrent = currentChannel.id === state.entities.channels.currentChannelId;
@@ -45,36 +67,57 @@ function mapStateToProps(state) {//eslint-disable-line complexity
         status = getStatusForUserId(state, teammateId);
     }
 
-    let canEditChannel = showManagementOptions(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles));
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
-        canEditChannel = (isAdmin(roles) || isSystemAdmin(roles) || isChannelAdmin(roles)) || config.ExperimentalTownSquareIsReadOnly !== 'true';
-    }
+    const isAdmin = checkIsAdmin(roles);
+    const isChannelAdmin = checkIsChannelAdmin(roles);
+    const isSystemAdmin = checkIsSystemAdmin(roles);
+
+    const channelIsReadOnly = isCurrentChannelReadOnly(state);
+    const canEditChannel =
+        !channelIsReadOnly &&
+        showManagementOptions(state, config, license, currentChannel, isAdmin, isSystemAdmin, isChannelAdmin);
 
     return {
-        canDeleteChannel: showDeleteOption(config, license, currentChannel, isAdmin(roles), isSystemAdmin(roles), isChannelAdmin(roles)),
+        canDeleteChannel: showDeleteOption(
+            state,
+            config,
+            license,
+            currentChannel,
+            isAdmin,
+            isSystemAdmin,
+            isChannelAdmin
+        ),
         canEditChannel,
         currentChannel,
         currentChannelCreatorName,
         currentChannelMemberCount,
+        currentUserId,
+        isChannelMuted: isChannelMuted(currentChannelMember),
         isCurrent,
         isFavorite,
         status,
         theme: getTheme(state),
-        canManageUsers
+        canManageUsers,
     };
 }
 
 function mapDispatchToProps(dispatch) {
     return {
-        actions: bindActionCreators({
-            closeDMChannel,
-            closeGMChannel,
-            deleteChannel,
-            getChannelStats,
-            leaveChannel,
-            favoriteChannel,
-            unfavoriteChannel
-        }, dispatch)
+        actions: bindActionCreators(
+            {
+                closeDMChannel,
+                closeGMChannel,
+                deleteChannel,
+                getChannelStats,
+                leaveChannel,
+                loadChannelsByTeamName,
+                favoriteChannel,
+                unfavoriteChannel,
+                getCustomEmojisInText,
+                selectFocusedPostId,
+                updateChannelNotifyProps,
+            },
+            dispatch
+        ),
     };
 }
 

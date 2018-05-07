@@ -12,8 +12,14 @@ export default class SearchResultPost extends PureComponent {
         goToThread: PropTypes.func.isRequired,
         managedConfig: PropTypes.object.isRequired,
         navigator: PropTypes.object.isRequired,
+        onPermalinkPress: PropTypes.func.isRequired,
         postId: PropTypes.string.isRequired,
-        previewPost: PropTypes.func.isRequired
+        previewPost: PropTypes.func.isRequired,
+        showFullDate: PropTypes.bool,
+    };
+
+    static defaultProps = {
+        showFullDate: false,
     };
 
     render() {
@@ -26,6 +32,7 @@ export default class SearchResultPost extends PureComponent {
             postComponentProps.onReply = this.props.goToThread;
             postComponentProps.shouldRenderReplyButton = true;
             postComponentProps.managedConfig = this.props.managedConfig;
+            postComponentProps.onPermalinkPress = this.props.onPermalinkPress;
         }
 
         return (
@@ -33,7 +40,8 @@ export default class SearchResultPost extends PureComponent {
                 postId={this.props.postId}
                 {...postComponentProps}
                 isSearchResult={true}
-                showFullDate={true}
+                showAddReaction={false}
+                showFullDate={this.props.showFullDate}
                 navigator={this.props.navigator}
             />
         );

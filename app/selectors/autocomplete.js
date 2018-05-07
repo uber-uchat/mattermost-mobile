@@ -7,7 +7,7 @@ import {General} from 'mattermost-redux/constants';
 import {getMyChannels, getOtherChannels} from 'mattermost-redux/selectors/entities/channels';
 import {
     getCurrentUser, getCurrentUserId, getProfilesInCurrentChannel,
-    getProfilesNotInCurrentChannel, getProfilesInCurrentTeam
+    getProfilesNotInCurrentChannel, getProfilesInCurrentTeam,
 } from 'mattermost-redux/selectors/entities/users';
 import {sortChannelsByDisplayName} from 'mattermost-redux/utils/channel_utils';
 import {sortByUsername} from 'mattermost-redux/utils/user_utils';
@@ -193,7 +193,7 @@ export const filterPublicChannels = createSelector(
             );
         } else {
             channels = myChannels.filter((c) => {
-                return (c.type === General.OPEN_CHANNEL || c.type === General.PRIVATE_CHANNEL);
+                return (c.type === General.OPEN_CHANNEL);
             }).concat(otherChannels);
         }
 
