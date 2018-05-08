@@ -8,7 +8,7 @@ import PropTypes from 'prop-types';
 import {
     Platform,
     Text,
-    View
+    View,
 } from 'react-native';
 
 import AtMention from 'app/components/at_mention';
@@ -24,6 +24,10 @@ import MarkdownImage from './markdown_image';
 import MarkdownLink from './markdown_link';
 import MarkdownList from './markdown_list';
 import MarkdownListItem from './markdown_list_item';
+import MarkdownTable from './markdown_table';
+import MarkdownTableImage from './markdown_table_image';
+import MarkdownTableRow from './markdown_table_row';
+import MarkdownTableCell from './markdown_table_cell';
 import {addListItemIndices, pullOutImages} from './transform';
 
 export default class Markdown extends PureComponent {
@@ -34,16 +38,17 @@ export default class Markdown extends PureComponent {
         isSearchResult: PropTypes.bool,
         navigator: PropTypes.object.isRequired,
         onLongPress: PropTypes.func,
+        onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
         textStyles: PropTypes.object,
         theme: PropTypes.object.isRequired,
-        value: PropTypes.string.isRequired
+        value: PropTypes.string.isRequired,
     };
 
     static defaultProps = {
         textStyles: {},
         blockStyles: {},
-        onLongPress: () => true
+        onLongPress: () => true,
     };
 
     constructor(props) {
@@ -83,17 +88,21 @@ export default class Markdown extends PureComponent {
                 htmlBlock: this.renderHtml,
                 htmlInline: this.renderHtml,
 
-                editedIndicator: this.renderEditedIndicator
+                table: this.renderTable,
+                table_row: MarkdownTableRow,
+                table_cell: MarkdownTableCell,
+
+                editedIndicator: this.renderEditedIndicator,
             },
             renderParagraphsInLists: true,
-            getExtraPropsForNode: this.getExtraPropsForNode
+            getExtraPropsForNode: this.getExtraPropsForNode,
         });
     }
 
     getExtraPropsForNode = (node) => {
         const extraProps = {
             continue: node.continue,
-            index: node.index
+            index: node.index,
         };
 
         if (node.type === 'image') {
@@ -124,9 +133,25 @@ export default class Markdown extends PureComponent {
     }
 
     renderImage = ({linkDestination, reactChildren, context, src}) => {
+        if (context.indexOf('table') !== -1) {
+            // We have enough problems rendering images as is, so just render a link inside of a table
+            return (
+                <MarkdownTableImage
+                    linkDestination={linkDestination}
+                    onLongPress={this.props.onLongPress}
+                    source={src}
+                    textStyle={[this.computeTextStyle(this.props.baseTextStyle, context), this.props.textStyles.link]}
+                    navigator={this.props.navigator}
+                >
+                    {reactChildren}
+                </MarkdownTableImage>
+            );
+        }
+
         return (
             <MarkdownImage
                 linkDestination={linkDestination}
+                navigator={this.props.navigator}
                 onLongPress={this.props.onLongPress}
                 source={src}
                 errorTextStyle={[this.computeTextStyle(this.props.baseTextStyle, context), this.props.textStyles.error]}
@@ -192,7 +217,7 @@ export default class Markdown extends PureComponent {
     renderHeading = ({children, level}) => {
         const containerStyle = [
             getStyleSheet(this.props.theme).block,
-            this.props.blockStyles[`heading${level}`]
+            this.props.blockStyles[`heading${level}`],
         ];
         const textStyle = this.props.blockStyles[`heading${level}Text`];
         return (
@@ -284,11 +309,20 @@ export default class Markdown extends PureComponent {
         return rendered;
     }
 
+    renderTable = ({children}) => {
+        return (
+            <MarkdownTable navigator={this.props.navigator}>
+                {children}
+            </MarkdownTable>
+        );
+    }
+
     renderLink = ({children, href}) => {
         return (
             <MarkdownLink
                 href={href}
                 onLongPress={this.props.onLongPress}
+                onPermalinkPress={this.props.onPermalinkPress}
             >
                 {children}
             </MarkdownLink>
@@ -304,7 +338,7 @@ export default class Markdown extends PureComponent {
         const style = getStyleSheet(this.props.theme);
         const styles = [
             this.props.baseTextStyle,
-            style.editedIndicatorText
+            style.editedIndicatorText,
         ];
 
         return (
@@ -328,7 +362,7 @@ export default class Markdown extends PureComponent {
 
         if (this.props.isEdited) {
             const editIndicatorNode = new Node('edited_indicator');
-            if (['heading', 'paragraph'].includes(ast.lastChild.type)) {
+            if (ast.lastChild && ['heading', 'paragraph'].includes(ast.lastChild.type)) {
                 ast.lastChild.appendChild(editIndicatorNode);
             } else {
                 const node = new Node('paragraph');
@@ -337,7 +371,8 @@ export default class Markdown extends PureComponent {
                 ast.appendChild(node);
             }
         }
-        return <View>{this.renderer.render(ast)}</View>;
+
+        return this.renderer.render(ast);
     }
 }
 
@@ -346,22 +381,22 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     // so we calculate the resulting colour manually
     const editedOpacity = Platform.select({
         ios: 0.3,
-        android: 1.0
+        android: 1.0,
     });
     const editedColor = Platform.select({
         ios: theme.centerChannelColor,
-        android: blendColors(theme.centerChannelBg, theme.centerChannelColor, 0.3)
+        android: blendColors(theme.centerChannelBg, theme.centerChannelColor, 0.3),
     });
 
     return {
         block: {
             alignItems: 'flex-start',
             flexDirection: 'row',
-            flexWrap: 'wrap'
+            flexWrap: 'wrap',
         },
         editedIndicatorText: {
             color: editedColor,
-            opacity: editedOpacity
-        }
+            opacity: editedOpacity,
+        },
     };
 });

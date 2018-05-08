@@ -10,7 +10,7 @@ import {
     Keyboard,
     Platform,
     ScrollView,
-    View
+    View,
 } from 'react-native';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
@@ -21,7 +21,7 @@ import SafeAreaView from 'app/components/safe_area_view';
 import Drawer from 'app/components/drawer';
 import UserStatus from 'app/components/user_status';
 import {NavigationTypes} from 'app/constants';
-import {wrapWithPreventDoubleTap} from 'app/utils/tap';
+import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 import DrawerItem from './drawer_item';
@@ -34,21 +34,21 @@ export default class SettingsDrawer extends PureComponent {
     static propTypes = {
         actions: PropTypes.shape({
             logout: PropTypes.func.isRequired,
-            setStatus: PropTypes.func.isRequired
+            setStatus: PropTypes.func.isRequired,
         }).isRequired,
         blurPostTextBox: PropTypes.func.isRequired,
         children: PropTypes.node,
         currentUser: PropTypes.object.isRequired,
         navigator: PropTypes.object,
-        theme: PropTypes.object.isRequired
+        theme: PropTypes.object.isRequired,
     };
 
     static defaultProps = {
-        currentUser: {}
+        currentUser: {},
     };
 
     static contextTypes = {
-        intl: intlShape
+        intl: intlShape,
     };
 
     constructor(props) {
@@ -102,8 +102,8 @@ export default class SettingsDrawer extends PureComponent {
             mainOverlay: {
                 backgroundColor: '#000',
                 elevation: 3,
-                opacity
-            }
+                opacity,
+            },
         };
     };
 
@@ -135,31 +135,31 @@ export default class SettingsDrawer extends PureComponent {
         }
     };
 
-    handleSetStatus = wrapWithPreventDoubleTap(() => {
+    handleSetStatus = preventDoubleTap(() => {
         const items = [{
             action: () => this.setStatus(General.ONLINE),
             text: {
                 id: 'mobile.set_status.online',
-                defaultMessage: 'Online'
-            }
+                defaultMessage: 'Online',
+            },
         }, {
             action: () => this.setStatus(General.AWAY),
             text: {
                 id: 'mobile.set_status.away',
-                defaultMessage: 'Away'
-            }
+                defaultMessage: 'Away',
+            },
         }, {
             action: () => this.setStatus(General.DND),
             text: {
                 id: 'mobile.set_status.dnd',
-                defaultMessage: 'Do Not Disturb'
-            }
+                defaultMessage: 'Do Not Disturb',
+            },
         }, {
             action: () => this.setStatus(General.OFFLINE),
             text: {
                 id: 'mobile.set_status.offline',
-                defaultMessage: 'Offline'
-            }
+                defaultMessage: 'Offline',
+            },
         }];
 
         this.props.navigator.showModal({
@@ -167,78 +167,91 @@ export default class SettingsDrawer extends PureComponent {
             title: '',
             animationType: 'none',
             passProps: {
-                items
+                items,
             },
             navigatorStyle: {
                 navBarHidden: true,
                 statusBarHidden: false,
                 statusBarHideWithNavBar: false,
                 screenBackgroundColor: 'transparent',
-                modalPresentationStyle: 'overCurrentContext'
-            }
+                modalPresentationStyle: 'overCurrentContext',
+            },
         });
     });
 
-    goToEditProfile = wrapWithPreventDoubleTap(() => {
-        const {currentUser, navigator, theme} = this.props;
+    goToEditProfile = preventDoubleTap(() => {
+        const {currentUser} = this.props;
         const {formatMessage} = this.context.intl;
 
         this.closeSettingsDrawer();
-        navigator.showModal({
-            screen: 'EditProfile',
-            title: formatMessage({id: 'mobile.routes.edit_profile', defaultMessage: 'Edit Profile'}),
-            animationType: 'slide-up',
-            animated: true,
-            backButtonTitle: '',
-            navigatorStyle: {
-                navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
-                navBarButtonColor: theme.sidebarHeaderTextColor,
-                screenBackgroundColor: theme.centerChannelBg
-            },
-            navigatorButtons: {
-                leftButtons: [{
-                    id: 'close-settings',
-                    icon: this.closeButton
-                }]
-            },
-            passProps: {
-                currentUser
-            }
-        });
+        this.openModal(
+            'EditProfile',
+            formatMessage({id: 'mobile.routes.edit_profile', defaultMessage: 'Edit Profile'}),
+            {currentUser}
+        );
     });
 
-    goToSettings = wrapWithPreventDoubleTap(() => {
-        const {intl} = this.context;
-        const {navigator, theme} = this.props;
+    goToFlagged = preventDoubleTap(() => {
+        const {formatMessage} = this.context.intl;
 
         this.closeSettingsDrawer();
-        navigator.showModal({
-            screen: 'Settings',
-            title: intl.formatMessage({id: 'mobile.routes.settings', defaultMessage: 'Settings'}),
-            animationType: 'slide-up',
-            animated: true,
-            backButtonTitle: '',
-            navigatorStyle: {
-                navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
-                navBarButtonColor: theme.sidebarHeaderTextColor,
-                screenBackgroundColor: theme.centerChannelBg
-            },
-            navigatorButtons: {
-                leftButtons: [{
-                    id: 'close-settings',
-                    icon: this.closeButton
-                }]
-            }
-        });
+        this.openModal(
+            'FlaggedPosts',
+            formatMessage({id: 'search_header.title3', defaultMessage: 'Flagged Posts'}),
+        );
     });
 
-    logout = wrapWithPreventDoubleTap(() => {
+    goToMentions = preventDoubleTap(() => {
+        const {intl} = this.context;
+
+        this.closeSettingsDrawer();
+        this.openModal(
+            'RecentMentions',
+            intl.formatMessage({id: 'search_header.title2', defaultMessage: 'Recent Mentions'}),
+        );
+    });
+
+    goToSettings = preventDoubleTap(() => {
+        const {intl} = this.context;
+
+        this.closeSettingsDrawer();
+        this.openModal(
+            'Settings',
+            intl.formatMessage({id: 'mobile.routes.settings', defaultMessage: 'Settings'}),
+        );
+    });
+
+    logout = preventDoubleTap(() => {
         const {logout} = this.props.actions;
         this.closeSettingsDrawer();
         InteractionManager.runAfterInteractions(logout);
     });
+
+    openModal = (screen, title, passProps) => {
+        const {navigator, theme} = this.props;
+
+        this.closeSettingsDrawer();
+        navigator.showModal({
+            screen,
+            title,
+            animationType: 'slide-up',
+            animated: true,
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg,
+            },
+            navigatorButtons: {
+                leftButtons: [{
+                    id: 'close-settings',
+                    icon: this.closeButton,
+                }],
+            },
+            passProps,
+        });
+    };
 
     renderUserStatusIcon = (userId) => {
         return (
@@ -282,10 +295,34 @@ export default class SettingsDrawer extends PureComponent {
                             <DrawerItem
                                 labelComponent={this.renderUserStatusLabel(currentUser.id)}
                                 leftComponent={this.renderUserStatusIcon(currentUser.id)}
-                                separator={true}
+                                separator={false}
                                 onPress={this.handleSetStatus}
                                 theme={theme}
                             />
+                        </View>
+                        <View style={style.separator}/>
+                        <View style={style.block}>
+                            <DrawerItem
+                                defaultMessage='Recent Mentions'
+                                i18nId='search_header.title2'
+                                iconName='ios-at-outline'
+                                iconType='ion'
+                                onPress={this.goToMentions}
+                                separator={true}
+                                theme={theme}
+                            />
+                            <DrawerItem
+                                defaultMessage='Flagged Posts'
+                                i18nId='search_header.title3'
+                                iconName='ios-flag-outline'
+                                iconType='ion'
+                                onPress={this.goToFlagged}
+                                separator={false}
+                                theme={theme}
+                            />
+                        </View>
+                        <View style={style.separator}/>
+                        <View style={style.block}>
                             <DrawerItem
                                 defaultMessage='Settings'
                                 i18nId='mobile.routes.settings'
@@ -318,7 +355,7 @@ export default class SettingsDrawer extends PureComponent {
         const {currentUser: {id: currentUserId}} = this.props;
         this.props.actions.setStatus({
             user_id: currentUserId,
-            status
+            status,
         });
         EventEmitter.emit(NavigationTypes.NAVIGATION_CLOSE_MODAL);
     };
@@ -361,9 +398,9 @@ export default class SettingsDrawer extends PureComponent {
                         shadowRadius: 12,
                         shadowOffset: {
                             width: -4,
-                            height: 0
-                        }
-                    }
+                            height: 0,
+                        },
+                    },
                 }}
             >
                 {children}
@@ -376,24 +413,24 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
             flex: 1,
-            backgroundColor: changeOpacity(theme.centerChannelColor, 0.03)
+            backgroundColor: changeOpacity(theme.centerChannelColor, 0.03),
         },
         wrapper: {
             flex: 1,
-            paddingTop: 0
+            paddingTop: 0,
         },
         block: {
             borderBottomColor: changeOpacity(theme.centerChannelColor, 0.1),
             borderBottomWidth: 1,
             borderTopColor: changeOpacity(theme.centerChannelColor, 0.1),
-            borderTopWidth: 1
+            borderTopWidth: 1,
         },
         divider: {
             backgroundColor: changeOpacity(theme.centerChannelColor, 0.1),
-            height: 1
+            height: 1,
         },
         separator: {
-            marginTop: 35
-        }
+            marginTop: 35,
+        },
     };
 });

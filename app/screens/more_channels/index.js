@@ -36,12 +36,12 @@ function mapStateToProps(state) {
     const channels = joinableChannels(state);
 
     return {
-        canCreateChannels: showCreateOption(config, license, General.OPEN_CHANNEL, isAdmin(roles), isSystemAdmin(roles)),
+        canCreateChannels: showCreateOption(state, config, license, currentTeamId, General.OPEN_CHANNEL, isAdmin(roles), isSystemAdmin(roles)),
         currentUserId,
         currentTeamId,
         channels,
         theme: getTheme(state),
-        requestStatus
+        requestStatus,
     };
 }
 
@@ -52,8 +52,8 @@ function mapDispatchToProps(dispatch) {
             joinChannel,
             getChannels,
             searchChannels,
-            setChannelDisplayName
-        }, dispatch)
+            setChannelDisplayName,
+        }, dispatch),
     };
 }
 
