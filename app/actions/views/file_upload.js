@@ -1,22 +1,15 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
-import {Platform} from 'react-native';
-import {uploadFile} from 'mattermost-redux/actions/files';
+import {FileTypes} from 'mattermost-redux/action_types';
 
-import {
-    buildFileUploadData,
-    encodeHeaderURIStringToUTF8,
-    generateId
-} from 'app/utils/file';
 import {ViewTypes} from 'app/constants';
+import {buildFileUploadData, generateId} from 'app/utils/file';
 
-export function handleUploadFiles(files, rootId) {
-    return async (dispatch, getState) => {
+export function initUploadFiles(files, rootId) {
+    return (dispatch, getState) => {
         const state = getState();
-
         const channelId = state.entities.channels.currentChannelId;
-        const formData = new FormData();
         const clientIds = [];
 
         files.forEach((file) => {
@@ -27,30 +20,36 @@ export function handleUploadFiles(files, rootId) {
                 clientId,
                 localPath: fileData.uri,
                 name: fileData.name,
-                type: fileData.mimeType,
-                extension: fileData.extension
+                type: fileData.type,
+                extension: fileData.extension,
             });
-
-            fileData.name = encodeHeaderURIStringToUTF8(file.fileName);
-            formData.append('files', fileData);
-            formData.append('channel_id', channelId);
-            formData.append('client_ids', clientId);
         });
-
-        let formBoundary;
-        if (Platform.os === 'ios') {
-            formBoundary = '--mobile.client.file.upload';
-        }
 
         dispatch({
             type: ViewTypes.SET_TEMP_UPLOAD_FILES_FOR_POST_DRAFT,
             clientIds,
             channelId,
-            rootId
+            rootId,
         });
+    };
+}
 
-        const clientIdsArray = clientIds.map((c) => c.clientId);
-        await uploadFile(channelId, rootId, clientIdsArray, formData, formBoundary)(dispatch, getState);
+export function uploadFailed(clientIds, channelId, rootId, error) {
+    return {
+        type: FileTypes.UPLOAD_FILES_FAILURE,
+        clientIds,
+        channelId,
+        rootId,
+        error,
+    };
+}
+
+export function uploadComplete(data, channelId, rootId) {
+    return {
+        type: FileTypes.RECEIVED_UPLOAD_FILES,
+        data,
+        channelId,
+        rootId,
     };
 }
 
@@ -59,32 +58,13 @@ export function retryFileUpload(file, rootId) {
         const state = getState();
 
         const channelId = state.entities.channels.currentChannelId;
-        const formData = new FormData();
-
-        const fileData = {
-            uri: file.localPath,
-            name: file.name,
-            type: file.type
-        };
-
-        fileData.name = encodeHeaderURIStringToUTF8(file.fileName);
-        formData.append('files', fileData);
-        formData.append('channel_id', channelId);
-        formData.append('client_ids', file.clientId);
-
-        let formBoundary;
-        if (Platform.os === 'ios') {
-            formBoundary = '--mobile.client.file.upload';
-        }
 
         dispatch({
             type: ViewTypes.RETRY_UPLOAD_FILE_FOR_POST,
             clientId: file.clientId,
             channelId,
-            rootId
+            rootId,
         });
-
-        await uploadFile(channelId, rootId, [file.clientId], formData, formBoundary)(dispatch, getState);
     };
 }
 
@@ -92,7 +72,7 @@ export function handleClearFiles(channelId, rootId) {
     return {
         type: ViewTypes.CLEAR_FILES_FOR_POST_DRAFT,
         channelId,
-        rootId
+        rootId,
     };
 }
 
@@ -100,7 +80,7 @@ export function handleClearFailedFiles(channelId, rootId) {
     return {
         type: ViewTypes.CLEAR_FAILED_FILES_FOR_POST_DRAFT,
         channelId,
-        rootId
+        rootId,
     };
 }
 
@@ -109,7 +89,7 @@ export function handleRemoveFile(clientId, channelId, rootId) {
         type: ViewTypes.REMOVE_FILE_FROM_POST_DRAFT,
         clientId,
         channelId,
-        rootId
+        rootId,
     };
 }
 
@@ -117,6 +97,6 @@ export function handleRemoveLastFile(channelId, rootId) {
     return {
         type: ViewTypes.REMOVE_LAST_FILE_FROM_POST_DRAFT,
         channelId,
-        rootId
+        rootId,
     };
 }

@@ -6,12 +6,12 @@ import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import ChannelLoader from './channel_loader';
 
-function mapStateToProps(state) {
+function mapStateToProps(state, ownProps) {
     const {deviceWidth} = state.device.dimension;
     return {
-        channelIsLoading: state.views.channel.loading,
+        channelIsLoading: ownProps.channelIsLoading || state.views.channel.loading,
         deviceWidth,
-        theme: getTheme(state)
+        theme: getTheme(state),
     };
 }
 

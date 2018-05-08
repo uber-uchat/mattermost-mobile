@@ -5,14 +5,15 @@ import {connect} from 'react-redux';
 
 import {getUsersByUsername} from 'mattermost-redux/selectors/entities/users';
 
-import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
+import {getTeammateNameDisplaySetting, getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import AtMention from './at_mention';
 
 function mapStateToProps(state) {
     return {
         theme: getTheme(state),
-        usersByUsername: getUsersByUsername(state)
+        usersByUsername: getUsersByUsername(state),
+        teammateNameDisplay: getTeammateNameDisplaySetting(state),
     };
 }
 

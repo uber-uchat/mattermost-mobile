@@ -12,30 +12,27 @@ function withLayout(WrappedComponent) {
         static propTypes = {
             index: PropTypes.number.isRequired,
             onLayoutCalled: PropTypes.func,
-            shouldCallOnLayout: PropTypes.bool
+            shouldCallOnLayout: PropTypes.bool,
         };
 
         static defaultProps = {
-            onLayoutCalled: emptyFunction
-        }
+            onLayoutCalled: emptyFunction,
+        };
 
         onLayout = (event) => {
             const {height} = event.nativeEvent.layout;
-            this.props.onLayoutCalled(this.props.index, height);
+            const {shouldCallOnLayout} = this.props;
+            if (shouldCallOnLayout) {
+                this.props.onLayoutCalled(this.props.index, height);
+            }
         };
 
         render() {
-            const {index, onLayoutCalled, shouldCallOnLayout, ...otherProps} = this.props; //eslint-disable-line no-unused-vars
-
-            if (shouldCallOnLayout) {
-                return (
-                    <View onLayout={this.onLayout}>
-                        <WrappedComponent {...otherProps}/>
-                    </View>
-                );
-            }
-
-            return <WrappedComponent {...otherProps}/>;
+            return (
+                <View onLayout={this.onLayout}>
+                    <WrappedComponent {...this.props}/>
+                </View>
+            );
         }
     };
 }

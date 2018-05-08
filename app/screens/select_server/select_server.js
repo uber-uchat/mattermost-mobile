@@ -14,7 +14,7 @@ import {
     StyleSheet,
     Text,
     TouchableWithoutFeedback,
-    View
+    View,
 } from 'react-native';
 import Button from 'react-native-button';
 import urlParse from 'url-parse';
@@ -26,7 +26,7 @@ import ErrorText from 'app/components/error_text';
 import FormattedText from 'app/components/formatted_text';
 import TextInputWithLocalizedPlaceholder from 'app/components/text_input_with_localized_placeholder';
 import {GlobalStyles} from 'app/styles';
-import {wrapWithPreventDoubleTap} from 'app/utils/tap';
+import {preventDoubleTap} from 'app/utils/tap';
 import {isValidUrl, stripTrailingSlashes} from 'app/utils/url';
 import {UpgradeTypes} from 'app/constants/view';
 import checkUpgradeType from 'app/utils/client_upgrade';
@@ -40,7 +40,8 @@ class SelectServer extends PureComponent {
             handleServerUrlChanged: PropTypes.func.isRequired,
             loadConfigAndLicense: PropTypes.func.isRequired,
             resetPing: PropTypes.func.isRequired,
-            setLastUpgradeCheck: PropTypes.func.isRequired
+            setLastUpgradeCheck: PropTypes.func.isRequired,
+            setServerVersion: PropTypes.func.isRequired,
         }).isRequired,
         allowOtherServers: PropTypes.bool,
         config: PropTypes.object,
@@ -52,7 +53,7 @@ class SelectServer extends PureComponent {
         minVersion: PropTypes.string,
         navigator: PropTypes.object,
         serverUrl: PropTypes.string.isRequired,
-        theme: PropTypes.object
+        theme: PropTypes.object,
     };
 
     constructor(props) {
@@ -62,7 +63,7 @@ class SelectServer extends PureComponent {
             connected: false,
             connecting: false,
             error: null,
-            url: props.serverUrl
+            url: props.serverUrl,
         };
 
         this.cancelPing = null;
@@ -109,7 +110,7 @@ class SelectServer extends PureComponent {
     handleNavigatorEvent = (event) => {
         if (event.id === 'didDisappear') {
             this.setState({
-                connected: false
+                connected: false,
             });
         }
     };
@@ -128,12 +129,12 @@ class SelectServer extends PureComponent {
                 statusBarHideWithNavBar: true,
                 navBarTextColor: theme.sidebarHeaderTextColor,
                 navBarBackgroundColor: theme.sidebarHeaderBg,
-                navBarButtonColor: theme.sidebarHeaderTextColor
+                navBarButtonColor: theme.sidebarHeaderTextColor,
             },
             passProps: {
                 closeAction: () => this.handleLoginOptions(this.props),
-                upgradeType
-            }
+                upgradeType,
+            },
         });
     }
 
@@ -167,8 +168,8 @@ class SelectServer extends PureComponent {
                 disabledBackGesture: Config.AutoSelectServerUrl,
                 navBarTextColor: theme.sidebarHeaderTextColor,
                 navBarBackgroundColor: theme.sidebarHeaderBg,
-                navBarButtonColor: theme.sidebarHeaderTextColor
-            }
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+            },
         });
 
         this.props.actions.resetPing();
@@ -182,7 +183,7 @@ class SelectServer extends PureComponent {
         this.setState({url});
     };
 
-    onClick = wrapWithPreventDoubleTap(async () => {
+    onClick = preventDoubleTap(async () => {
         const preUrl = urlParse(this.state.url, true);
         const url = stripTrailingSlashes(preUrl.protocol + '//' + preUrl.host);
 
@@ -199,9 +200,9 @@ class SelectServer extends PureComponent {
                 error: {
                     intl: {
                         id: 'mobile.server_url.invalid_format',
-                        defaultMessage: 'URL must start with http:// or https://'
-                    }
-                }
+                        defaultMessage: 'URL must start with http:// or https://',
+                    },
+                },
             });
 
             return;
@@ -214,13 +215,14 @@ class SelectServer extends PureComponent {
         const {
             getPing,
             handleServerUrlChanged,
-            loadConfigAndLicense
+            loadConfigAndLicense,
+            setServerVersion,
         } = this.props.actions;
 
         this.setState({
             connected: false,
             connecting: true,
-            error: null
+            error: null,
         });
 
         Client4.setUrl(url);
@@ -232,7 +234,7 @@ class SelectServer extends PureComponent {
 
             this.setState({
                 connected: false,
-                connecting: false
+                connecting: false,
             });
 
             this.cancelPing = null;
@@ -245,12 +247,13 @@ class SelectServer extends PureComponent {
 
             if (!result.error) {
                 loadConfigAndLicense();
+                setServerVersion(Client4.getServerVersion());
             }
 
             this.setState({
                 connected: !result.error,
                 connecting: false,
-                error: result.error
+                error: result.error,
             });
         }).catch(() => {
             if (cancel) {
@@ -258,7 +261,7 @@ class SelectServer extends PureComponent {
             }
 
             this.setState({
-                connecting: false
+                connecting: false,
             });
         });
     };
@@ -279,7 +282,7 @@ class SelectServer extends PureComponent {
             connected,
             connecting,
             error,
-            url
+            url,
         } = this.state;
 
         let buttonIcon;
@@ -372,17 +375,17 @@ class SelectServer extends PureComponent {
 
 const style = StyleSheet.create({
     container: {
-        flex: 1
+        flex: 1,
     },
     disabledInput: {
-        backgroundColor: '#e3e3e3'
+        backgroundColor: '#e3e3e3',
     },
     connectButton: {
-        alignItems: 'center'
+        alignItems: 'center',
     },
     connectingIndicator: {
-        marginRight: 5
-    }
+        marginRight: 5,
+    },
 });
 
 export default injectIntl(SelectServer);

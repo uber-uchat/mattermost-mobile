@@ -3,16 +3,15 @@
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {injectIntl, intlShape} from 'react-intl';
+import {intlShape} from 'react-intl';
 import {
     Keyboard,
-    InteractionManager,
     Platform,
     SectionList,
     Text,
     TouchableHighlight,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import IonIcon from 'react-native-vector-icons/Ionicons';
@@ -21,15 +20,17 @@ import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import {RequestStatus} from 'mattermost-redux/constants';
 
 import Autocomplete from 'app/components/autocomplete';
+import DateHeader from 'app/components/post_list/date_header';
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
 import PostListRetry from 'app/components/post_list_retry';
+import PostSeparator from 'app/components/post_separator';
 import SafeAreaView from 'app/components/safe_area_view';
 import SearchBar from 'app/components/search_bar';
-import SearchPreview from 'app/components/search_preview';
 import StatusBar from 'app/components/status_bar';
 import mattermostManaged from 'app/mattermost_managed';
-import {wrapWithPreventDoubleTap} from 'app/utils/tap';
+import {DATE_LINE} from 'app/selectors/post_list';
+import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 import ChannelDisplayName from './channel_display_name';
@@ -42,32 +43,35 @@ const MODIFIER_LABEL_HEIGHT = 58;
 const SEARCHING = 'searching';
 const NO_RESULTS = 'no results';
 
-class Search extends PureComponent {
+export default class Search extends PureComponent {
     static propTypes = {
         actions: PropTypes.shape({
             clearSearch: PropTypes.func.isRequired,
             handleSearchDraftChanged: PropTypes.func.isRequired,
+            loadChannelsByTeamName: PropTypes.func.isRequired,
             loadThreadIfNecessary: PropTypes.func.isRequired,
-            markChannelAsRead: PropTypes.func.isRequired,
-            markChannelAsViewed: PropTypes.func.isRequired,
             removeSearchTerms: PropTypes.func.isRequired,
             searchPosts: PropTypes.func.isRequired,
-            selectPost: PropTypes.func.isRequired
+            selectFocusedPostId: PropTypes.func.isRequired,
+            selectPost: PropTypes.func.isRequired,
         }).isRequired,
         currentTeamId: PropTypes.string.isRequired,
         currentChannelId: PropTypes.string.isRequired,
-        intl: intlShape.isRequired,
         isLandscape: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
         postIds: PropTypes.array,
         recent: PropTypes.array.isRequired,
         searchingStatus: PropTypes.string,
-        theme: PropTypes.object.isRequired
+        theme: PropTypes.object.isRequired,
     };
 
     static defaultProps = {
         postIds: [],
-        recent: []
+        recent: [],
+    };
+
+    static contextTypes = {
+        intl: intlShape.isRequired,
     };
 
     constructor(props) {
@@ -77,11 +81,9 @@ class Search extends PureComponent {
         this.isX = DeviceInfo.getModel() === 'iPhone X';
         this.state = {
             channelName: '',
-            focusedChannelId: null,
-            focusedPostId: null,
-            preview: false,
+            cursorPosition: 0,
             value: '',
-            managedConfig: {}
+            managedConfig: {},
         };
     }
 
@@ -112,7 +114,7 @@ class Search extends PureComponent {
             requestAnimationFrame(() => {
                 this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
                     animated: true,
-                    offset: SECTION_HEIGHT + (2 * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT)
+                    offset: SECTION_HEIGHT + (2 * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
                 });
             });
         }
@@ -122,11 +124,7 @@ class Search extends PureComponent {
         mattermostManaged.removeEventListener(this.listenerId);
     }
 
-    attachAutocomplete = (c) => {
-        this.autocomplete = c;
-    };
-
-    cancelSearch = wrapWithPreventDoubleTap(() => {
+    cancelSearch = preventDoubleTap(() => {
         const {navigator} = this.props;
         this.handleTextChanged('', true);
         navigator.dismissModal({animationType: 'slide-down'});
@@ -149,21 +147,33 @@ class Search extends PureComponent {
                 navBarTextColor: theme.sidebarHeaderTextColor,
                 navBarBackgroundColor: theme.sidebarHeaderBg,
                 navBarButtonColor: theme.sidebarHeaderTextColor,
-                screenBackgroundColor: theme.centerChannelBg
+                screenBackgroundColor: theme.centerChannelBg,
             },
             passProps: {
                 channelId,
-                rootId
-            }
+                rootId,
+            },
         };
 
         navigator.push(options);
     };
 
+    handleClosePermalink = () => {
+        const {actions} = this.props;
+        actions.selectFocusedPostId('');
+        this.showingPermalink = false;
+    };
+
+    handlePermalinkPress = (postId, teamName) => {
+        this.props.actions.loadChannelsByTeamName(teamName);
+        this.showPermalinkView(postId, true);
+    };
+
     handleSelectionChange = (event) => {
-        if (this.autocomplete) {
-            this.autocomplete.getWrappedInstance().handleSelectionChange(event);
-        }
+        const cursorPosition = event.nativeEvent.selection.end;
+        this.setState({
+            cursorPosition,
+        });
     };
 
     handleTextChanged = (value, selectionChanged) => {
@@ -182,9 +192,9 @@ class Search extends PureComponent {
             this.handleSelectionChange({
                 nativeEvent: {
                     selection: {
-                        end: value.length
-                    }
-                }
+                        end: value.length,
+                    },
+                },
             });
         }
     };
@@ -201,10 +211,6 @@ class Search extends PureComponent {
         return item.id || item;
     };
 
-    onFocus = () => {
-        this.scrollToTop();
-    };
-
     onNavigatorEvent = (event) => {
         if (event.id === 'backPress') {
             if (this.state.preview) {
@@ -218,17 +224,50 @@ class Search extends PureComponent {
     previewPost = (post) => {
         Keyboard.dismiss();
 
-        this.setState({
-            preview: true,
-            focusedChannelId: post.channel_id,
-            focusedPostId: post.id
-        });
+        this.showPermalinkView(post.id, false);
     };
 
-    removeSearchTerms = wrapWithPreventDoubleTap((item) => {
+    showPermalinkView = (postId, isPermalink) => {
+        const {actions, navigator} = this.props;
+
+        actions.selectFocusedPostId(postId);
+
+        if (!this.showingPermalink) {
+            const options = {
+                screen: 'Permalink',
+                animationType: 'none',
+                backButtonTitle: '',
+                overrideBackPress: true,
+                navigatorStyle: {
+                    navBarHidden: true,
+                    screenBackgroundColor: changeOpacity('#000', 0.2),
+                    modalPresentationStyle: 'overCurrentContext',
+                },
+                passProps: {
+                    isPermalink,
+                    onClose: this.handleClosePermalink,
+                    onPermalinkPress: this.handlePermalinkPress,
+                },
+            };
+
+            this.showingPermalink = true;
+            navigator.showModal(options);
+        }
+    };
+
+    removeSearchTerms = preventDoubleTap((item) => {
         const {actions, currentTeamId} = this.props;
         actions.removeSearchTerms(currentTeamId, item.terms);
     });
+
+    renderDateHeader = (date, index) => {
+        return (
+            <DateHeader
+                date={date}
+                index={index}
+            />
+        );
+    };
 
     renderModifiers = ({item}) => {
         const {theme} = this.props;
@@ -277,9 +316,15 @@ class Search extends PureComponent {
             );
         }
 
+        if (item.indexOf(DATE_LINE) === 0) {
+            const date = item.substring(DATE_LINE.length);
+            return this.renderDateHeader(new Date(date), index);
+        }
+
         let separator;
-        if (index === postIds.length - 1) {
-            separator = this.renderPostSeparator();
+        const nextPost = postIds[index + 1];
+        if (nextPost && nextPost.indexOf(DATE_LINE) === -1) {
+            separator = <PostSeparator theme={theme}/>;
         }
 
         return (
@@ -290,6 +335,7 @@ class Search extends PureComponent {
                     previewPost={this.previewPost}
                     goToThread={this.goToThread}
                     navigator={this.props.navigator}
+                    onPermalinkPress={this.handlePermalinkPress}
                     managedConfig={managedConfig}
                 />
                 {separator}
@@ -303,17 +349,6 @@ class Search extends PureComponent {
 
         return (
             <View style={style.separatorContainer}>
-                <View style={style.separator}/>
-            </View>
-        );
-    };
-
-    renderPostSeparator = () => {
-        const {theme} = this.props;
-        const style = getStyleFromTheme(theme);
-
-        return (
-            <View style={[style.separatorContainer, style.postsSeparator]}>
                 <View style={style.separator}/>
             </View>
         );
@@ -383,7 +418,7 @@ class Search extends PureComponent {
         }
 
         this.setState({
-            managedConfig: nextConfig
+            managedConfig: nextConfig,
         });
     };
 
@@ -391,7 +426,7 @@ class Search extends PureComponent {
         if (this.refs.list) {
             this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
                 animated: false,
-                offset: 0
+                offset: 0,
             });
         }
     };
@@ -405,19 +440,19 @@ class Search extends PureComponent {
         this.handleSelectionChange({
             nativeEvent: {
                 selection: {
-                    end: terms.length + 1
-                }
-            }
+                    end: terms.length + 1,
+                },
+            },
         });
 
         actions.searchPosts(currentTeamId, terms.trim(), isOrSearch);
     };
 
-    handleSearchButtonPress = wrapWithPreventDoubleTap((text) => {
+    handleSearchButtonPress = preventDoubleTap((text) => {
         this.search(text);
     });
 
-    setModifierValue = wrapWithPreventDoubleTap((modifier) => {
+    setModifierValue = preventDoubleTap((modifier) => {
         const {value} = this.state;
         let newValue = '';
 
@@ -436,63 +471,26 @@ class Search extends PureComponent {
         }
     });
 
-    setRecentValue = wrapWithPreventDoubleTap((recent) => {
+    setRecentValue = preventDoubleTap((recent) => {
         const {terms, isOrSearch} = recent;
         this.handleTextChanged(terms);
         this.search(terms, isOrSearch);
+        Keyboard.dismiss();
     });
-
-    handleClosePreview = () => {
-        this.setState({
-            preview: false,
-            focusedChannelId: null,
-            focusedPostId: null
-        });
-    };
-
-    handleJumpToChannel = (channelId, channelDisplayName) => {
-        if (channelId) {
-            const {actions, currentChannelId} = this.props;
-            const {
-                handleSelectChannel,
-                markChannelAsRead,
-                setChannelLoading,
-                setChannelDisplayName,
-                markChannelAsViewed
-            } = actions;
-
-            setChannelLoading(channelId !== currentChannelId);
-            setChannelDisplayName(channelDisplayName);
-
-            InteractionManager.runAfterInteractions(() => {
-                handleSelectChannel(channelId);
-                requestAnimationFrame(() => {
-                    // mark the channel as viewed after all the frame has flushed
-                    markChannelAsRead(channelId, currentChannelId);
-                    if (channelId !== currentChannelId) {
-                        markChannelAsViewed(currentChannelId);
-                    }
-                });
-
-                this.props.navigator.dismissModal({animationType: 'slide-down'});
-            });
-        }
-    };
 
     render() {
         const {
-            intl,
             isLandscape,
-            navigator,
             postIds,
             recent,
             searchingStatus,
-            theme
+            theme,
         } = this.props;
 
+        const {intl} = this.context;
         const {
-            preview,
-            value
+            cursorPosition,
+            value,
         } = this.state;
         const style = getStyleFromTheme(theme);
         const sections = [{
@@ -501,31 +499,31 @@ class Search extends PureComponent {
                 modifier: `from:${intl.formatMessage({id: 'mobile.search.from_modifier_title', defaultMessage: 'username'})}`,
                 description: intl.formatMessage({
                     id: 'mobile.search.from_modifier_description',
-                    defaultMessage: 'to find posts from specific users'
-                })
+                    defaultMessage: 'to find posts from specific users',
+                }),
             }, {
                 value: 'in:',
                 modifier: `in:${intl.formatMessage({id: 'mobile.search.in_modifier_title', defaultMessage: 'channel-name'})}`,
                 description: intl.formatMessage({
                     id: 'mobile.search.in_modifier_description',
-                    defaultMessage: 'to find posts in specific channels'
-                })
+                    defaultMessage: 'to find posts in specific channels',
+                }),
             }],
             key: 'modifiers',
             title: '',
             renderItem: this.renderModifiers,
             keyExtractor: this.keyModifierExtractor,
-            ItemSeparatorComponent: this.renderRecentSeparator
+            ItemSeparatorComponent: this.renderRecentSeparator,
         }];
 
         if (recent.length) {
             sections.push({
                 data: recent,
                 key: 'recent',
-                title: intl.formatMessage({id: 'mobile.search.recentTitle', defaultMessage: 'Recent Searches'}),
+                title: intl.formatMessage({id: 'mobile.search.recent_title', defaultMessage: 'Recent Searches'}),
                 renderItem: this.renderRecentItem,
                 keyExtractor: this.keyRecentExtractor,
-                ItemSeparatorComponent: this.renderRecentSeparator
+                ItemSeparatorComponent: this.renderRecentSeparator,
             });
         }
 
@@ -538,7 +536,7 @@ class Search extends PureComponent {
                     <View style={style.searching}>
                         <Loading/>
                     </View>
-                )
+                ),
             }];
             break;
         case RequestStatus.SUCCESS:
@@ -553,7 +551,7 @@ class Search extends PureComponent {
                             defaultMessage='No Results Found'
                             style={style.noResults}
                         />
-                    )
+                    ),
                 }];
             }
             break;
@@ -567,7 +565,7 @@ class Search extends PureComponent {
                             theme={theme}
                         />
                     </View>
-                )
+                ),
             }];
             break;
         }
@@ -579,31 +577,13 @@ class Search extends PureComponent {
                 title: intl.formatMessage({id: 'search_header.results', defaultMessage: 'Search Results'}),
                 renderItem: this.renderPost,
                 keyExtractor: this.keyPostExtractor,
-                ItemSeparatorComponent: this.renderPostSeparator
             });
-        }
-
-        let previewComponent;
-        if (preview) {
-            const {focusedChannelId, focusedPostId} = this.state;
-
-            previewComponent = (
-                <SearchPreview
-                    ref='preview'
-                    channelId={focusedChannelId}
-                    focusedPostId={focusedPostId}
-                    navigator={navigator}
-                    onClose={this.handleClosePreview}
-                    onPress={this.handleJumpToChannel}
-                    theme={theme}
-                />
-            );
         }
 
         const searchBarInput = {
             backgroundColor: changeOpacity(theme.sidebarHeaderTextColor, 0.2),
             color: theme.sidebarHeaderTextColor,
-            fontSize: 15
+            fontSize: 15,
         };
 
         return (
@@ -646,12 +626,11 @@ class Search extends PureComponent {
                         stickySectionHeadersEnabled={Platform.OS === 'ios'}
                     />
                     <Autocomplete
-                        ref={this.attachAutocomplete}
+                        cursorPosition={cursorPosition}
                         onChangeText={this.handleTextChanged}
                         isSearch={true}
                         value={value}
                     />
-                    {previewComponent}
                 </View>
             </SafeAreaView>
         );
@@ -661,7 +640,7 @@ class Search extends PureComponent {
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
-            flex: 1
+            flex: 1,
         },
         header: {
             backgroundColor: theme.sidebarHeaderBg,
@@ -669,100 +648,100 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
             ...Platform.select({
                 android: {
                     height: 46,
-                    justifyContent: 'center'
+                    justifyContent: 'center',
                 },
                 ios: {
-                    height: 44
-                }
-            })
+                    height: 44,
+                },
+            }),
         },
         searchBarContainer: {
-            padding: 0
+            padding: 0,
         },
         sectionWrapper: {
-            backgroundColor: theme.centerChannelBg
+            backgroundColor: theme.centerChannelBg,
         },
         sectionContainer: {
             justifyContent: 'center',
             backgroundColor: changeOpacity(theme.centerChannelColor, 0.07),
             paddingLeft: 16,
-            height: SECTION_HEIGHT
+            height: SECTION_HEIGHT,
         },
         sectionLabel: {
             color: theme.centerChannelColor,
             fontSize: 12,
-            fontWeight: '600'
+            fontWeight: '600',
         },
         modifierItemContainer: {
             alignItems: 'center',
             flex: 1,
             flexDirection: 'row',
-            height: MODIFIER_LABEL_HEIGHT
+            height: MODIFIER_LABEL_HEIGHT,
         },
         modifierItemWrapper: {
             flex: 1,
             flexDirection: 'column',
-            paddingHorizontal: 16
+            paddingHorizontal: 16,
         },
         modifierItemLabelContainer: {
             alignItems: 'center',
-            flexDirection: 'row'
+            flexDirection: 'row',
         },
         modifierLabelIconContainer: {
             alignItems: 'center',
-            marginRight: 5
+            marginRight: 5,
         },
         modifierLabelIcon: {
             fontSize: 16,
-            color: changeOpacity(theme.centerChannelColor, 0.5)
+            color: changeOpacity(theme.centerChannelColor, 0.5),
         },
         modifierItemLabel: {
             fontSize: 14,
-            color: theme.centerChannelColor
+            color: theme.centerChannelColor,
         },
         modifierItemDescription: {
             fontSize: 12,
             color: changeOpacity(theme.centerChannelColor, 0.5),
-            marginTop: 5
+            marginTop: 5,
         },
         recentItemContainer: {
             alignItems: 'center',
             flex: 1,
             flexDirection: 'row',
-            height: RECENT_LABEL_HEIGHT
+            height: RECENT_LABEL_HEIGHT,
         },
         recentItemLabel: {
             color: theme.centerChannelColor,
             fontSize: 14,
             height: 20,
             flex: 1,
-            paddingHorizontal: 16
+            paddingHorizontal: 16,
         },
         recentRemove: {
             alignItems: 'center',
             height: RECENT_LABEL_HEIGHT,
             justifyContent: 'center',
-            width: 50
+            width: 50,
         },
         separatorContainer: {
             justifyContent: 'center',
             flex: 1,
-            height: RECENT_SEPARATOR_HEIGHT
+            height: RECENT_SEPARATOR_HEIGHT,
         },
         postsSeparator: {
-            height: 15
+            height: 15,
         },
         separator: {
             backgroundColor: changeOpacity(theme.centerChannelColor, 0.1),
-            height: 1
+            height: 1,
         },
         sectionList: {
-            flex: 1
+            flex: 1,
         },
         customItem: {
             alignItems: 'center',
             flex: 1,
-            justifyContent: 'center'
+            justifyContent: 'center',
         },
         noResults: {
             color: changeOpacity(theme.centerChannelColor, 0.5),
@@ -770,12 +749,11 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
             fontWeight: '400',
             marginTop: 65,
             textAlign: 'center',
-            textAlignVertical: 'center'
+            textAlignVertical: 'center',
         },
         searching: {
-            marginTop: 65
-        }
+            marginTop: 65,
+        },
     };
 });
 
-export default injectIntl(Search);
