@@ -354,8 +354,7 @@ export default class EditProfile extends PureComponent {
         const {nickname} = this.state;
 
         const {auth_service: service} = currentUser;
-        const disabled = (service === 'ldap' && config.LdapNicknameAttributeSet === 'true') ||
-            (service === 'saml' && config.SamlNicknameAttributeSet === 'true');
+        const disabled = service === 'ldap' || service === 'saml';
 
         return (
             <EditProfileItem
@@ -379,7 +378,7 @@ export default class EditProfile extends PureComponent {
         const {position} = this.state;
 
         const {auth_service: service} = currentUser;
-        const disabled = (service === 'ldap' || service === 'saml') && config.PositionAttribute === 'true';
+        const disabled = (service === 'ldap' || service === 'saml');
 
         return (
             <EditProfileItem
@@ -414,6 +413,8 @@ export default class EditProfile extends PureComponent {
             updating,
         } = this.state;
 
+        const {auth_service: service} = currentUser;
+
         const style = getStyleSheet(theme);
         const uri = profileImage ? profileImage.uri : null;
 
@@ -438,6 +439,16 @@ export default class EditProfile extends PureComponent {
                     </View>
                 </View>
             );
+        }
+
+        let nickname = null;
+        if (service !== 'ldap' && service !== 'saml') {
+            nickname = (
+                <View>
+                    <View style={style.separator}/>
+                    {this.renderNicknameSettings()}
+                </View>
+            )
         }
 
         return (
@@ -475,8 +486,7 @@ export default class EditProfile extends PureComponent {
                         {this.renderUsernameSettings()}
                         <View style={style.separator}/>
                         {this.renderEmailSettings()}
-                        <View style={style.separator}/>
-                        {this.renderNicknameSettings()}
+                        {nickname}
                         <View style={style.separator}/>
                         {this.renderPositionSettings()}
                         <View style={style.footer}/>
