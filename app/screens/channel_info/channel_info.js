@@ -387,18 +387,20 @@ export default class ChannelInfo extends PureComponent {
                             togglable={true}
                             theme={theme}
                         />
-                        <View style={style.separator}/>
-                        <ChannelInfoRow
-                            action={this.handleMuteChannel}
-                            defaultMessage='Mute channel'
-                            detail={this.state.isMuted}
-                            icon='bell-slash-o'
-                            textId='channel_notifications.muteChannel.settings'
-                            togglable={true}
-                            theme={theme}
-                        />
+                        {/**
+                            <View style={style.separator}/>
+                            <ChannelInfoRow
+                                action={this.handleMuteChannel}
+                                defaultMessage='Mute channel'
+                                detail={this.state.isMuted}
+                                icon='bell-slash-o'
+                                textId='channel_notifications.muteChannel.settings'
+                                togglable={true}
+                                theme={theme}
+                            />
+                            **/
+                        }
                         {
-
                         /**
                          <ChannelInfoRow
                          action={() => true}
