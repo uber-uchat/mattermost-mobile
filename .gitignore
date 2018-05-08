@@ -28,6 +28,7 @@ DerivedData
 *.apk
 *.xcuserstate
 project.xcworkspace
+xcshareddata/
 
 # Android/IntelliJ
 #
@@ -70,7 +71,7 @@ tags
 fastlane/report.xml
 fastlane/Preview.html
 */fastlane/screenshots
-
+fastlane/.env
 
 # Sentry
 android/sentry.properties
@@ -85,3 +86,4 @@ ios/Pods/
 
 #editor-settings
 .vscode
+

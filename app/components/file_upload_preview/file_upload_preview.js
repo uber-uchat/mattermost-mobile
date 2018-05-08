@@ -4,97 +4,39 @@
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
-    Platform,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
-    View
+    View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
 
 import FormattedText from 'app/components/formatted_text';
-import FileAttachmentImage from 'app/components/file_attachment_list/file_attachment_image';
-import FileAttachmentIcon from 'app/components/file_attachment_list/file_attachment_icon';
+
+import FileUploadItem from './file_upload_item';
 
 export default class FileUploadPreview extends PureComponent {
     static propTypes = {
-        actions: PropTypes.shape({
-            addFileToFetchCache: PropTypes.func.isRequired,
-            handleRemoveFile: PropTypes.func.isRequired,
-            retryFileUpload: PropTypes.func.isRequired
-        }).isRequired,
         channelId: PropTypes.string.isRequired,
         channelIsLoading: PropTypes.bool,
         createPostRequestStatus: PropTypes.string.isRequired,
         deviceHeight: PropTypes.number.isRequired,
-        fetchCache: PropTypes.object.isRequired,
         files: PropTypes.array.isRequired,
+        filesUploadingForCurrentChannel: PropTypes.bool.isRequired,
         inputHeight: PropTypes.number.isRequired,
         rootId: PropTypes.string,
+        showFileMaxWarning: PropTypes.bool.isRequired,
         theme: PropTypes.object.isRequired,
-        filesUploadingForCurrentChannel: PropTypes.bool.isRequired,
-        showFileMaxWarning: PropTypes.bool.isRequired
-    };
-
-    handleRetryFileUpload = (file) => {
-        if (!file.failed) {
-            return;
-        }
-
-        this.props.actions.retryFileUpload(file, this.props.rootId);
     };
 
     buildFilePreviews = () => {
         return this.props.files.map((file) => {
-            let filePreviewComponent;
-            if (file.loading | (file.has_preview_image || file.mime_type === 'image/gif')) {
-                filePreviewComponent = (
-                    <FileAttachmentImage
-                        addFileToFetchCache={this.props.actions.addFileToFetchCache}
-                        fetchCache={this.props.fetchCache}
-                        file={file}
-                    />
-                );
-            } else {
-                filePreviewComponent = (
-                    <FileAttachmentIcon
-                        file={file}
-                        theme={this.props.theme}
-                    />
-                );
-            }
             return (
-                <View
+                <FileUploadItem
                     key={file.clientId}
-                    style={style.preview}
-                >
-                    <View style={style.previewShadow}>
-                        {filePreviewComponent}
-                        {file.failed &&
-                        <TouchableOpacity
-                            style={style.failed}
-                            onPress={() => this.handleRetryFileUpload(file)}
-                        >
-                            <Icon
-                                name='md-refresh'
-                                size={50}
-                                color='#fff'
-                            />
-                        </TouchableOpacity>
-                        }
-                    </View>
-                    <TouchableOpacity
-                        style={style.removeButtonWrapper}
-                        onPress={() => this.props.actions.handleRemoveFile(file.clientId, this.props.channelId, this.props.rootId)}
-                    >
-                        <Icon
-                            name='md-close'
-                            color='#fff'
-                            size={18}
-                            style={style.removeButtonIcon}
-                        />
-                    </TouchableOpacity>
-                </View>
+                    channelId={this.props.channelId}
+                    file={file}
+                    rootId={this.props.rootId}
+                    theme={this.props.theme}
+                />
             );
         });
     };
@@ -105,7 +47,7 @@ export default class FileUploadPreview extends PureComponent {
             channelIsLoading,
             filesUploadingForCurrentChannel,
             deviceHeight,
-            files
+            files,
         } = this.props;
         if (channelIsLoading || (!files.length && !filesUploadingForCurrentChannel)) {
             return null;
@@ -141,72 +83,19 @@ const style = StyleSheet.create({
         left: 0,
         bottom: 0,
         position: 'absolute',
-        width: '100%'
-    },
-    failed: {
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
-        position: 'absolute',
-        height: '100%',
         width: '100%',
-        alignItems: 'center',
-        justifyContent: 'center'
-    },
-    preview: {
-        justifyContent: 'flex-end',
-        height: 115,
-        width: 115
-    },
-    previewShadow: {
-        height: 100,
-        width: 100,
-        elevation: 10,
-        ...Platform.select({
-            ios: {
-                backgroundColor: '#fff',
-                shadowColor: '#000',
-                shadowOpacity: 0.5,
-                shadowRadius: 4,
-                shadowOffset: {
-                    width: 0,
-                    height: 0
-                }
-            }
-        })
-    },
-    removeButtonIcon: Platform.select({
-        ios: {
-            marginTop: 2
-        },
-        android: {
-            marginLeft: 1
-        }
-    }),
-    removeButtonWrapper: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        position: 'absolute',
-        overflow: 'hidden',
-        elevation: 11,
-        top: 7,
-        right: 7,
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        backgroundColor: '#000',
-        borderWidth: 1,
-        borderColor: '#fff'
     },
     scrollView: {
         flex: 1,
-        marginBottom: 12
+        marginBottom: 10,
     },
     scrollViewContent: {
         alignItems: 'flex-end',
-        marginLeft: 14
+        marginLeft: 14,
     },
     warning: {
         color: 'white',
         marginLeft: 14,
-        marginBottom: 12
-    }
+        marginBottom: 10,
+    },
 });

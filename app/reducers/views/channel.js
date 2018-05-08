@@ -5,7 +5,7 @@ import {combineReducers} from 'redux';
 import {
     ChannelTypes,
     FileTypes,
-    PostTypes
+    PostTypes,
 } from 'mattermost-redux/action_types';
 
 import {ViewTypes} from 'app/constants';
@@ -13,7 +13,7 @@ import {ViewTypes} from 'app/constants';
 function displayName(state = '', action) {
     switch (action.type) {
     case ViewTypes.SET_CHANNEL_DISPLAY_NAME:
-        return action.displayName;
+        return action.displayName || '';
     default:
         return state;
     }
@@ -22,16 +22,7 @@ function displayName(state = '', action) {
 function handlePostDraftChanged(state, action) {
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {draft: action.draft})
-    };
-}
-
-function handlePostDraftSelectionChanged(state, action) {
-    return {
-        ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {
-            cursorPosition: action.cursorPosition
-        })
+        [action.channelId]: Object.assign({}, state[action.channelId], {draft: action.draft}),
     };
 }
 
@@ -41,8 +32,8 @@ function handleSetPostDraft(state, action) {
         [action.channelId]: {
             draft: action.draft,
             cursorPosition: 0,
-            files: action.files
-        }
+            files: action.files,
+        },
     };
 }
 
@@ -54,8 +45,8 @@ function handleSelectChannel(state, action) {
             [action.data]: {
                 draft: '',
                 cursorPosition: 0,
-                files: []
-            }
+                files: [],
+            },
         };
     }
 
@@ -70,12 +61,12 @@ function handleSetTempUploadFileForPostDraft(state, action) {
     const tempFiles = action.clientIds.map((temp) => ({...temp, loading: true}));
     const files = [
         ...state[action.channelId].files,
-        ...tempFiles
+        ...tempFiles,
     ];
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -89,7 +80,7 @@ function handleRetryUploadFileForPost(state, action) {
             return {
                 ...f,
                 loading: true,
-                failed: false
+                failed: false,
             };
         }
 
@@ -98,7 +89,7 @@ function handleRetryUploadFileForPost(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -113,7 +104,8 @@ function handleReceivedUploadFiles(state, action) {
         if (file) {
             return {
                 ...file,
-                localPath: tempFile.localPath
+                localPath: tempFile.localPath,
+                loading: false,
             };
         }
 
@@ -122,7 +114,7 @@ function handleReceivedUploadFiles(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -137,7 +129,7 @@ function handleUploadFilesFailure(state, action) {
             return {
                 ...tempFile,
                 loading: false,
-                failed: true
+                failed: true,
             };
         }
 
@@ -146,7 +138,7 @@ function handleUploadFilesFailure(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -157,7 +149,7 @@ function handleClearFilesForPostDraft(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files: []})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files: []}),
     };
 }
 
@@ -170,7 +162,7 @@ function handleRemoveFileFromPostDraft(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -184,7 +176,7 @@ function handleRemoveLastFileFromPostDraft(state, action) {
 
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -196,7 +188,7 @@ function handleRemoveFailedFilesFromPostDraft(state, action) {
     const files = state[action.channelId].files.filter((f) => !f.failed);
     return {
         ...state,
-        [action.channelId]: Object.assign({}, state[action.channelId], {files})
+        [action.channelId]: Object.assign({}, state[action.channelId], {files}),
     };
 }
 
@@ -204,8 +196,6 @@ function drafts(state = {}, action) { // eslint-disable-line complexity
     switch (action.type) {
     case ViewTypes.POST_DRAFT_CHANGED:
         return handlePostDraftChanged(state, action);
-    case ViewTypes.POST_DRAFT_SELECTION_CHANGED:
-        return handlePostDraftSelectionChanged(state, action);
     case ViewTypes.SET_POST_DRAFT:
         return handleSetPostDraft(state, action);
     case ChannelTypes.SELECT_CHANNEL:
@@ -305,7 +295,7 @@ function lastGetPosts(state = {}, action) {
     case ViewTypes.RECEIVED_POSTS_FOR_CHANNEL_AT_TIME:
         return {
             ...state,
-            [action.channelId]: action.time
+            [action.channelId]: action.time,
         };
 
     default:
@@ -332,5 +322,5 @@ export default combineReducers({
     loadingPosts,
     lastGetPosts,
     retryFailed,
-    loadMorePostsVisible
+    loadMorePostsVisible,
 });

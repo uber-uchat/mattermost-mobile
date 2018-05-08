@@ -3,26 +3,27 @@
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import ToolTip from 'react-native-tooltip';
+
+import ToolTip from 'app/components/tooltip';
 
 export default class OptionsContext extends PureComponent {
     static propTypes = {
         actions: PropTypes.array,
         children: PropTypes.node.isRequired,
         onPress: PropTypes.func.isRequired,
-        toggleSelected: PropTypes.func.isRequired
+        toggleSelected: PropTypes.func.isRequired,
     };
 
     static defaultProps = {
         actions: [],
-        additionalActions: []
+        additionalActions: [],
     };
 
     constructor(props) {
         super(props);
 
         this.state = {
-            actions: props.actions
+            actions: props.actions,
         };
     }
 
@@ -53,9 +54,12 @@ export default class OptionsContext extends PureComponent {
     };
 
     hide = () => {
-        this.refs.toolTip.hideMenu();
+        if (this.refs.toolTip) {
+            this.refs.toolTip.hideMenu();
+        }
+
         this.setState({
-            actions: this.props.actions
+            actions: this.props.actions,
         });
     };
 
@@ -67,10 +71,12 @@ export default class OptionsContext extends PureComponent {
         }
 
         this.setState({
-            actions: nextActions
+            actions: nextActions,
         });
 
-        this.refs.toolTip.showMenu();
+        if (this.refs.toolTip) {
+            this.refs.toolTip.showMenu();
+        }
     };
 
     handlePress = () => {

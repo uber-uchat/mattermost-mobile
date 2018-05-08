@@ -12,7 +12,7 @@ import Config from 'assets/config';
 
 import {
     captureException,
-    LOGGER_JAVASCRIPT_WARNING
+    LOGGER_JAVASCRIPT_WARNING,
 } from 'app/utils/sentry';
 
 export function messageRetention(store) {
@@ -66,7 +66,7 @@ function resetStateForNewVersion(action) {
         teams = {
             currentTeamId: payload.entities.teams.currentTeamId,
             teams: payload.entities.teams.teams,
-            myMembers: payload.entities.teams.myMembers
+            myMembers: payload.entities.teams.myMembers,
         };
     }
 
@@ -77,8 +77,8 @@ function resetStateForNewVersion(action) {
             users = {
                 currentUserId,
                 profiles: {
-                    [currentUserId]: payload.entities.users.profiles[currentUserId]
-                }
+                    [currentUserId]: payload.entities.users.profiles[currentUserId],
+                },
             };
         }
     }
@@ -91,7 +91,7 @@ function resetStateForNewVersion(action) {
     let search = initialState.entities.search;
     if (payload.entities.search && payload.entities.search.recent) {
         search = {
-            recent: payload.entities.search.recent
+            recent: payload.entities.search.recent,
         };
     }
 
@@ -103,11 +103,6 @@ function resetStateForNewVersion(action) {
     let i18n = initialState.views.i18n;
     if (payload.views.i18n) {
         i18n = payload.views.i18n;
-    }
-
-    let fetchCache = initialState.views.fetchCache;
-    if (payload.views.fetchCache) {
-        fetchCache = payload.views.fetchCache;
     }
 
     let lastTeamId = initialState.views.team.lastTeamId;
@@ -133,37 +128,36 @@ function resetStateForNewVersion(action) {
     const nextState = {
         app: {
             build: DeviceInfo.getBuildNumber(),
-            version: DeviceInfo.getVersion()
+            version: DeviceInfo.getVersion(),
         },
         entities: {
             general,
             teams,
             users,
             preferences,
-            search
+            search,
         },
         views: {
             channel: {
-                drafts: channelDrafts
+                drafts: channelDrafts,
             },
             i18n,
-            fetchCache,
             team: {
                 lastTeamId,
-                lastChannelForTeam
+                lastChannelForTeam,
             },
             thread: {
-                drafts: threadDrafts
+                drafts: threadDrafts,
             },
             selectServer,
-            recentEmojis
-        }
+            recentEmojis,
+        },
     };
 
     return {
         type: action.type,
         payload: nextState,
-        error: action.error
+        error: action.error,
     };
 }
 
@@ -190,15 +184,16 @@ function cleanupState(action, keepCurrent = false) {
         posts: {
             posts: {},
             postsInChannel: {},
+            postsInThread: {},
             reactions: {},
             openGraph: payload.entities.posts.openGraph,
             selectedPostId: payload.entities.posts.selectedPostId,
-            currentFocusedPostId: payload.entities.posts.currentFocusedPostId
+            currentFocusedPostId: payload.entities.posts.currentFocusedPostId,
         },
         files: {
             files: {},
-            fileIdsByPostId: {}
-        }
+            fileIdsByPostId: {},
+        },
     };
 
     let retentionPeriod = 0;
@@ -229,10 +224,19 @@ function cleanupState(action, keepCurrent = false) {
     }, []);
 
     let searchResults = [];
-    if (payload.entities.search && payload.entities.search.results.length) {
-        const {results} = payload.entities.search;
-        searchResults = results;
-        postIdsToKeep.push(...results);
+    let flaggedPosts = [];
+    if (payload.entities.search) {
+        if (payload.entities.search.results.length) {
+            const {results} = payload.entities.search;
+            searchResults = results;
+            postIdsToKeep.push(...results);
+        }
+
+        if (payload.entities.search.flagged.length) {
+            const {flagged} = payload.entities.search;
+            flaggedPosts = flagged;
+            postIdsToKeep.push(...flagged);
+        }
     }
 
     postIdsToKeep.forEach((postId) => {
@@ -262,6 +266,11 @@ function cleanupState(action, keepCurrent = false) {
                     nextEntitites.files.files[fileId] = payload.entities.files.files[fileId];
                 });
             }
+
+            const postsInThread = payload.entities.posts.postsInThread[postId];
+            if (postsInThread) {
+                nextEntitites.posts.postsInThread[postId] = postsInThread;
+            }
         } else {
             // If the post is not in the store we need to remove it from the postsInChannel
             const channelIds = Object.keys(nextEntitites.posts.postsInChannel);
@@ -277,6 +286,32 @@ function cleanupState(action, keepCurrent = false) {
         }
     });
 
+    // remove any pending posts that hasn't failed
+    if (payload.entities.posts && payload.entities.posts.pendingPostIds && payload.entities.posts.pendingPostIds.length) {
+        const nextPendingPostIds = [...payload.entities.posts.pendingPostIds];
+        payload.entities.posts.pendingPostIds.forEach((id) => {
+            const posts = nextEntitites.posts.posts;
+            const post = posts[id];
+
+            if (post) {
+                const postsInChannel = [...nextEntitites.posts.postsInChannel[post.channel_id]] || [];
+                if (!post.failed) {
+                    Reflect.deleteProperty(posts, id);
+                    const index = postsInChannel.indexOf(id);
+                    if (index !== -1) {
+                        postsInChannel.splice(index, 1);
+                        nextEntitites.posts.postsInChannel[post.channel_id] = postsInChannel;
+                    }
+                    removePendingPost(nextPendingPostIds, id);
+                }
+            } else {
+                removePendingPost(nextPendingPostIds, id);
+            }
+        });
+
+        nextEntitites.posts.pendingPostIds = nextPendingPostIds;
+    }
+
     const nextState = {
         app: resetPayload.app,
         entities: {
@@ -287,18 +322,20 @@ function cleanupState(action, keepCurrent = false) {
             preferences: resetPayload.entities.preferences,
             search: {
                 ...resetPayload.entities.search,
-                results: searchResults
+                results: searchResults,
+                flagged: flaggedPosts,
             },
             teams: resetPayload.entities.teams,
-            users: payload.entities.users
+            users: payload.entities.users,
         },
         views: {
+            announcement: payload.views.announcement,
             ...resetPayload.views,
             channel: {
                 ...resetPayload.views.channel,
-                ...payload.views.channel
-            }
-        }
+                ...payload.views.channel,
+            },
+        },
     };
 
     nextState.errors = payload.errors;
@@ -306,7 +343,7 @@ function cleanupState(action, keepCurrent = false) {
     return {
         type: 'persist/REHYDRATE',
         payload: nextState,
-        error: action.error
+        error: action.error,
     };
 }
 
@@ -323,4 +360,11 @@ export function shareExtensionData() {
         }
         return nextAction;
     };
+}
+
+function removePendingPost(pendingPostIds, id) {
+    const pendingIndex = pendingPostIds.indexOf(id);
+    if (pendingIndex !== -1) {
+        pendingPostIds.splice(pendingIndex, 1);
+    }
 }

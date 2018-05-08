@@ -16,7 +16,6 @@ import appReducer from 'app/reducers';
 import {throttle} from 'app/utils/general';
 import networkConnectionListener from 'app/utils/network';
 import {createSentryMiddleware} from 'app/utils/sentry/middleware';
-import {promiseTimeout} from 'app/utils/promise_timeout';
 
 import mattermostBucket from 'app/mattermost_bucket';
 import Config from 'assets/config';
@@ -32,22 +31,22 @@ const usersSetTransform = [
     'profilesInChannel',
     'profilesNotInChannel',
     'profilesInTeam',
-    'profilesNotInTeam'
+    'profilesNotInTeam',
 ];
 
 const channelSetTransform = [
-    'channelsInTeam'
+    'channelsInTeam',
 ];
 
 const setTransforms = [
     ...usersSetTransform,
-    ...channelSetTransform
+    ...channelSetTransform,
 ];
 
 export default function configureAppStore(initialState) {
     const viewsBlackListFilter = createBlacklistFilter(
         'views',
-        ['extension', 'login', 'root']
+        ['announcement', 'extension', 'login', 'root']
     );
 
     const typingBlackListFilter = createBlacklistFilter(
@@ -68,11 +67,11 @@ export default function configureAppStore(initialState) {
 
             return {
                 ...inboundState,
-                channel
+                channel,
             };
         },
         null,
-        {whitelist: ['views']} // Only run this filter the views state (or any other entry that ends up being named views)
+        {whitelist: ['views']} // Only run this filter on the views state (or any other entry that ends up being named views)
     );
 
     const emojiBlackList = {nonExistentEmoji: true};
@@ -88,7 +87,7 @@ export default function configureAppStore(initialState) {
 
             return {
                 ...inboundState,
-                emojis
+                emojis,
             };
         },
         null,
@@ -134,13 +133,6 @@ export default function configureAppStore(initialState) {
                 throw new Error('Offline Action: commit action must be present.');
             }
 
-            if (action.meta.offline.canTimeout) {
-                const defaultTimeout = 10000;
-                const timeout = action.meta.offline.timeout || defaultTimeout;
-
-                return promiseTimeout(effect(), timeout);
-            }
-
             return effect();
         },
         detectNetwork: (callback) => networkConnectionListener(callback),
@@ -148,7 +140,7 @@ export default function configureAppStore(initialState) {
             const persistor = persistStore(store, {storage: AsyncStorage, ...options}, () => {
                 store.dispatch({
                     type: General.STORE_REHYDRATION_COMPLETE,
-                    complete: true
+                    complete: true,
                 });
             });
 
@@ -175,16 +167,16 @@ export default function configureAppStore(initialState) {
                     store.dispatch(batchActions([
                         {
                             type: General.OFFLINE_STORE_RESET,
-                            data: initialState
+                            data: initialState,
                         },
                         {
                             type: ViewTypes.SERVER_URL_CHANGED,
-                            serverUrl: state.entities.general.credentials.url || state.views.selectServer.serverUrl
+                            serverUrl: state.entities.general.credentials.url || state.views.selectServer.serverUrl,
                         },
                         {
                             type: GeneralTypes.RECEIVED_APP_DEVICE_TOKEN,
-                            data: state.entities.general.deviceToken
-                        }
+                            data: state.entities.general.deviceToken,
+                        },
                     ]));
 
                     setTimeout(() => {
@@ -198,27 +190,27 @@ export default function configureAppStore(initialState) {
                     store.dispatch(batchActions([
                         {
                             type: General.OFFLINE_STORE_RESET,
-                            data: initialState
+                            data: initialState,
                         },
                         {
                             type: ErrorTypes.RESTORE_ERRORS,
-                            data: [...state.errors]
+                            data: [...state.errors],
                         },
                         {
                             type: GeneralTypes.RECEIVED_APP_DEVICE_TOKEN,
-                            data: state.entities.general.deviceToken
+                            data: state.entities.general.deviceToken,
                         },
                         {
                             type: GeneralTypes.RECEIVED_APP_CREDENTIALS,
                             data: {
                                 url: state.entities.general.credentials.url,
-                                token: state.entities.general.credentials.token
-                            }
+                                token: state.entities.general.credentials.token,
+                            },
                         },
                         {
                             type: ViewTypes.SERVER_URL_CHANGED,
-                            serverUrl: state.entities.general.credentials.url || state.views.selectServer.serverUrl
-                        }
+                            serverUrl: state.entities.general.credentials.url || state.views.selectServer.serverUrl,
+                        },
                     ], 'BATCH_FOR_RESTART'));
 
                     setTimeout(() => {
@@ -232,7 +224,7 @@ export default function configureAppStore(initialState) {
         },
         persistOptions: {
             autoRehydrate: {
-                log: false
+                log: false,
             },
             blacklist: ['device', 'navigation', 'offline', 'requests'],
             debounce: 500,
@@ -241,13 +233,13 @@ export default function configureAppStore(initialState) {
                 viewsBlackListFilter,
                 typingBlackListFilter,
                 channelViewBlackListFilter,
-                emojiBlackListFilter
-            ]
-        }
+                emojiBlackListFilter,
+            ],
+        },
     };
 
     const additionalMiddleware = [createSentryMiddleware(), messageRetention, shareExtensionData];
     return configureStore(initialState, appReducer, offlineOptions, getAppReducer, {
-        additionalMiddleware
+        additionalMiddleware,
     });
 }

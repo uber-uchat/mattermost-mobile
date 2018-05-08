@@ -6,8 +6,9 @@ import PropTypes from 'prop-types';
 import {
     StyleSheet,
     TouchableOpacity,
-    View
+    View,
 } from 'react-native';
+import shallowEqual from 'shallow-equals';
 
 import Emoji from 'app/components/emoji';
 
@@ -16,11 +17,11 @@ export default class EmojiPickerRow extends Component {
         emojiGutter: PropTypes.number.isRequired,
         emojiSize: PropTypes.number.isRequired,
         items: PropTypes.array.isRequired,
-        onEmojiPress: PropTypes.func.isRequired
+        onEmojiPress: PropTypes.func.isRequired,
     }
 
     shouldComponentUpdate(nextProps) {
-        return this.props.items.length !== nextProps.items.length;
+        return !shallowEqual(this.props.items, nextProps.items);
     }
 
     renderEmojis = (emoji, index, emojis) => {
@@ -31,8 +32,8 @@ export default class EmojiPickerRow extends Component {
             {
                 width: emojiSize,
                 height: emojiSize,
-                marginHorizontal: emojiGutter
-            }
+                marginHorizontal: emojiGutter,
+            },
         ];
         if (index === 0) {
             style.push(styles.emojiLeft);
@@ -80,16 +81,16 @@ const styles = StyleSheet.create({
     columnStyle: {
         alignSelf: 'stretch',
         flexDirection: 'row',
-        justifyContent: 'space-between'
+        justifyContent: 'space-between',
     },
     emoji: {
         alignItems: 'center',
-        justifyContent: 'center'
+        justifyContent: 'center',
     },
     emojiLeft: {
-        marginLeft: 0
+        marginLeft: 0,
     },
     emojiRight: {
-        marginRight: 0
-    }
+        marginRight: 0,
+    },
 });

@@ -5,9 +5,9 @@
 **Supported iOS versions:** 9.3+
 **Supported Android versions:** 5.0+
 
-Mattermost is an open source Slack-alternative used by thousands of companies around the world in 11 languages. Learn more at [https://about.mattermost.com](https://about.mattermost.com).
+Mattermost is an open source Slack-alternative used by thousands of companies around the world in 14 languages. Learn more at [https://about.mattermost.com](https://about.mattermost.com).
 
-You can download our apps from the [App Store](https://about.mattermost.com/mattermost-ios-app/) or [Google Play Store](https://about.mattermost.com/mattermost-android-app/), or build them yourself. 
+You can download our apps from the [App Store](https://about.mattermost.com/mattermost-ios-app/) or [Google Play Store](https://about.mattermost.com/mattermost-android-app/), or [build them yourself](https://about.mattermost.com/default-enterprise-app-store). 
 
 We plan on releasing monthly updates with new features - check the [changelog](https://github.com/mattermost/mattermost-mobile/blob/master/CHANGELOG.md) for what features are currently supported! 
 
@@ -44,13 +44,13 @@ To help with testing app updates before they're released, you can:
 
 App data is wiped from the device when a user logs out of the app. If the user is logged in when the account is deactivated, then within one minute the system logs the user out, and as a result all app data is wiped from the device.
 
-### Can I connect to multiple Mattermost servers using the mobile apps?**
+### Can I connect to multiple Mattermost servers using the mobile apps?
 
 At the moment, we only support connecting to one server at a time. If you need to connect to multiple servers, please [upvote the feature request](https://mattermost.uservoice.com/forums/306457/suggestions/10975938) so we can track demand for it. 
 
 As a work around, you can install both the released "Mattermost" app and sign up to be a [tester](#testing) for the "Mattermost Beta" app so you can connect to two servers at once.
 
-### Will there be second generation apps available for tablets?**
+### Will there be second generation apps available for tablets?
 
 We plan to add support for tablets in the future, but the timeline depends on how many people have a need for it. If you're looking for a tablet version, please help us out by [upvoting the feature request](https://mattermost.uservoice.com/forums/306457/suggestions/20082079)!
 

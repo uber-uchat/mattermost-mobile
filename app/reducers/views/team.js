@@ -41,8 +41,31 @@ function lastChannelForTeam(state = {}, action) {
 
         return {
             ...state,
-            [action.teamId]: channelIds
+            [action.teamId]: channelIds,
         };
+    }
+    case ViewTypes.REMOVE_LAST_CHANNEL_FOR_TEAM: {
+        const {data} = action;
+        const team = state[data.teamId];
+
+        if (!data.channelId) {
+            return state;
+        }
+
+        if (team) {
+            const channelIds = [...team];
+            const index = channelIds.indexOf(data.channelId);
+            if (index !== -1) {
+                channelIds.splice(index, 1);
+            }
+
+            return {
+                ...state,
+                [data.teamId]: channelIds,
+            };
+        }
+
+        return state;
     }
     default:
         return state;
@@ -51,5 +74,5 @@ function lastChannelForTeam(state = {}, action) {
 
 export default combineReducers({
     lastTeamId,
-    lastChannelForTeam
+    lastChannelForTeam,
 });
