@@ -1,26 +1,32 @@
-package com.mattermost.share;
+package com.mattermost.rnbeta;
 
-import com.facebook.react.bridge.ReactApplicationContext;
+import android.app.Application;
+
+import com.facebook.react.ReactPackage;
 import com.facebook.react.bridge.JavaScriptModule;
 import com.facebook.react.bridge.NativeModule;
+import com.facebook.react.bridge.ReactApplicationContext;
 import com.facebook.react.uimanager.ViewManager;
-import com.facebook.react.ReactPackage;
-import com.mattermost.rnbeta.MainApplication;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-public class SharePackage implements ReactPackage {
-    MainApplication mApplication;
+/**
+ * Created by miguelespinoza on 3/22/18.
+ */
 
-    public SharePackage(MainApplication application) {
+public class StartTimePackage implements ReactPackage {
+
+    private final Application mApplication;
+
+    public StartTimePackage(Application application) {
         mApplication = application;
     }
 
     @Override
     public List<NativeModule> createNativeModules(ReactApplicationContext reactContext) {
-        return Arrays.<NativeModule>asList(new ShareModule(mApplication, reactContext));
+        return Arrays.<NativeModule>asList(new StartTimeModule(mApplication, reactContext));
     }
 
     public List<Class<? extends JavaScriptModule>> createJSModules() {
