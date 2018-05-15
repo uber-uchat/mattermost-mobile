@@ -53,6 +53,7 @@ export default class PostList extends PureComponent {
         postIds: PropTypes.array.isRequired,
         renderFooter: PropTypes.func,
         renderReplies: PropTypes.bool,
+        resetFromPermalink: PropTypes.bool,
         serverURL: PropTypes.string.isRequired,
         shouldRenderReplyButton: PropTypes.bool,
         siteURL: PropTypes.string.isRequired,
@@ -80,9 +81,13 @@ export default class PostList extends PureComponent {
     componentDidMount() {
         this.setManagedConfig();
 
-        EventEmitter.on('remove_deep_link_listener', this.handleRemoveDeepLinkListener);
-        Linking.addEventListener('url', this.handleDeepLink);
-        this.checkForInitialURL()
+        if (!this.props.highlightPostId) {
+            EventEmitter.on('remove_deep_link_listener', this.handleRemoveDeepLinkListener);
+            Linking.addEventListener('url', this.handleDeepLink);
+            if (!this.props.resetFromPermalink) {
+                this.checkForInitialURL();
+            }
+        }
     }
 
     componentWillReceiveProps(nextProps) {
@@ -113,7 +118,7 @@ export default class PostList extends PureComponent {
     checkForInitialURL = async () => {
         const initialURL = await Linking.getInitialURL();
         if (initialURL) {
-            // this.handleDeepLink({url: initialURL});
+            this.handleDeepLink({url: initialURL});
         }
     }
 

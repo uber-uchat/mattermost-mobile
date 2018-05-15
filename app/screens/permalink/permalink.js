@@ -208,6 +208,9 @@ export default class Permalink extends PureComponent {
                     statusBarHideWithNavBar: false,
                     screenBackgroundColor: theme.centerChannelBg,
                 },
+                passProps: {
+                    resetFromPermalink: true
+                }
             });
 
             if (channelTeamId && currentTeamId !== channelTeamId) {

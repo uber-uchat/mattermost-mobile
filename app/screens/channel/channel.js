@@ -51,6 +51,7 @@ class Channel extends PureComponent {
         currentTeamId: PropTypes.string,
         intl: intlShape.isRequired,
         navigator: PropTypes.object,
+        resetFromPermalink: PropTypes.bool,
         theme: PropTypes.object.isRequired,
     };
 
@@ -230,6 +231,7 @@ class Channel extends PureComponent {
             currentChannelId,
             intl,
             navigator,
+            resetFromPermalink,
             theme,
         } = this.props;
 
@@ -274,7 +276,7 @@ class Channel extends PureComponent {
                         />
                         <KeyboardLayout>
                             <View style={style.postList}>
-                                <ChannelPostList navigator={navigator}/>
+                                <ChannelPostList navigator={navigator} resetFromPermalink={resetFromPermalink}/>
                             </View>
                             <PostTextbox
                                 ref={this.attachPostTextbox}
