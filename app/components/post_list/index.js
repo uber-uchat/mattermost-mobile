@@ -5,6 +5,7 @@ import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
 
 import {selectFocusedPostId} from 'mattermost-redux/actions/posts';
+import {getConfig, getCurrentUrl} from 'mattermost-redux/selectors/entities/general';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import {loadChannelsByTeamName, refreshChannelWithRetry} from 'app/actions/views/channel';
@@ -24,6 +25,8 @@ function makeMapStateToProps() {
             deviceHeight,
             measureCellLayout,
             postIds,
+            serverURL: getCurrentUrl(state),
+            siteURL: getConfig(state).SiteURL,
             theme: getTheme(state),
         };
     };

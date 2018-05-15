@@ -14,6 +14,7 @@ import * as Animatable from 'react-native-animatable';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 import {General} from 'mattermost-redux/constants';
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
@@ -113,7 +114,7 @@ export default class Permalink extends PureComponent {
             this.setState({title: nextProps.channelName});
         }
 
-        if (this.props.focusedPostId !== nextProps.focusedPostId) {
+        if (nextProps.focusedPostId && this.props.focusedPostId !== nextProps.focusedPostId) {
             this.setState({loading: true});
             if (nextProps.postIds && nextProps.postIds.length < 10) {
                 this.loadPosts(nextProps);
@@ -192,6 +193,10 @@ export default class Permalink extends PureComponent {
             if (onClose) {
                 onClose();
             }
+
+            // Have to manually remove the listener because of this issue https://github.com/wix/react-native-navigation/issues/1703
+            // This patch helps avoid double permalink modals since componentWillUnmount doesn't get called
+            EventEmitter.emit('remove_deep_link_listener');
 
             navigator.resetTo({
                 screen: 'Channel',

@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import {
     FlatList,
     InteractionManager,
+    Linking,
     Platform,
     StyleSheet,
 } from 'react-native';
@@ -15,6 +16,8 @@ import {DATE_LINE, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 import mattermostManaged from 'app/mattermost_managed';
 import {makeExtraData} from 'app/utils/list_view';
 import {changeOpacity} from 'app/utils/theme';
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
+import {matchPermalink, normalizeProtocol} from 'app/utils/url';
 
 import DateHeader from './date_header';
 import NewMessagesDivider from './new_messages_divider';
@@ -50,7 +53,9 @@ export default class PostList extends PureComponent {
         postIds: PropTypes.array.isRequired,
         renderFooter: PropTypes.func,
         renderReplies: PropTypes.bool,
+        serverURL: PropTypes.string.isRequired,
         shouldRenderReplyButton: PropTypes.bool,
+        siteURL: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
     };
 
@@ -74,6 +79,10 @@ export default class PostList extends PureComponent {
 
     componentDidMount() {
         this.setManagedConfig();
+
+        EventEmitter.on('remove_deep_link_listener', this.handleRemoveDeepLinkListener);
+        Linking.addEventListener('url', this.handleDeepLink);
+        this.checkForInitialURL()
     }
 
     componentWillReceiveProps(nextProps) {
@@ -95,12 +104,36 @@ export default class PostList extends PureComponent {
 
     componentWillUnmount() {
         mattermostManaged.removeEventListener(this.listenerId);
+        Linking.removeEventListener('url', this.handleDeepLink);
+
+        // Should be removed once this issue is resolved https://github.com/wix/react-native-navigation/issues/1703
+        EventEmitter.off('remove_deep_link_listener', this.handleRemoveDeepLinkListener);
+    }
+
+    checkForInitialURL = async () => {
+        const initialURL = await Linking.getInitialURL();
+        if (initialURL) {
+            // this.handleDeepLink({url: initialURL});
+        }
     }
 
     handleClosePermalink = () => {
         const {actions} = this.props;
         actions.selectFocusedPostId('');
         this.showingPermalink = false;
+    };
+
+    handleDeepLink = (event) => {
+        const {serverURL, siteURL} = this.props;
+
+        const url = normalizeProtocol(event.url);
+        const match = matchPermalink(url, serverURL) || matchPermalink(url, siteURL);
+
+        if (match) {
+            const teamName = match[1];
+            const postId = match[2];
+            this.handlePermalinkPress(postId, teamName);
+        }
     };
 
     handlePermalinkPress = (postId, teamName) => {
@@ -113,6 +146,12 @@ export default class PostList extends PureComponent {
             this.showPermalinkView(postId);
         }
     };
+
+    // Have to manually remove the listener because of this issue https://github.com/wix/react-native-navigation/issues/1703
+    // This patch helps avoid double permalink modals since componentWillUnmount doesn't get called
+    handleRemoveDeepLinkListener = () => {
+        Linking.removeEventListener('url', this.handleDeepLink);
+    }
 
     showPermalinkView = (postId) => {
         const {actions, navigator} = this.props;
