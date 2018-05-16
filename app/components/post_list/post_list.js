@@ -193,7 +193,7 @@ export default class PostList extends PureComponent {
     scrollListToMessageOffset = () => {
         const index = this.moreNewMessages ? this.props.postIds.length - 1 : this.newMessagesIndex;
         if (index !== -1) {
-            let offset = this.getMeasurementOffset(index);
+            let offset = this.getMeasurementOffset(index) + this.itemMeasurements[index];
             const windowHeight = this.state.postListHeight;
 
             if (offset < windowHeight) {
