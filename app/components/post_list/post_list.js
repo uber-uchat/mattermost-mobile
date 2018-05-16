@@ -53,7 +53,6 @@ export default class PostList extends PureComponent {
         postIds: PropTypes.array.isRequired,
         renderFooter: PropTypes.func,
         renderReplies: PropTypes.bool,
-        resetFromPermalink: PropTypes.bool,
         serverURL: PropTypes.string.isRequired,
         shouldRenderReplyButton: PropTypes.bool,
         siteURL: PropTypes.string.isRequired,

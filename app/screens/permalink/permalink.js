@@ -207,9 +207,6 @@ export default class Permalink extends PureComponent {
                     statusBarHidden: false,
                     statusBarHideWithNavBar: false,
                     screenBackgroundColor: theme.centerChannelBg,
-                },
-                passProps: {
-                    resetFromPermalink: true
                 }
             });
 
