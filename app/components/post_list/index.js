@@ -9,6 +9,7 @@ import {getConfig, getCurrentUrl} from 'mattermost-redux/selectors/entities/gene
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import {loadChannelsByTeamName, refreshChannelWithRetry} from 'app/actions/views/channel';
+import {setDeepLinkURL} from 'app/actions/views/root';
 import {makePreparePostIdsForPostList, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 
 import PostList from './post_list';
@@ -22,6 +23,7 @@ function makeMapStateToProps() {
         const {deviceHeight} = state.device.dimension;
 
         return {
+            deepLinkURL: state.views.root.deepLinkURL,
             deviceHeight,
             measureCellLayout,
             postIds,
@@ -38,6 +40,7 @@ function mapDispatchToProps(dispatch) {
             loadChannelsByTeamName,
             refreshChannelWithRetry,
             selectFocusedPostId,
+            setDeepLinkURL,
         }, dispatch),
     };
 }

@@ -9,6 +9,7 @@ import {getClientConfig, getDataRetentionPolicy, getLicenseConfig} from 'matterm
 import {getPosts} from 'mattermost-redux/actions/posts';
 import {getMyTeams, getMyTeamMembers, selectTeam} from 'mattermost-redux/actions/teams';
 
+import {ViewTypes} from 'app/constants';
 import {recordTime} from 'app/utils/segment';
 
 import {
@@ -118,6 +119,13 @@ export function recordLoadTime(screenName, category) {
         const {currentUserId} = getState().entities.users;
 
         recordTime(screenName, category, currentUserId);
+    };
+}
+
+export function setDeepLinkURL(url) {
+    return {
+        type: ViewTypes.SET_DEEP_LINK_URL,
+        url,
     };
 }
 
