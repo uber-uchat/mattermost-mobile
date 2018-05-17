@@ -96,7 +96,7 @@ post-install:
 start: | pre-run ## Starts the React Native packager server
 	@if [ $(shell ps -e | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
-		node ./node_modules/react-native/local-cli/cli.js start --config ../../../../packager/config.js; \
+		node ./node_modules/react-native/local-cli/cli.js start \
 	else \
 		echo React Native packager server already running; \
 	fi
