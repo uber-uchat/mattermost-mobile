@@ -1,4 +1,4 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 /* eslint-disable global-require*/
@@ -102,7 +102,9 @@ const initializeModules = () => {
     EventEmitter.on(General.CONFIG_CHANGED, handleConfigChanged);
     EventEmitter.on(General.DEFAULT_CHANNEL, handleResetChannelDisplayName);
     Orientation.addOrientationListener(handleOrientationChange);
-    mattermostManaged.addEventListener('managedConfigDidChange', handleManagedConfig);
+    mattermostManaged.addEventListener('managedConfigDidChange', () => {
+        handleManagedConfig(true);
+    });
 
     if (config) {
         configureAnalytics(config);
@@ -143,7 +145,7 @@ const resetBadgeAndVersion = () => {
 };
 
 const handleLogout = () => {
-    app.setAppStarted(false);
+    app.setAppStarted(true);
     app.clearCache();
     deleteFileCache();
     resetBadgeAndVersion();
@@ -217,7 +219,11 @@ const handleOrientationChange = (orientation) => {
     }, 100);
 };
 
-export const handleManagedConfig = async (serverConfig) => {
+export const handleManagedConfig = async (eventFromEmmServer) => {
+    if (app.performingEMMAuthentication) {
+        return true;
+    }
+
     const {dispatch, getState} = store;
     const state = getState();
 
@@ -243,6 +249,7 @@ export const handleManagedConfig = async (serverConfig) => {
                 return mattermostManaged.getConfig();
             }
         );
+
         if (config && Object.keys(config).length) {
             app.setEMMEnabled(true);
             authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
@@ -286,7 +293,7 @@ export const handleManagedConfig = async (serverConfig) => {
                 }
             }
 
-            if (authNeeded && !serverConfig) {
+            if (authNeeded && !eventFromEmmServer) {
                 const authenticated = await handleAuthentication(vendor);
                 if (!authenticated) {
                     return false;
@@ -313,6 +320,7 @@ export const handleManagedConfig = async (serverConfig) => {
 };
 
 const handleAuthentication = async (vendor) => {
+    app.setPerformingEMMAuthentication(true);
     const isSecured = await mattermostManaged.isDeviceSecure();
 
     const intl = app.getIntl();
@@ -333,6 +341,7 @@ const handleAuthentication = async (vendor) => {
         }
     }
 
+    app.setPerformingEMMAuthentication(false);
     return true;
 };
 
@@ -409,10 +418,7 @@ const handleAppActive = async () => {
             const config = await mattermostManaged.getConfig();
             const authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
             if (authNeeded) {
-                const authenticated = await handleAuthentication(config.vendor);
-                if (!authenticated) {
-                    mattermostManaged.quitApp();
-                }
+                await handleAuthentication(config.vendor);
             }
         } catch (error) {
             // do nothing
