@@ -386,7 +386,7 @@ class MoreDirectMessages extends PureComponent {
             teammateNameDisplay,
         } = this.props;
 
-        const user = this.state.profiles[id];
+        const user = this.state.profiles.find(p => p.id === id);
 
         const displayName = displayUsername(user, teammateNameDisplay);
         actions.setChannelDisplayName(displayName);

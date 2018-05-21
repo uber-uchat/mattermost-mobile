@@ -107,7 +107,7 @@ export default class PostHeader extends PureComponent {
     };
 
     renderCommentedOnMessage = (style) => {
-        if (!this.props.renderReplies || !this.props.commentedOnDisplayName || this.props.commentedOnDisplayName === 'Someone') {
+        if (!this.props.renderReplies || !this.props.commentedOnDisplayName) {
             return null;
         }
 
