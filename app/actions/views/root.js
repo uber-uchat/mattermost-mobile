@@ -131,6 +131,13 @@ export function recordLoadTime(screenName, category) {
     };
 }
 
+export function setDeepLinkURL(url) {
+    return {
+        type: ViewTypes.SET_DEEP_LINK_URL,
+        url,
+    };
+}
+
 export default {
     loadConfigAndLicense,
     loadFromPushNotification,

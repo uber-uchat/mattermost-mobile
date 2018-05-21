@@ -1,5 +1,6 @@
 // Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
+import {escapeRegex} from 'app/utils/markdown';
 
 import {latinise} from './latinise.js';
 
@@ -74,4 +75,12 @@ export function cleanUpUrlable(input) {
     cleaned = cleaned.replace(/^-+/, '');
     cleaned = cleaned.replace(/-+$/, '');
     return cleaned;
+}
+
+export function matchPermalink(link, rootURL) {
+    if (!rootURL) {
+        return null;
+    }
+
+    return new RegExp('^' + escapeRegex(rootURL) + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(link);
 }

@@ -9,6 +9,7 @@ import {init as initWebSocket, close as closeWebSocket} from 'mattermost-redux/a
 import {RequestStatus} from 'mattermost-redux/constants';
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
+import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import {
     loadChannelsIfNecessary,
@@ -18,7 +19,6 @@ import {
 import {connection} from 'app/actions/device';
 import {recordLoadTime} from 'app/actions/views/root';
 import {selectDefaultTeam} from 'app/actions/views/select_team';
-import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
 import Channel from './channel';
 

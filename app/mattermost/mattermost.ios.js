@@ -11,6 +11,7 @@ import {
     AppState,
     InteractionManager,
     Keyboard,
+    Linking,
     NativeModules,
     Platform,
 } from 'react-native';
@@ -40,6 +41,7 @@ import {
     loadConfigAndLicense,
     loadFromPushNotification,
     purgeOfflineStore,
+    setDeepLinkURL,
 } from 'app/actions/views/root';
 import {setChannelDisplayName} from 'app/actions/views/channel';
 import {handleLoginIdChanged} from 'app/actions/views/login';
@@ -90,6 +92,8 @@ export default class Mattermost {
         if (Platform.OS === 'ios') {
             StatusBarSizeIOS.addEventListener('willChange', this.handleStatusBarHeightChange);
         }
+
+        Linking.addEventListener('url', this.handleDeepLink);
 
         setJSExceptionHandler(this.errorHandler, false);
         setNativeExceptionHandler(this.nativeErrorHandler, false);
@@ -258,6 +262,11 @@ export default class Mattermost {
 
     handleConfigChanged = (config) => {
         this.configureAnalytics(config);
+    }
+
+    handleDeepLink = (event) => {
+        const {url} = event;
+        this.store.dispatch(setDeepLinkURL(url));
     }
 
     handleManagedConfig = async (serverConfig) => {
@@ -597,7 +606,7 @@ export default class Mattermost {
         await loadConfigAndLicense()(dispatch, getState);
         await loadMe()(dispatch, getState);
         this.appStarted = false;
-        this.startApp('fade');
+        this.startApp('fade', true);
     };
 
     launchApp = () => {
@@ -621,7 +630,7 @@ export default class Mattermost {
         });
     };
 
-    startApp = (animationType = 'fade') => {
+    startApp = (animationType = 'fade', launchedFromRestart = false) => {
         if (!this.appStarted) {
             const {dispatch, getState} = this.store;
             const {entities} = getState();
@@ -635,6 +644,12 @@ export default class Mattermost {
                     tracker.initialLoad = Date.now();
                     loadMe()(dispatch, getState);
                 }
+            }
+
+            if (!launchedFromRestart) {
+                Linking.getInitialURL().then((url) => {
+                    dispatch(setDeepLinkURL(url));
+                });
             }
 
             Navigation.startSingleScreenApp({
