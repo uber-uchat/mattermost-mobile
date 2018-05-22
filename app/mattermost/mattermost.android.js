@@ -219,7 +219,7 @@ const handleOrientationChange = (orientation) => {
     }, 100);
 };
 
-export const handleManagedConfig = async (eventFromEmmServer) => {
+export const handleManagedConfig = async (eventFromEmmServer = false) => {
     if (app.performingEMMAuthentication) {
         return true;
     }
