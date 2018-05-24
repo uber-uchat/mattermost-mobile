@@ -7,7 +7,6 @@ import android.content.Context;
 import android.os.Bundle;
 
 import com.facebook.react.ReactApplication;
-import com.oblador.keychain.KeychainPackage;
 import com.reactlibrary.RNReactNativeDocViewerPackage;
 import com.brentvatne.react.ReactVideoPackage;
 import com.horcrux.svg.SvgPackage;
@@ -43,7 +42,6 @@ import java.util.List;
 
 public class MainApplication extends NavigationApplication implements INotificationsApplication {
   public NotificationsLifecycleFacade notificationsLifecycleFacade;
-  public Boolean sharedExtensionIsOpened = false;
 
   @Override
   public boolean isDebug() {
@@ -74,9 +72,7 @@ public class MainApplication extends NavigationApplication implements INotificat
             new ReactNativeYouTube(),
             new ReactVideoPackage(),
             new RNReactNativeDocViewerPackage(),
-            new SharePackage(this),
-            new KeychainPackage(),
-            new StartTimePackage(this)
+            new SharePackage()
     );
   }
 

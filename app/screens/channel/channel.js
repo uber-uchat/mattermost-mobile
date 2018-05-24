@@ -24,7 +24,6 @@ import SafeAreaView from 'app/components/safe_area_view';
 import StatusBar from 'app/components/status_bar';
 import {preventDoubleTap} from 'app/utils/tap';
 import {makeStyleSheetFromTheme} from 'app/utils/theme';
-import telemetry from 'app/utils/telemetry';
 import PostTextbox from 'app/components/post_textbox';
 import networkConnectionListener from 'app/utils/network';
 import tracker from 'app/utils/time_tracker';
@@ -75,8 +74,6 @@ class Channel extends PureComponent {
         if (tracker.initialLoad) {
             this.props.actions.recordLoadTime('Start time', 'initialLoad');
         }
-
-        // telemetry.toastLaunchTime();
     }
 
     componentWillReceiveProps(nextProps) {

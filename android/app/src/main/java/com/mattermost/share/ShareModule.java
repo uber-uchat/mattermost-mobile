@@ -2,6 +2,7 @@ package com.mattermost.share;
 
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactApplicationContext;
+import com.facebook.react.bridge.Callback;
 import com.facebook.react.bridge.Promise;
 import com.facebook.react.bridge.ReadableArray;
 import com.facebook.react.bridge.ReadableMap;
@@ -9,25 +10,23 @@ import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.WritableMap;
 import com.facebook.react.bridge.WritableArray;
 import com.facebook.react.bridge.Arguments;
-import com.mattermost.rnbeta.MainApplication;
 
 import android.app.Activity;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 
+import android.graphics.Bitmap;
+import java.io.InputStream;
 import java.io.File;
 import java.util.ArrayList;
-
-import javax.annotation.Nullable;
+import javax.annotation.Nonnull;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
-
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -38,11 +37,8 @@ import okhttp3.Response;
 public class ShareModule extends ReactContextBaseJavaModule {
     private final OkHttpClient client = new OkHttpClient();
     public static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-    private final MainApplication mApplication;
-
-    public ShareModule(MainApplication application, ReactApplicationContext reactContext) {
+    public ShareModule(ReactApplicationContext reactContext) {
         super(reactContext);
-        mApplication = application;
     }
     private File tempFolder;
 
@@ -61,14 +57,6 @@ public class ShareModule extends ReactContextBaseJavaModule {
             intent.removeExtra(Intent.EXTRA_TEXT);
             intent.removeExtra(Intent.EXTRA_STREAM);
         }
-    }
-
-    @Nullable
-    @Override
-    public Map<String, Object> getConstants() {
-        HashMap<String, Object> constants = new HashMap<>(1);
-        constants.put("isOpened", mApplication.sharedExtensionIsOpened);
-        return constants;
     }
 
     @ReactMethod

@@ -113,6 +113,7 @@ android {
         targetSdkVersion 23
         versionCode 102
         versionName "1.8.0"
+        multiDexEnabled true
         ndk {
             abiFilters "armeabi-v7a", "x86"
         }
@@ -166,18 +167,7 @@ android {
     }
 }
 
-configurations.all {
-    resolutionStrategy {
-        eachDependency { DependencyResolveDetails details ->
-            if (details.requested.name == 'android-jsc') {
-                details.useTarget group: details.requested.group, name: 'android-jsc-intl', version: 'r216113'
-            }
-        }
-    }
-}
-
 dependencies {
-    compile project(':react-native-keychain')
     compile project(':react-native-doc-viewer')
     compile project(':react-native-video')
     compile fileTree(dir: "libs", include: ["*.jar"])
