@@ -144,8 +144,7 @@ export function loadProfilesAndTeamMembersForDMSidebar(teamId) {
             if (channel) {
                 actions.push({
                     type: UserTypes.RECEIVED_PROFILE_IN_CHANNEL,
-                    data: {user_id: members[i]},
-                    id: channel.id,
+                    data: {id: channel.id, user_id: members[i]},
                 });
             }
         }
@@ -333,7 +332,7 @@ export function insertToDraft(value) {
     };
 }
 
-export function toggleDMChannel(otherUserId, visible) {
+export function toggleDMChannel(otherUserId, visible, channelId) {
     return async (dispatch, getState) => {
         const state = getState();
         const {currentUserId} = state.entities.users;
@@ -343,6 +342,11 @@ export function toggleDMChannel(otherUserId, visible) {
             category: Preferences.CATEGORY_DIRECT_CHANNEL_SHOW,
             name: otherUserId,
             value: visible,
+        }, {
+            user_id: currentUserId,
+            category: Preferences.CATEGORY_CHANNEL_OPEN_TIME,
+            name: channelId,
+            value: Date.now().toString(),
         }];
 
         savePreferences(currentUserId, dm)(dispatch, getState);
