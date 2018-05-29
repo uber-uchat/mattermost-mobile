@@ -14,7 +14,7 @@ import {
 const {StatusBarManager, MattermostShare, StartTime} = NativeModules;
 
 import DeviceInfo from 'react-native-device-info';
-import {Navigation} from 'react-native-navigation';
+import {Navigation, NativeEventsReceiver} from 'react-native-navigation';
 import {Provider} from 'react-redux';
 import semver from 'semver';
 
@@ -438,13 +438,7 @@ const handleAppInActive = () => {
     startDataCleanup()(dispatch, getState);
 };
 
-AppState.addEventListener('change', handleAppStateChange);
-
-if (Platform.OS === 'android' && MattermostShare.isOpened) {
-    app.setAppStarted(true);
-}
-
-if (!app.appStarted) {
+const launchEntry = () => {
     Navigation.startSingleScreenApp({
         screen: {
             screen: 'Entry',
@@ -462,4 +456,19 @@ if (!app.appStarted) {
         },
         animationType: 'fade',
     });
+};
+
+AppState.addEventListener('change', handleAppStateChange);
+
+if (Platform.OS === 'android' && MattermostShare.isOpened) {
+    app.setAppStarted(true);
+
+    new NativeEventsReceiver().appLaunched(() => {
+        app.setAppStarted(false);
+        launchEntry();
+    });
+}
+
+if (!app.appStarted) {
+    launchEntry();
 }
