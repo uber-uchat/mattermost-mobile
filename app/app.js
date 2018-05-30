@@ -28,7 +28,6 @@ const lazyLoadLocalization = () => {
     };
 };
 
-const DEVICE_SECURE_CACHE_KEY = 'DEVICE_SECURE_CACHE_KEY';
 const TOOLBAR_BACKGROUND = 'TOOLBAR_BACKGROUND';
 const TOOLBAR_TEXT_COLOR = 'TOOLBAR_TEXT_COLOR';
 const APP_BACKGROUND = 'APP_BACKGROUND';
@@ -167,10 +166,6 @@ export default class App {
         this.performingEMMAuthentication = authenticating;
     };
 
-    setManagedConfig = (shouldStart) => {
-        AsyncStorage.setItem(DEVICE_SECURE_CACHE_KEY, shouldStart.toString());
-    };
-
     setAppCredentials = (deviceToken, currentUserId, token, url) => {
         if (!currentUserId) {
             return;
@@ -233,7 +228,6 @@ export default class App {
     clearCache = () => {
         resetGenericPassword();
         AsyncStorage.multiRemove([
-            DEVICE_SECURE_CACHE_KEY,
             TOOLBAR_BACKGROUND,
             TOOLBAR_TEXT_COLOR,
             APP_BACKGROUND,
@@ -243,7 +237,6 @@ export default class App {
     launchApp = async () => {
         const shouldStart = await handleManagedConfig();
         if (shouldStart) {
-            this.setManagedConfig(shouldStart);
             this.startApp();
         }
     };

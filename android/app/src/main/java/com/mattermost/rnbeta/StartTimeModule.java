@@ -160,7 +160,6 @@ public class StartTimeModule extends ReactContextBaseJavaModule {
             keys.add("TOOLBAR_BACKGROUND");
             keys.add("TOOLBAR_TEXT_COLOR");
             keys.add("APP_BACKGROUND");
-            keys.add("DEVICE_SECURE_CACHE_KEY");
             ReadableArray asyncStorageKeys = new ReadableArray() {
                 @Override
                 public int size() {
@@ -223,7 +222,6 @@ public class StartTimeModule extends ReactContextBaseJavaModule {
             String toolbarBackground = asyncStorageResults.get("TOOLBAR_BACKGROUND");
             String toolbarTextColor = asyncStorageResults.get("TOOLBAR_TEXT_COLOR");
             String appBackground = asyncStorageResults.get("APP_BACKGROUND");
-            String managedConfigResult = asyncStorageResults.get("DEVICE_SECURE_CACHE_KEY");
 
             if (toolbarBackground != null
                     && toolbarTextColor != null
@@ -235,10 +233,6 @@ public class StartTimeModule extends ReactContextBaseJavaModule {
                 constants.put("appBackground", appBackground);
             } else {
                 constants.put("themesExist", false);
-            }
-
-            if (managedConfigResult != null) {
-                constants.put("managedConfigResult", managedConfigResult);
             }
         }
 
