@@ -346,7 +346,7 @@ const handleAuthentication = async (vendor) => {
 };
 
 const handleResetChannelDisplayName = (displayName) => {
-    setChannelDisplayName(displayName)(store.dispatch, store.getState);
+    store.dispatch(setChannelDisplayName(displayName));
 };
 
 const launchSelectServer = () => {
