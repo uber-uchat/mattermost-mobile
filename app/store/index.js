@@ -136,6 +136,9 @@ export default function configureAppStore(initialState) {
             return effect();
         },
         detectNetwork: (callback) => networkConnectionListener(callback),
+        discard: (error, action, retries) => {
+            return true;
+        },
         persist: (store, options) => {
             const persistor = persistStore(store, {storage: AsyncStorage, ...options}, () => {
                 store.dispatch({
