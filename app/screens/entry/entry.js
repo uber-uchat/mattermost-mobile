@@ -1,4 +1,4 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 /* eslint-disable global-require*/
@@ -20,6 +20,7 @@ import {
     app,
     store,
 } from 'app/mattermost';
+import {loadFromPushNotification} from 'app/actions/views/root';
 import {ViewTypes} from 'app/constants';
 import PushNotifications from 'app/push_notifications';
 import {stripTrailingSlashes} from 'app/utils/url';
@@ -116,7 +117,7 @@ export default class Entry extends PureComponent {
 
             this.setAppCredentials();
             this.setStartupThemes();
-            this.setReplyNotifications();
+            this.handleNotification();
 
             if (Platform.OS === 'android') {
                 this.launchForAndroid();
@@ -173,7 +174,7 @@ export default class Entry extends PureComponent {
         );
     };
 
-    setReplyNotifications = () => {
+    handleNotification = async () => {
         const notification = PushNotifications.getNotification();
 
         // If notification exists, it means that the app was started through a reply
@@ -183,40 +184,19 @@ export default class Entry extends PureComponent {
             const notificationData = notification || app.replyNotificationData;
             const {data, text, badge, completed} = notificationData;
 
-            onPushNotificationReply(data, text, badge, completed);
+            // if the notification has a completed property it means that we are replying to a notification
+            // and in case it doesn't it means we just opened the notification
+            if (completed) {
+                onPushNotificationReply(data, text, badge, completed);
+            } else {
+                await store.dispatch(loadFromPushNotification(notification));
+            }
             PushNotifications.resetNotification();
         }
     };
 
     launchForAndroid = () => {
-        const launchAndroidApp = (appLaunched) => {
-            if (app.startAppFromPushNotification) {
-                return false;
-            } else if (appLaunched) {
-                app.launchApp();
-                return false;
-            }
-            return true;
-        };
-
-        // Avoid native bridge if we know appLaunched
-        if (app.nativeAppLaunched) {
-            launchAndroidApp(true);
-            return;
-        }
-
-        // We need to handle the bridge being initialized by HeadlessJS
-        Promise.resolve(Navigation.isAppLaunched()).then((appLaunched) => {
-            const useFallback = launchAndroidApp(appLaunched);
-
-            if (useFallback) {
-                // Wait for native app to launch
-                new NativeEventsReceiver().appLaunched(() => {
-                    app.setAppStarted(false);
-                    app.launchApp();
-                });
-            }
-        });
+        app.launchApp();
     };
 
     launchForiOS = () => {

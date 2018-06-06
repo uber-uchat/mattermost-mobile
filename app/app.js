@@ -1,4 +1,4 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 /* eslint-disable global-require*/
@@ -7,10 +7,10 @@ import DeviceInfo from 'react-native-device-info';
 import {setGenericPassword, getGenericPassword, resetGenericPassword} from 'react-native-keychain';
 
 import {loadMe} from 'mattermost-redux/actions/users';
+import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {ViewTypes} from 'app/constants';
-import mattermostManaged from 'app/mattermost_managed';
 import tracker from 'app/utils/time_tracker';
 import telemetry from 'app/utils/telemetry';
 
@@ -28,7 +28,6 @@ const lazyLoadLocalization = () => {
     };
 };
 
-const DEVICE_SECURE_CACHE_KEY = 'DEVICE_SECURE_CACHE_KEY';
 const TOOLBAR_BACKGROUND = 'TOOLBAR_BACKGROUND';
 const TOOLBAR_TEXT_COLOR = 'TOOLBAR_TEXT_COLOR';
 const APP_BACKGROUND = 'APP_BACKGROUND';
@@ -46,6 +45,7 @@ export default class App {
         this.allowOtherServers = true;
         this.appStarted = false;
         this.emmEnabled = false;
+        this.performingEMMAuthentication = false;
         this.intl = null;
         this.toolbarBackground = null;
         this.toolbarTextColor = null;
@@ -85,28 +85,6 @@ export default class App {
         return intl;
     };
 
-    getManagedConfig = async () => {
-        try {
-            const shouldStart = await avoidNativeBridge(
-                () => {
-                    return StartTime.managedConfigResult;
-                },
-                () => {
-                    return StartTime.managedConfigResult;
-                },
-                () => {
-                    return AsyncStorage.getItem(DEVICE_SECURE_CACHE_KEY);
-                }
-            );
-            if (shouldStart !== null) {
-                return shouldStart === 'true';
-            }
-        } catch (error) {
-            return false;
-        }
-        return false;
-    };
-
     getAppCredentials = async () => {
         try {
             const credentials = await avoidNativeBridge(
@@ -135,6 +113,8 @@ export default class App {
                     this.currentUserId = currentUserId;
                     this.token = token;
                     this.url = url;
+                    Client4.setUrl(url);
+                    Client4.setToken(token);
                 }
             }
         } catch (error) {
@@ -182,8 +162,8 @@ export default class App {
         return null;
     };
 
-    setManagedConfig = (shouldStart) => {
-        AsyncStorage.setItem(DEVICE_SECURE_CACHE_KEY, shouldStart.toString());
+    setPerformingEMMAuthentication = (authenticating) => {
+        this.performingEMMAuthentication = authenticating;
     };
 
     setAppCredentials = (deviceToken, currentUserId, token, url) => {
@@ -248,37 +228,15 @@ export default class App {
     clearCache = () => {
         resetGenericPassword();
         AsyncStorage.multiRemove([
-            DEVICE_SECURE_CACHE_KEY,
             TOOLBAR_BACKGROUND,
             TOOLBAR_TEXT_COLOR,
             APP_BACKGROUND,
         ]);
     };
 
-    verifyManagedConfigCache = async (shouldStartCache) => {
-        // since we are caching managed device results
-        // we should verify after using the cache
-        const shouldStart = await handleManagedConfig();
-        if (shouldStartCache && !shouldStart) {
-            this.setManagedConfig(false);
-            mattermostManaged.quitApp();
-            return;
-        }
-
-        this.setManagedConfig(true);
-    };
-
     launchApp = async () => {
-        const shouldStartCache = await this.getManagedConfig();
-        if (shouldStartCache) {
-            this.startApp();
-            this.verifyManagedConfigCache(shouldStartCache);
-            return;
-        }
-
         const shouldStart = await handleManagedConfig();
         if (shouldStart) {
-            this.setManagedConfig(shouldStart);
             this.startApp();
         }
     };

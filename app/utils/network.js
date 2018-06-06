@@ -21,8 +21,9 @@ export async function checkConnection(isConnected) {
 
 function handleConnectionChange(onChange) {
     return async (isConnected) => {
-        const result = await checkConnection(isConnected);
-        onChange(result);
+        // const result = await checkConnection(isConnected);
+        // onChange(result);
+        onChange(isConnected);
     };
 }
 
