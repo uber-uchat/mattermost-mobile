@@ -4,7 +4,7 @@ import {
 
 import {
     setJSExceptionHandler,
-    setNativeExceptionHandler,
+    // setNativeExceptionHandler,
 } from 'react-native-exception-handler';
 
 import {Client4} from 'mattermost-redux/client';
@@ -16,7 +16,7 @@ import {
     captureException,
     initializeSentry,
     LOGGER_JAVASCRIPT,
-    LOGGER_NATIVE,
+    // LOGGER_NATIVE,
 } from 'app/utils/sentry';
 
 import {app, store} from 'app/mattermost';
@@ -50,13 +50,13 @@ const errorHandler = (e, isFatal) => {
     }
 };
 
-const nativeErrorHandler = (e) => {
-    console.warn('Handling native error ' + JSON.stringify(e)); // eslint-disable-line no-console
-    captureException(e, LOGGER_NATIVE, store);
-};
+// const nativeErrorHandler = (e) => {
+//     console.warn('Handling native error ' + JSON.stringify(e)); // eslint-disable-line no-console
+//     captureException(e, LOGGER_NATIVE, store);
+// };
 
 export function initializeErrorHandling() {
     initializeSentry();
     setJSExceptionHandler(errorHandler, false);
-    setNativeExceptionHandler(nativeErrorHandler, false);
+    // setNativeExceptionHandler(nativeErrorHandler, false);
 }

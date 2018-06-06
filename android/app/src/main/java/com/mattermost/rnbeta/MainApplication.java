@@ -1,10 +1,15 @@
 package com.mattermost.rnbeta;
 
+import com.masteratul.exceptionhandler.DefaultErrorScreen;
 import com.mattermost.share.SharePackage;
+
+import android.app.Activity;
 import android.app.Application;
+import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.content.Context;
 import android.os.Bundle;
+import android.util.Log;
 
 import com.facebook.react.ReactApplication;
 import com.oblador.keychain.KeychainPackage;
@@ -16,6 +21,8 @@ import io.sentry.RNSentryPackage;
 import com.masteratul.exceptionhandler.ReactNativeExceptionHandlerPackage;
 import com.RNFetchBlob.RNFetchBlobPackage;
 import com.gantix.JailMonkey.JailMonkeyPackage;
+
+import io.sentry.Sentry;
 import io.tradle.react.LocalAuthPackage;
 import com.facebook.react.ReactInstanceManager;
 import com.facebook.react.ReactNativeHost;
@@ -95,6 +102,8 @@ public class MainApplication extends NavigationApplication implements INotificat
     setActivityCallbacks(notificationsLifecycleFacade);
 
     SoLoader.init(this, /* native exopackage */ false);
+
+    this.listenToUncaughtExceptions();
   }
 
   @Override
@@ -113,5 +122,28 @@ public class MainApplication extends NavigationApplication implements INotificat
             defaultAppLaunchHelper,
             new JsIOHelper()
     );
+  }
+
+  private void listenToUncaughtExceptions() {
+    final NavigationApplication ctx = this;
+
+    Thread.setDefaultUncaughtExceptionHandler(new Thread.UncaughtExceptionHandler() {
+      @Override
+      public void uncaughtException(Thread thread, Throwable throwable) {
+        Activity activity = ctx.getReactGateway().getReactContext().getCurrentActivity();
+        String stackTraceString = Log.getStackTraceString(throwable);
+        Log.d("NativeCrash", "Android Native Exception: " + stackTraceString);
+        Sentry.capture(throwable);
+
+        Intent i = new Intent();
+        i.setClass(activity, DefaultErrorScreen.class);
+        i.putExtra("stack_trace_string",stackTraceString);
+        i.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        activity.startActivity(i);
+        activity.finish();
+      }
+    });
+
   }
 }
