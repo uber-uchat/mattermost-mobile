@@ -73,9 +73,9 @@ import com.android.build.OutputFile
  */
 
 project.ext.react = [
-    entryFile: "index.js",
-    bundleCommand: "unbundle",
-    bundleConfig: "packager/config.js"
+    entryFile: "index.js"
+    // bundleCommand: "unbundle",
+    // bundleConfig: "packager/config.js"
 ]
 
 apply from: "../../node_modules/react-native/react.gradle"
