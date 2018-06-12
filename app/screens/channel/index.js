@@ -1,4 +1,4 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See License.txt for license information.
 
 import {bindActionCreators} from 'redux';
@@ -19,6 +19,7 @@ import {
 import {connection} from 'app/actions/device';
 import {recordLoadTime} from 'app/actions/views/root';
 import {selectDefaultTeam} from 'app/actions/views/select_team';
+import {isLandscape} from 'app/selectors/device';
 
 import Channel from './channel';
 
@@ -29,6 +30,7 @@ function mapStateToProps(state) {
         channelsRequestFailed: channelsRequest.status === RequestStatus.FAILURE,
         currentTeamId: getCurrentTeamId(state),
         currentChannelId: getCurrentChannelId(state),
+        isLandscape: isLandscape(state),
         theme: getTheme(state),
     };
 }

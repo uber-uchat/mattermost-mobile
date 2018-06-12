@@ -90,10 +90,8 @@ export function cleanUpUrlable(input) {
     return cleaned;
 }
 
-export function matchPermalink(link, rootURL) {
-    if (!rootURL) {
-        return null;
-    }
+export function getScheme(url) {
+    const match = (/([a-z0-9+.-]+):/i).exec(url);
 
-    return new RegExp('^' + escapeRegex(rootURL) + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(link);
+    return match && match[1];
 }
