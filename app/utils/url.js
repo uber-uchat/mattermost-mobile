@@ -94,3 +94,11 @@ export function getScheme(url) {
 
     return match && match[1];
 }
+
+export function matchPermalink(link, rootURL) {
+    if (!rootURL) {
+        return null;
+    }
+
+    return new RegExp('^' + escapeRegex(rootURL) + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(link);
+}
