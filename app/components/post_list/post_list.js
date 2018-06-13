@@ -47,6 +47,7 @@ export default class PostList extends PureComponent {
         lastViewedAt: PropTypes.number, // Used by container // eslint-disable-line no-unused-prop-types
         measureCellLayout: PropTypes.bool,
         navigator: PropTypes.object,
+        onContentSizeChange: PropTypes.func,
         onEndReached: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
@@ -369,6 +370,7 @@ export default class PostList extends PureComponent {
 
         return (
             <FlatList
+                onContentSizeChange={this.props.onContentSizeChange}
                 onLayout={this.onLayout}
                 ref='list'
                 data={postIds}
