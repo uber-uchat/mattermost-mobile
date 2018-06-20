@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -104,21 +104,23 @@ export default class Permalink extends PureComponent {
     }
 
     componentWillMount() {
+        this.mounted = true;
+
         if (this.state.loading) {
             this.loadPosts(this.props);
         }
     }
 
     componentWillReceiveProps(nextProps) {
-        if (nextProps.channelId === '') {
+        if (nextProps.channelId === '' && this.mounted) {
             this.handleClose();
         }
 
-        if (this.props.channelName !== nextProps.channelName) {
+        if (this.props.channelName !== nextProps.channelName && this.mounted) {
             this.setState({title: nextProps.channelName});
         }
 
-        if (nextProps.focusedPostId && this.props.focusedPostId !== nextProps.focusedPostId) {
+        if (this.props.focusedPostId !== nextProps.focusedPostId && this.mounted) {
             this.setState({loading: true});
             if (nextProps.postIds && nextProps.postIds.length < 10) {
                 this.loadPosts(nextProps);
@@ -126,6 +128,10 @@ export default class Permalink extends PureComponent {
                 this.setState({loading: false});
             }
         }
+    }
+
+    componentWillUnmount() {
+        this.mounted = false;
     }
 
     goToThread = preventDoubleTap((post) => {
@@ -158,6 +164,7 @@ export default class Permalink extends PureComponent {
     handleClose = () => {
         const {actions, navigator, onClose} = this.props;
         if (this.refs.view) {
+            this.mounted = false;
             this.refs.view.zoomOut().then(() => {
                 actions.selectPost('');
                 navigator.dismissModal({animationType: 'none'});
@@ -238,7 +245,7 @@ export default class Permalink extends PureComponent {
         let focusChannelId = channelId;
 
         const post = await actions.getPostThread(focusedPostId, false);
-        if (post.error && (!postIds || !postIds.length)) {
+        if (this.mounted && post.error && (!postIds || !postIds.length)) {
             if (isPermalink && post.error.message.toLowerCase() !== 'network request failed') {
                 this.setState({
                     error: formatMessage({
@@ -286,8 +293,10 @@ export default class Permalink extends PureComponent {
     };
 
     retry = () => {
-        this.setState({loading: true, error: null, retry: false});
-        this.loadPosts(this.props);
+        if (this.mounted) {
+            this.setState({loading: true, error: null, retry: false});
+            this.loadPosts(this.props);
+        }
     };
 
     render() {
