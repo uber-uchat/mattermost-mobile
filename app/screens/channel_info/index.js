@@ -23,6 +23,11 @@ import {
     getMyCurrentChannelMembership,
     isCurrentChannelReadOnly,
 } from 'mattermost-redux/selectors/entities/channels';
+import {getCurrentUserId, getUser, getStatusForUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
+import {getUserIdFromChannelName, isChannelMuted, showDeleteOption, showManagementOptions} from 'mattermost-redux/utils/channel_utils';
+import {isAdmin as checkIsAdmin, isChannelAdmin as checkIsChannelAdmin, isSystemAdmin as checkIsSystemAdmin} from 'mattermost-redux/utils/user_utils';
+import {getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
+
 import {
     getCurrentUserId,
     getUser,
@@ -46,8 +51,8 @@ import {closeDMChannel, closeGMChannel, leaveChannel, loadChannelsByTeamName} fr
 import ChannelInfo from './channel_info';
 
 function mapStateToProps(state) {
-    //eslint-disable-line complexity
-    const {config, license} = state.entities.general;
+    const config = getConfig(state);
+    const license = getLicense(state);
     const currentChannel = getCurrentChannel(state) || {};
     const currentChannelCreator = getUser(state, currentChannel.creator_id);
     const currentChannelCreatorName = currentChannelCreator && currentChannelCreator.username;
