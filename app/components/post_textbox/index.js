@@ -6,11 +6,11 @@ import {connect} from 'react-redux';
 
 import {General} from 'mattermost-redux/constants';
 import {createPost} from 'mattermost-redux/actions/posts';
+import {setStatus} from 'mattermost-redux/actions/users';
 import {getCurrentChannel, isCurrentChannelReadOnly} from 'mattermost-redux/selectors/entities/channels';
 import {canUploadFilesOnMobile, getConfig} from 'mattermost-redux/selectors/entities/general';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
-import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
-import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
+import {getCurrentUserId, getStatusForUserId} from 'mattermost-redux/selectors/entities/users';
 
 import {executeCommand} from 'app/actions/views/command';
 import {addReactionToLatestPost} from 'app/actions/views/emoji';
@@ -38,18 +38,17 @@ function mapStateToProps(state, ownProps) {
         }
     }
 
-    let disablePostToChannel = false;
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
-        const roles = getCurrentUserRoles(state);
-        disablePostToChannel = config.ExperimentalTownSquareIsReadOnly === 'true' && !isAdmin(roles) && !isSystemAdmin(roles) && !isChannelAdmin(roles);
-    }
+    const currentUserId = getCurrentUserId(state);
+    const status = getStatusForUserId(state, currentUserId);
+    const userIsOutOfOffice = status === General.OUT_OF_OFFICE;
 
     return {
         channelId: ownProps.channelId || (currentChannel ? currentChannel.id : ''),
         canUploadFiles: canUploadFilesOnMobile(state),
         channelIsLoading: state.views.channel.loading,
         channelIsReadOnly: isCurrentChannelReadOnly(state),
-        currentUserId: getCurrentUserId(state),
+        currentUserId,
+        userIsOutOfOffice,
         deactivatedChannel,
         disablePostToChannel,
         files: currentDraft.files,
@@ -74,6 +73,7 @@ function mapDispatchToProps(dispatch) {
             initUploadFiles,
             userTyping,
             handleCommentDraftSelectionChanged,
+            setStatus,
         }, dispatch),
     };
 }

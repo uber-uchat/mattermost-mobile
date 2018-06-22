@@ -80,6 +80,7 @@ export default class App {
                     return Initialization.credentials;
                 },
                 () => {
+                    this.waitForRehydration = true;
                     return getGenericPassword();
                 }
             );
@@ -157,6 +158,13 @@ export default class App {
         }
         const username = `${deviceToken}, ${currentUserId}`;
         const password = `${token},${url}`;
+
+        if (this.waitForRehydration) {
+            this.waitForRehydration = false;
+            this.token = token;
+            this.url = url;
+        }
+
         setGenericPassword(username, password);
     };
 
@@ -224,7 +232,7 @@ export default class App {
     };
 
     startApp = () => {
-        if (this.appStarted) {
+        if (this.appStarted || this.waitForRehydration) {
             return;
         }
 
