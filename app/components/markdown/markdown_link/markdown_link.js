@@ -12,7 +12,6 @@ import mattermostManaged from 'app/mattermost_managed';
 
 import Config from 'assets/config';
 
-import {escapeRegex} from 'app/utils/markdown';
 import {preventDoubleTap} from 'app/utils/tap';
 import {matchPermalink, normalizeProtocol} from 'app/utils/url';
 

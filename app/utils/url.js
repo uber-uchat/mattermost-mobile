@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import {latinise} from './latinise.js';
+import {escapeRegex} from './markdown';
 
 import {Files} from 'mattermost-redux/constants';
 

@@ -59,7 +59,12 @@ export default class ChannelPostList extends PureComponent {
     }
 
     componentDidMount() {
-        InteractionManager.runAfterInteractions(() => this.setState({loading: false}));
+        this.mounted = true;
+        InteractionManager.runAfterInteractions(() => {
+            if (this.mounted === true) {
+                this.setState({loading: false});
+            }
+        });
     }
 
     componentWillReceiveProps(nextProps) {
@@ -88,6 +93,13 @@ export default class ChannelPostList extends PureComponent {
         }
     }
 
+<<<<<<< HEAD
+=======
+    componentWillUnmount() {
+        this.mounted = false;
+    }
+
+>>>>>>> universal-links
     getVisiblePostIds = (props) => {
         return props.postIds.slice(0, props.postVisibility);
     };

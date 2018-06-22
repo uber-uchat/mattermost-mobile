@@ -16,7 +16,7 @@ import {DATE_LINE, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 import mattermostManaged from 'app/mattermost_managed';
 import {makeExtraData} from 'app/utils/list_view';
 import {changeOpacity} from 'app/utils/theme';
-import {matchPermalink, normalizeProtocol} from 'app/utils/url';
+import {matchPermalink} from 'app/utils/url';
 
 import DateHeader from './date_header';
 import NewMessagesDivider from './new_messages_divider';
