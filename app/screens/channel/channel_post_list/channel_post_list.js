@@ -93,13 +93,10 @@ export default class ChannelPostList extends PureComponent {
         }
     }
 
-<<<<<<< HEAD
-=======
     componentWillUnmount() {
         this.mounted = false;
     }
 
->>>>>>> universal-links
     getVisiblePostIds = (props) => {
         return props.postIds.slice(0, props.postVisibility);
     };

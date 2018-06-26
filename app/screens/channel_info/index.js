@@ -28,24 +28,6 @@ import {getUserIdFromChannelName, isChannelMuted, showDeleteOption, showManageme
 import {isAdmin as checkIsAdmin, isChannelAdmin as checkIsChannelAdmin, isSystemAdmin as checkIsSystemAdmin} from 'mattermost-redux/utils/user_utils';
 import {getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
 
-import {
-    getCurrentUserId,
-    getUser,
-    getStatusForUserId,
-    getCurrentUserRoles,
-} from 'mattermost-redux/selectors/entities/users';
-import {
-    getUserIdFromChannelName,
-    isChannelMuted,
-    showDeleteOption,
-    showManagementOptions,
-} from 'mattermost-redux/utils/channel_utils';
-import {
-    isAdmin as checkIsAdmin,
-    isChannelAdmin as checkIsChannelAdmin,
-    isSystemAdmin as checkIsSystemAdmin,
-} from 'mattermost-redux/utils/user_utils';
-
 import {closeDMChannel, closeGMChannel, leaveChannel, loadChannelsByTeamName} from 'app/actions/views/channel';
 
 import ChannelInfo from './channel_info';
