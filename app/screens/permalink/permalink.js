@@ -201,25 +201,27 @@ export default class Permalink extends PureComponent {
 
             actions.selectPost('');
 
+            if (channelId === currentChannelId) {
+                EventEmitter.emit('reset_channel');
+            } else {
+                navigator.resetTo({
+                    screen: 'Channel',
+                    animated: true,
+                    animationType: 'fade',
+                    navigatorStyle: {
+                        navBarHidden: true,
+                        statusBarHidden: false,
+                        statusBarHideWithNavBar: false,
+                        screenBackgroundColor: theme.centerChannelBg,
+                    },
+                });
+            }
+
+            navigator.dismissAllModals({animationType: 'slide-down'});
+
             if (onClose) {
                 onClose();
             }
-
-            // Have to manually remove the listener because of this issue https://github.com/wix/react-native-navigation/issues/1703
-            // This patch helps avoid double permalink modals since componentWillUnmount doesn't get called
-            EventEmitter.emit('remove_deep_link_listener');
-
-            navigator.resetTo({
-                screen: 'Channel',
-                animated: true,
-                animationType: 'fade',
-                navigatorStyle: {
-                    navBarHidden: true,
-                    statusBarHidden: false,
-                    statusBarHideWithNavBar: false,
-                    screenBackgroundColor: theme.centerChannelBg,
-                }
-            });
 
             if (channelTeamId && currentTeamId !== channelTeamId) {
                 handleTeamChange(channelTeamId, false);

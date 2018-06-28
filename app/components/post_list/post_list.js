@@ -11,6 +11,8 @@ import {
     StyleSheet,
 } from 'react-native';
 
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
+
 import Post from 'app/components/post';
 import {DATE_LINE, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 import mattermostManaged from 'app/mattermost_managed';
@@ -83,6 +85,7 @@ export default class PostList extends PureComponent {
     }
 
     componentDidMount() {
+        EventEmitter.on('reset_channel', this.scrollToBottomOffset);
         this.setManagedConfig();
     }
 
@@ -109,6 +112,7 @@ export default class PostList extends PureComponent {
     }
 
     componentWillUnmount() {
+        EventEmitter.off('reset_channel', this.scrollToBottomOffset);
         mattermostManaged.removeEventListener(this.listenerId);
     }
 
