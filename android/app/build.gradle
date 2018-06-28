@@ -76,7 +76,7 @@ project.ext.react = [
     entryFile: "index.js",
     // bundleCommand: "unbundle",
     // bundleConfig: "packager/config.js",
-    resourcesDirRelease: "release/res"
+    resourcesDirRelease: "$buildDir/intermediates/res/merged/release"
 ]
 
 apply from: "../../node_modules/react-native/react.gradle"
