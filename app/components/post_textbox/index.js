@@ -29,7 +29,7 @@ function mapStateToProps(state, ownProps) {
     const currentDraft = ownProps.rootId ? getThreadDraft(state, ownProps.rootId) : getCurrentChannelDraft(state);
     const config = getConfig(state);
 
-    const currentChannel = getCurrentChannel(state) || {};
+    const currentChannel = getCurrentChannel(state);
     let deactivatedChannel = false;
     if (currentChannel && currentChannel.type === General.DM_CHANNEL) {
         const teammate = getChannelMembersForDm(state, currentChannel);
@@ -50,7 +50,6 @@ function mapStateToProps(state, ownProps) {
         currentUserId,
         userIsOutOfOffice,
         deactivatedChannel,
-        disablePostToChannel,
         files: currentDraft.files,
         maxMessageLength: (config && parseInt(config.MaxPostSize || 0, 10)) || MAX_MESSAGE_LENGTH,
         theme: getTheme(state),
