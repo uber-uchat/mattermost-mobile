@@ -354,6 +354,7 @@ export default class ChannelSidebar extends Component {
                 onDrawerClose={this.handleDrawerClose}
                 onDrawerOpen={this.handleDrawerOpen}
                 drawerWidth={deviceWidth - openDrawerOffset}
+                useNativeAnimations={true}
             >
                 {children}
             </DrawerLayout>

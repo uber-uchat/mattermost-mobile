@@ -221,8 +221,8 @@ export default class List extends PureComponent {
 
     keyExtractor = (item) => item.id || item;
 
-    onSelectChannel = (channel, currentChannelId) => {
-        const {onSelectChannel} = this.props;
+    onSelectChannel = (channel) => {
+        const {currentChannelId, onSelectChannel} = this.props;
         onSelectChannel(channel, currentChannelId);
     };
 
