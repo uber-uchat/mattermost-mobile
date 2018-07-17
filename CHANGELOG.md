@@ -1,5 +1,47 @@
 # Mattermost Mobile Apps Changelog
 
+## v1.10.0 Release
+- Release Date: July 16, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Channel drawer performance
+- Android devices will notice significant performance improvements when opening and closing the channel drawer.
+
+#### Channel loading performance
+- Improved channel loading performance as post are retrieved with every push notification
+
+#### Announcement banner improvements
+- Markdown now renders when announcement banners are expanded
+- When enabled by the System Admin, users can now dismiss announcement banners until their next session
+
+### Improvements
+
+ - Combined consecutive messages from the same user.
+ - Added experimental support for certificate-based authentication (CBA) for iOS to identify a user or a device before granting access to Mattermost. See [documentation](https://docs.mattermost.com/deployment/certificate-based-authentication.html) to learn more.
+ - Added support for the experimental automatic direct message replies feature.
+ - Added support for the experimental timezone feature.
+ - Changed post textbox to not be a connected component.
+ - Allow connecting to mattermost instances hosted at subpaths.
+ - Added support for starting YouTube videos at a given time.
+ - Added support for keeping messages if slash command fails.
+
+
+### Bug Fixes
+
+ - Fixed an issue where the unread badge background was always white.
+ - Fixed an issue where a username repeated in system message if user was added to a channel more than once.
+ - Fixed an issue where Android Sharing from Microsoft apps failed.
+ - Fixed an issue where YouTube crashed the app if link did not have a time set.
+ - Fixed an issue where System Admins did not see all teams available to join on mobile.
+ - Fixed an issue where users were unable to share from Files app.
+ - Fixed an issue where viewing a non-existent permalink didn't show an error message.
+ - Fixed an issue where jumping to a channel search did not bold unread channels.
+ - Fixed an issue with being able to add own user to a Group Message channel.
+ - Fixed an issue with not being able to reply from a push notification on iOS.
+ - Fixed an issue where the app did not display Brazilian language.
+ 
 ## 1.9.3 Release
 - Release Date: July 04, 2018
 - Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
