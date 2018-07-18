@@ -22,9 +22,9 @@ const {View: AnimatedView} = Animated;
 export default class ChannelItem extends PureComponent {
     static propTypes = {
         channelId: PropTypes.string.isRequired,
-        currentChannelId: PropTypes.string.isRequired,
         displayName: PropTypes.string.isRequired,
         fake: PropTypes.bool,
+        isActive: PropTypes.bool,
         isChannelMuted: PropTypes.bool,
         isMyUser: PropTypes.bool,
         isUnread: PropTypes.bool,
@@ -49,9 +49,9 @@ export default class ChannelItem extends PureComponent {
     };
 
     onPress = preventDoubleTap(() => {
-        const {channelId, currentChannelId, displayName, fake, onSelectChannel, type} = this.props;
+        const {channelId, displayName, fake, onSelectChannel, type} = this.props;
         requestAnimationFrame(() => {
-            onSelectChannel({id: channelId, display_name: displayName, fake, type}, currentChannelId);
+            onSelectChannel({id: channelId, display_name: displayName, fake, type});
         });
     });
 
@@ -86,8 +86,8 @@ export default class ChannelItem extends PureComponent {
     render() {
         const {
             channelId,
-            currentChannelId,
             displayName,
+            isActive,
             isChannelMuted,
             isMyUser,
             isUnread,
@@ -114,7 +114,6 @@ export default class ChannelItem extends PureComponent {
         }
 
         const style = getStyleSheet(theme);
-        const isActive = channelId === currentChannelId;
 
         let extraItemStyle;
         let extraTextStyle;

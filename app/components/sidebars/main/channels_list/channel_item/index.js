@@ -59,7 +59,7 @@ function makeMapStateToProps() {
         }
 
         return {
-            currentChannelId,
+            isActive,
             displayName: channel.display_name,
             fake: channel.fake,
             isChannelMuted: isChannelMuted(member),

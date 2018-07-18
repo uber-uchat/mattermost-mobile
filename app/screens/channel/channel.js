@@ -350,7 +350,6 @@ export default class Channel extends PureComponent {
 
         const loaderDimensions = this.channelLoaderDimensions();
 
-        // console.warn('height', height, Date.now())
         return (
             <MainSidebar
                 ref={this.channelSidebarRef}
