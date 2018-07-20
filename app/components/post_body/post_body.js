@@ -398,6 +398,7 @@ export default class PostBody extends PureComponent {
             isFailed,
             isPending,
             isPostAddChannelMember,
+            isReplyPost,
             isSearchResult,
             isSystemMessage,
             message,
@@ -443,17 +444,21 @@ export default class PostBody extends PureComponent {
         } else if (postType === Posts.POST_TYPES.COMBINED_USER_ACTIVITY) {
             const {allUserIds, allUsernames, messageData} = postProps.user_activity;
             messageComponent = (
-                <View style={style.row}>
-                    <View style={style.flex}>
-                        <CombinedSystemMessage
-                            allUserIds={allUserIds}
-                            allUsernames={allUsernames}
-                            linkStyle={textStyles.link}
-                            messageData={messageData}
-                            theme={theme}
-                        />
+                <TouchableOpacity onLongPress={this.showOptionsContext}>
+                    <View style={style.row}>
+                        <View style={style.flex}>
+                            <CombinedSystemMessage
+                                allUserIds={allUserIds}
+                                allUsernames={allUsernames}
+                                linkStyle={textStyles.link}
+                                messageData={messageData}
+                                navigator={navigator}
+                                textStyles={textStyles}
+                                theme={theme}
+                            />
+                        </View>
                     </View>
-                </View>
+                </TouchableOpacity>
             );
         } else if (message.length) {
             messageComponent = (
@@ -466,6 +471,7 @@ export default class PostBody extends PureComponent {
                             baseTextStyle={messageStyle}
                             blockStyles={blockStyles}
                             isEdited={hasBeenEdited}
+                            isReplyPost={isReplyPost}
                             isSearchResult={isSearchResult}
                             navigator={navigator}
                             onLongPress={this.showOptionsContext}
