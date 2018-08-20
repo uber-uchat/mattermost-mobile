@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
@@ -13,12 +13,13 @@ import {
 import {debounce} from 'mattermost-redux/actions/helpers';
 
 import AnnouncementBanner from 'app/components/announcement_banner';
-import ChannelIntro from 'app/components/channel_intro';
-import LoadMorePosts from 'app/components/load_more_posts';
 import PostList from 'app/components/post_list';
 import PostListRetry from 'app/components/post_list_retry';
 import RetryBarIndicator from 'app/components/retry_bar_indicator';
 import tracker from 'app/utils/time_tracker';
+
+let ChannelIntro = null;
+let LoadMorePosts = null;
 
 export default class ChannelPostList extends PureComponent {
     static propTypes = {
@@ -33,6 +34,7 @@ export default class ChannelPostList extends PureComponent {
         channelId: PropTypes.string.isRequired,
         channelRefreshingFailed: PropTypes.bool,
         currentUserId: PropTypes.string,
+        deviceHeight: PropTypes.number.isRequired,
         lastViewedAt: PropTypes.number,
         loadMorePostsVisible: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
@@ -52,6 +54,17 @@ export default class ChannelPostList extends PureComponent {
             visiblePostIds: this.getVisiblePostIds(props),
             loading: true,
         };
+
+        this.contentHeight = 0;
+    }
+
+    componentDidMount() {
+        this.mounted = true;
+        InteractionManager.runAfterInteractions(() => {
+            if (this.mounted === true) {
+                this.setState({loading: false});
+            }
+        });
     }
 
     componentWillReceiveProps(nextProps) {
@@ -80,8 +93,8 @@ export default class ChannelPostList extends PureComponent {
         }
     }
 
-    componentDidMount() {
-        InteractionManager.runAfterInteractions(() => this.setState({loading: false}));
+    componentWillUnmount() {
+        this.mounted = false;
     }
 
     getVisiblePostIds = (props) => {
@@ -118,10 +131,19 @@ export default class ChannelPostList extends PureComponent {
         }
     };
 
+    handleContentSizeChange = (contentWidth, contentHeight) => {
+        this.contentHeight = contentHeight;
+    };
+
     loadMorePosts = debounce(() => {
         if (this.props.loadMorePostsVisible) {
             const {actions, channelId} = this.props;
-            actions.increasePostVisibility(channelId);
+            actions.increasePostVisibility(channelId).then((hasMore) => {
+                if (hasMore && this.contentHeight < this.props.deviceHeight) {
+                    // We still have less than 1 screen of posts loaded with more to get, so load more
+                    this.loadMorePosts();
+                }
+            });
         }
     }, 100);
 
@@ -136,6 +158,10 @@ export default class ChannelPostList extends PureComponent {
         }
 
         if (this.props.loadMorePostsVisible) {
+            if (!LoadMorePosts) {
+                LoadMorePosts = require('app/components/load_more_posts').default;
+            }
+
             return (
                 <LoadMorePosts
                     channelId={this.props.channelId}
@@ -143,6 +169,10 @@ export default class ChannelPostList extends PureComponent {
                     theme={this.props.theme}
                 />
             );
+        }
+
+        if (!ChannelIntro) {
+            ChannelIntro = require('app/components/channel_intro').default;
         }
 
         return (
@@ -189,6 +219,7 @@ export default class ChannelPostList extends PureComponent {
                 <PostList
                     postIds={visiblePostIds}
                     extraData={loadMorePostsVisible}
+                    onContentSizeChange={this.handleContentSizeChange}
                     onEndReached={this.loadMorePosts}
                     onPostPress={this.goToThread}
                     onRefresh={actions.setChannelRefreshing}
@@ -206,7 +237,7 @@ export default class ChannelPostList extends PureComponent {
         return (
             <View style={style.container}>
                 {component}
-                <AnnouncementBanner/>
+                <AnnouncementBanner navigator={navigator}/>
                 <RetryBarIndicator/>
             </View>
         );

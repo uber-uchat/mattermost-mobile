@@ -1,5 +1,152 @@
 # Mattermost Mobile Apps Changelog
 
+## v1.11.0 Release
+- Release Date: August 16, 2018
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Searching Archived Channels
+- Added ability to search for archived channels. Requires Mattermost server v5.2 or later.
+
+#### Deep Linking
+- Added the ability for custom builds to open Mattermost links directly in the app rather than the default mobile browser. Learn more in our [documentation](https://docs.mattermost.com/mobile/mobile-faq.html#how-do-i-configure-deep-linking)
+
+### Improvements
+- Added profile pop-up to combined system messages.
+- Force re-entering SSO auth credentials after logout.
+- Added consecutive posts by the same user.
+- Added a loading indicator when user info is still loading in the left-hand side.
+
+### Bug Fixes
+- Fixed an issue where Android devices showed an incorrect timestamp.
+- Fixed an issue on Android where the app did not get sent to the background when pressing the hardware back button in the channel screen.
+- Fixed an issue with video playback when the filename had spaces.
+- Fixed an issue where the app crashed when playing YouTube videos.
+- Fixed an issue with session expiration notification.
+- Fixed an issue with sharing files from Google Drive in Android Share Extension.
+- Fixed an issue on Android where replying to a push notification sometimes went to the wrong channel.
+- Fixed an issue where the previous server URL was present on the input textbox before changing the screen to Login.
+- Fixed an issue where user menu was not translated correctly.
+- Fixed an issue where some field lengths in Account Settings didn't match the desktop app.
+- Fixed an issue where long URLs for embedded images in message attachments got cut off and didn't render.
+- Fixed an issue where link preview images were not cropped properly.
+- Fixed an issue where long usernames didn't wrap properly in the Account Settings menu.
+- Fixed an issue where DMs would not open if users were using "Jump To".
+- Fixed an issue where no message was displayed after removing a user from a channel with join/leave messages disabled.
+
+## v1.10.0 Release
+- Release Date: July 16, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Channel drawer performance
+- Android devices will notice significant performance improvements when opening and closing the channel drawer.
+
+#### Channel loading performance
+- Improved channel loading performance as post are retrieved with every push notification
+
+#### Announcement banner improvements
+- Markdown now renders when announcement banners are expanded
+- When enabled by the System Admin, users can now dismiss announcement banners until their next session
+
+### Improvements
+
+ - Combined consecutive messages from the same user.
+ - Added experimental support for certificate-based authentication (CBA) for iOS to identify a user or a device before granting access to Mattermost. See [documentation](https://docs.mattermost.com/deployment/certificate-based-authentication.html) to learn more.
+ - Added support for the experimental automatic direct message replies feature.
+ - Added support for the experimental timezone feature.
+ - Changed post textbox to not be a connected component.
+ - Allow connecting to mattermost instances hosted at subpaths.
+ - Added support for starting YouTube videos at a given time.
+ - Added support for keeping messages if slash command fails.
+
+### Bug Fixes
+
+ - Fixed an issue where the unread badge background was always white.
+ - Fixed an issue where a username repeated in system message if user was added to a channel more than once.
+ - Fixed an issue where Android Sharing from Microsoft apps failed.
+ - Fixed an issue where YouTube crashed the app if link did not have a time set.
+ - Fixed an issue where System Admins did not see all teams available to join on mobile.
+ - Fixed an issue where users were unable to share from Files app.
+ - Fixed an issue where viewing a non-existent permalink didn't show an error message.
+ - Fixed an issue where jumping to a channel search did not bold unread channels.
+ - Fixed an issue with being able to add own user to a Group Message channel.
+ - Fixed an issue with not being able to reply from a push notification on iOS.
+ - Fixed an issue where the app did not display Brazilian language.
+ 
+## 1.9.3 Release
+- Release Date: July 04, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Bug Fixes
+
+- Fixed multiple issues causing app crashes
+- Fixed an issue on iOS devices with typing non-english characters in the post input box
+
+## 1.9.2 Release
+- Release Date: June 27, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Bug Fixes
+
+- Fixed an issue where attached videos did not play for the poster
+- Fixed an issue where "Jump to recent messages" from the permalink view did not direct the user to the bottom of the channel
+- Fixed an issue where post comments did not identify which parent post they belonged to
+- Fixed multiple issues with typing non-english characters in the post input box
+- Fixed multiple issues causing random app crashes
+- Fixed an issue where files from the Android Files app failed to upload
+- Fixed an issue where the iOS share extension crashed when switching the team or channel
+- Fixed an issue where files from the Microsoft app failed to upload
+- Fixed an issue on Android devices where sharing files changed the file extension of the attachment
+
+## 1.9.1 Release
+- Release Date: June 23, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Bug Fixes
+- Fixed an issue with typing lag on Android devices
+- Fixed an issue causing users to be logged out after upgrading to v1.9.0
+- Fixed an issue where the ``in:`` and ``from:`` modifiers were not being added to the search field
+
+## v1.9.0 Release
+- Release Date: June 16, 2018
+- Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Improved first load time on Android
+ - Significantly decreased first load time on Android devices from cold start.
+ 
+#### iOS Files app support
+- Added support for attaching files from the iOS Files app from within Mattermost.
+
+#### Improved styling of push notification
+- Improved the layout of message content, channel name and sender name in push notifications.
+
+### Improvements
+
+ - Combined join/leave system messages.
+ - Added splash screen and channel loader improvements.
+ - Removed the desktop notification duration setting.
+ - Added cache team icon and set background to always be white if using a PNG file.
+ - Added whitelabel for icons and splash screen.
+
+### Bug Fixes
+
+ - Fixed an issue where other user's display name did not render in combined system messages after joining the channel.
+ - Fixed an issue where posts incorrectly had "Commented on Someone's message" above them.
+ - Fixed an issue where deleting a post or its parent in permalink view left permalink view blank.
+ - Fixed an issue where "User is typing" message cut was off.
+ - Fixed an issue where `More New Messages Above` appeared at the top of new channel on joining.
+ - Fixed an issue where a user was not directed to Town Square when leaving a channel.
+ - Fixed an issue where long post were not collapsed on Android.
+ - Fixed an issue where a user's name was initially shown as "someone" when opening a direct message with the user.
+ - Fixed an issue where an error was received when trying to change the team or channel from the share extension.
+ - Fixed an issue where switching to a newly created channel from a push notification redirected a user to Town Square.
+ - Fixed an issue where a public channel made private did not disappear automatically from clients not part of the channel.
+
 ## v1.8.0 Release
 - Release Date: April 27, 2018
 - Server Versions Supported: Server v4.0+ is required, Self-Signed SSL Certificates are not supported

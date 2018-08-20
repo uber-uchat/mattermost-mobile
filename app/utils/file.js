@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {Platform} from 'react-native';
 import RNFetchBlob from 'react-native-fetch-blob';
@@ -214,4 +214,12 @@ function populateMaps() {
             types[extension] = type;
         }
     });
+}
+
+export function getLocalFilePathFromFile(dir, file) {
+    if (dir && file && file.caption && file.data && file.data.id) {
+        return `${dir}/${file.data.id}-${decodeURIComponent(file.caption).replace(/\s+/g, '-')}`;
+    }
+
+    return null;
 }

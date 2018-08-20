@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -24,7 +24,6 @@ export default class FileAttachment extends PureComponent {
         file: PropTypes.object.isRequired,
         index: PropTypes.number.isRequired,
         onCaptureRef: PropTypes.func,
-        onCapturePreviewRef: PropTypes.func,
         onInfoPress: PropTypes.func,
         onPreviewPress: PropTypes.func,
         theme: PropTypes.object.isRequired,
@@ -41,14 +40,6 @@ export default class FileAttachment extends PureComponent {
 
         if (onCaptureRef) {
             onCaptureRef(ref, index);
-        }
-    };
-
-    handleCapturePreviewRef = (ref) => {
-        const {onCapturePreviewRef, index} = this.props;
-
-        if (onCapturePreviewRef) {
-            onCapturePreviewRef(ref, index);
         }
     };
 
@@ -105,7 +96,6 @@ export default class FileAttachment extends PureComponent {
                     <FileAttachmentImage
                         file={data || {}}
                         onCaptureRef={this.handleCaptureRef}
-                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>
@@ -124,7 +114,6 @@ export default class FileAttachment extends PureComponent {
                     <FileAttachmentIcon
                         file={data}
                         onCaptureRef={this.handleCaptureRef}
-                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>

@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
@@ -9,26 +9,32 @@ import {
     General,
     Posts,
 } from 'mattermost-redux/constants';
-import {getChannel, canManageChannelMembers} from 'mattermost-redux/selectors/entities/channels';
+import {getChannel, canManageChannelMembers, getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 import {getPost} from 'mattermost-redux/selectors/entities/posts';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
-import {hasNewPermissions} from 'mattermost-redux/selectors/entities/general';
+import {hasNewPermissions, getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
 import {haveIChannelPermission} from 'mattermost-redux/selectors/entities/roles';
+import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
+import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
 import Permissions from 'mattermost-redux/constants/permissions';
 
 import {
     isEdited,
     isPostEphemeral,
     isSystemMessage,
+    canEditPost,
+    canDeletePost,
 } from 'mattermost-redux/utils/post_utils';
+import {isAdmin as checkIsAdmin, isSystemAdmin as checkIsSystemAdmin} from 'mattermost-redux/utils/user_utils';
 
 import PostBody from './post_body';
 
 const POST_TIMEOUT = 20000;
 
 function mapStateToProps(state, ownProps) {
-    const post = getPost(state, ownProps.postId);
+    const post = getPost(state, ownProps.postId) || {};
     const channel = getChannel(state, post.channel_id) || {};
+    const channelIsArchived = channel ? channel.delete_at !== 0 : false;
     const teamId = channel.team_id;
 
     let canAddReaction = true;
@@ -52,6 +58,23 @@ function mapStateToProps(state, ownProps) {
     const isUserCanManageMembers = canManageChannelMembers(state);
     const isEphemeralPost = isPostEphemeral(post);
 
+    const config = getConfig(state);
+    const license = getLicense(state);
+    const currentUserId = getCurrentUserId(state);
+    const currentTeamId = getCurrentTeamId(state);
+    const currentChannelId = getCurrentChannelId(state);
+    const roles = getCurrentUserId(state) ? getCurrentUserRoles(state) : '';
+    const isAdmin = checkIsAdmin(roles);
+    const isSystemAdmin = checkIsSystemAdmin(roles);
+    let canDelete = false;
+    let canEdit = false;
+    if (post) {
+        if (!channelIsArchived) {
+            canDelete = canDeletePost(state, config, license, currentTeamId, currentChannelId, currentUserId, post, isAdmin, isSystemAdmin);
+            canEdit = canEditPost(state, config, license, currentTeamId, currentChannelId, currentUserId, post);
+        }
+    }
+
     let isPostAddChannelMember = false;
     if (
         channel &&
@@ -66,6 +89,7 @@ function mapStateToProps(state, ownProps) {
 
     return {
         postProps: post.props || {},
+        postType: post.type || '',
         fileIds: post.file_ids,
         hasBeenDeleted: post.state === Posts.POST_DELETED,
         hasBeenEdited: isEdited(post),
@@ -78,6 +102,8 @@ function mapStateToProps(state, ownProps) {
         message: post.message,
         theme: getTheme(state),
         canAddReaction,
+        canDelete,
+        canEdit,
     };
 }
 

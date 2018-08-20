@@ -1,11 +1,12 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {IntlProvider} from 'react-intl';
 import {Platform} from 'react-native';
 
+import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {NavigationTypes, ViewTypes} from 'app/constants';
@@ -23,10 +24,18 @@ export default class Root extends PureComponent {
     };
 
     componentWillMount() {
+        Client4.setAcceptLanguage(this.props.locale);
+
         if (!this.props.excludeEvents) {
             EventEmitter.on(ViewTypes.NOTIFICATION_IN_APP, this.handleInAppNotification);
             EventEmitter.on(ViewTypes.NOTIFICATION_TAPPED, this.handleNotificationTapped);
             EventEmitter.on(NavigationTypes.NAVIGATION_NO_TEAMS, this.handleNoTeams);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.locale !== this.props.locale) {
+            Client4.setAcceptLanguage(this.props.locale);
         }
     }
 
@@ -42,7 +51,7 @@ export default class Root extends PureComponent {
         const {data} = notification;
         const {currentChannelId, navigator} = this.props;
 
-        if (data.channel_id !== currentChannelId) {
+        if (data && data.channel_id !== currentChannelId) {
             navigator.showInAppNotification({
                 screen: 'Notification',
                 position: 'top',

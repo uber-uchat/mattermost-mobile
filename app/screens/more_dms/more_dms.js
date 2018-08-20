@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -95,10 +95,17 @@ class MoreDirectMessages extends PureComponent {
             nextProps.getRequest.status === RequestStatus.SUCCESS) {
             const profiles = this.sliceProfiles(nextProps.profiles);
             this.setState({profiles, showNoResults: true});
-        } else if (this.state.searching &&
-            nextProps.searchRequest.status === RequestStatus.SUCCESS) {
+        } else if (
+            this.state.searching &&
+            nextProps.searchRequest.status === RequestStatus.SUCCESS
+        ) {
+            let profiles = nextProps.profiles;
+            if (this.state.selectedCount > 0) {
+                profiles = this.removeCurrentUserFromProfiles(profiles);
+            }
+
             const exactMatches = [];
-            let results = filterProfilesMatchingTerm(nextProps.profiles, this.state.term).filter((p) => {
+            const results = filterProfilesMatchingTerm(profiles, this.state.term).filter((p) => {
                 if (p.username === this.state.term || p.username.startsWith(this.state.term)) {
                     exactMatches.push(p);
                     return false;
@@ -106,10 +113,6 @@ class MoreDirectMessages extends PureComponent {
 
                 return true;
             });
-
-            if (this.state.selectedCount > 0) {
-                results = this.removeCurrentUserFromProfiles(results);
-            }
 
             this.setState({profiles: [...exactMatches, ...results], showNoResults: true});
         }
@@ -182,11 +185,11 @@ class MoreDirectMessages extends PureComponent {
                 this.searchProfiles(term.toLowerCase());
             }, General.SEARCH_TIMEOUT_MILLISECONDS);
         } else {
-            this.cancelSearch();
+            this.clearSearch();
         }
     };
 
-    cancelSearch = () => {
+    clearSearch = () => {
         const {profiles} = this.props;
 
         let newProfiles;
@@ -251,8 +254,6 @@ class MoreDirectMessages extends PureComponent {
         } else {
             this.setState((prevState) => {
                 const {
-                    profiles,
-                    selectedCount,
                     selectedIds,
                 } = prevState;
 
@@ -264,24 +265,17 @@ class MoreDirectMessages extends PureComponent {
                 }
 
                 const newSelectedIds = Object.assign({}, selectedIds);
-
-                let newProfiles = profiles;
-                if (wasSelected) {
-                    Reflect.deleteProperty(newSelectedIds, id);
-                    if (selectedCount === 1) {
-                        newProfiles = this.sliceProfiles(this.props.profiles);
-                    }
-                } else {
+                if (!wasSelected) {
                     newSelectedIds[id] = true;
-                    newProfiles = this.removeCurrentUserFromProfiles(profiles);
                 }
 
                 return {
-                    profiles: newProfiles,
                     selectedIds: newSelectedIds,
                     selectedCount: Object.keys(newSelectedIds).length,
                 };
             });
+
+            this.clearSearch();
         }
     };
 
@@ -382,11 +376,12 @@ class MoreDirectMessages extends PureComponent {
     makeDirectChannel = async (id) => {
         const {
             actions,
+            allProfiles,
             intl,
             teammateNameDisplay,
         } = this.props;
 
-        const user = this.state.profiles.find(p => p.id === id);
+        const user = allProfiles[id];
 
         const displayName = displayUsername(user, teammateNameDisplay);
         actions.setChannelDisplayName(displayName);
@@ -522,7 +517,7 @@ class MoreDirectMessages extends PureComponent {
                         titleCancelColor={theme.centerChannelColor}
                         onChangeText={this.onSearch}
                         onSearchButtonPress={this.onSearch}
-                        onCancelButtonPress={this.cancelSearch}
+                        onCancelButtonPress={this.clearSearch}
                         autoCapitalize='none'
                         value={term}
                     />

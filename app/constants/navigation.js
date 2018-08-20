@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import keyMirror from 'mattermost-redux/utils/key_mirror';
 
@@ -8,7 +8,6 @@ const NavigationTypes = keyMirror({
     NAVIGATION_CLOSE_MODAL: null,
     NAVIGATION_NO_TEAMS: null,
     RESTART_APP: null,
-    NATIVE_APP_LAUNCHED: null,
 });
 
 export default NavigationTypes;

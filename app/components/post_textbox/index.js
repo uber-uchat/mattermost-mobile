@@ -1,20 +1,20 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
 
 import {General} from 'mattermost-redux/constants';
 import {createPost} from 'mattermost-redux/actions/posts';
-import {getCurrentChannel, isCurrentChannelReadOnly} from 'mattermost-redux/selectors/entities/channels';
+import {setStatus} from 'mattermost-redux/actions/users';
+import {getCurrentChannel, isCurrentChannelReadOnly, getDefaultChannel} from 'mattermost-redux/selectors/entities/channels';
 import {canUploadFilesOnMobile, getConfig} from 'mattermost-redux/selectors/entities/general';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
-import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
-import {isAdmin, isChannelAdmin, isSystemAdmin} from 'mattermost-redux/utils/user_utils';
+import {getCurrentUserId, getStatusForUserId} from 'mattermost-redux/selectors/entities/users';
 
 import {executeCommand} from 'app/actions/views/command';
 import {addReactionToLatestPost} from 'app/actions/views/emoji';
-import {handlePostDraftChanged} from 'app/actions/views/channel';
+import {handlePostDraftChanged, setChannelDisplayName, setChannelLoading} from 'app/actions/views/channel';
 import {handleClearFiles, handleClearFailedFiles, handleRemoveLastFile, initUploadFiles} from 'app/actions/views/file_upload';
 import {handleCommentDraftChanged, handleCommentDraftSelectionChanged} from 'app/actions/views/thread';
 import {userTyping} from 'app/actions/views/typing';
@@ -29,7 +29,7 @@ function mapStateToProps(state, ownProps) {
     const currentDraft = ownProps.rootId ? getThreadDraft(state, ownProps.rootId) : getCurrentChannelDraft(state);
     const config = getConfig(state);
 
-    const currentChannel = getCurrentChannel(state) || {};
+    const currentChannel = getCurrentChannel(state);
     let deactivatedChannel = false;
     if (currentChannel && currentChannel.type === General.DM_CHANNEL) {
         const teammate = getChannelMembersForDm(state, currentChannel);
@@ -38,25 +38,25 @@ function mapStateToProps(state, ownProps) {
         }
     }
 
-    let disablePostToChannel = false;
-    if (currentChannel.name === General.DEFAULT_CHANNEL) {
-        const roles = getCurrentUserRoles(state);
-        disablePostToChannel = config.ExperimentalTownSquareIsReadOnly === 'true' && !isAdmin(roles) && !isSystemAdmin(roles) && !isChannelAdmin(roles);
-    }
+    const currentUserId = getCurrentUserId(state);
+    const status = getStatusForUserId(state, currentUserId);
+    const userIsOutOfOffice = status === General.OUT_OF_OFFICE;
 
     return {
         channelId: ownProps.channelId || (currentChannel ? currentChannel.id : ''),
         canUploadFiles: canUploadFilesOnMobile(state),
         channelIsLoading: state.views.channel.loading,
         channelIsReadOnly: isCurrentChannelReadOnly(state),
-        currentUserId: getCurrentUserId(state),
+        channelIsArchived: ownProps.channelIsArchived || (currentChannel ? currentChannel.delete_at !== 0 : false),
+        currentUserId,
+        userIsOutOfOffice,
         deactivatedChannel,
-        disablePostToChannel,
         files: currentDraft.files,
         maxMessageLength: (config && parseInt(config.MaxPostSize || 0, 10)) || MAX_MESSAGE_LENGTH,
         theme: getTheme(state),
         uploadFileRequestStatus: state.requests.files.uploadFiles.status,
         value: currentDraft.draft,
+        defaultChannel: getDefaultChannel(state),
     };
 }
 
@@ -74,6 +74,9 @@ function mapDispatchToProps(dispatch) {
             initUploadFiles,
             userTyping,
             handleCommentDraftSelectionChanged,
+            setStatus,
+            setChannelDisplayName,
+            setChannelLoading,
         }, dispatch),
     };
 }

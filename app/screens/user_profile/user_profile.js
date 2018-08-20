@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -11,10 +11,12 @@ import {
 } from 'react-native';
 import {intlShape} from 'react-intl';
 
-import {getDirectChannelName} from 'mattermost-redux/utils/channel_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
+import {getUserCurrentTimezone} from 'mattermost-redux/utils/timezone_utils';
 
 import ProfilePicture from 'app/components/profile_picture';
+import FormattedText from 'app/components/formatted_text';
+import FormattedTime from 'app/components/formatted_time';
 import StatusBar from 'app/components/status_bar';
 import {alertErrorWithFallback} from 'app/utils/general';
 import {changeOpacity, makeStyleSheetFromTheme, setNavigatorStyles} from 'app/utils/theme';
@@ -29,13 +31,13 @@ export default class UserProfile extends PureComponent {
             setChannelDisplayName: PropTypes.func.isRequired,
         }).isRequired,
         config: PropTypes.object.isRequired,
-        currentChannel: PropTypes.object.isRequired,
         currentDisplayName: PropTypes.string,
-        currentUserId: PropTypes.string.isRequired,
         navigator: PropTypes.object,
         teammateNameDisplay: PropTypes.string,
         theme: PropTypes.object.isRequired,
         user: PropTypes.object.isRequired,
+        militaryTime: PropTypes.bool.isRequired,
+        enableTimezone: PropTypes.bool.isRequired,
     };
 
     static contextTypes = {
@@ -65,12 +67,6 @@ export default class UserProfile extends PureComponent {
         });
     };
 
-    displaySendMessageOption = () => {
-        const {currentChannel, currentUserId, user} = this.props;
-
-        return currentChannel.name !== getDirectChannelName(currentUserId, user.id);
-    };
-
     getDisplayName = () => {
         const {theme, teammateNameDisplay, user} = this.props;
         const style = createStyleSheet(theme);
@@ -98,6 +94,34 @@ export default class UserProfile extends PureComponent {
         }
 
         return null;
+    };
+
+    buildTimezoneBlock = () => {
+        const {theme, user, militaryTime} = this.props;
+        const style = createStyleSheet(theme);
+
+        const currentTimezone = getUserCurrentTimezone(user.timezone);
+        if (!currentTimezone) {
+            return null;
+        }
+        const nowDate = new Date();
+
+        return (
+            <View>
+                <FormattedText
+                    id='mobile.routes.user_profile.local_time'
+                    defaultMessage='LOCAL TIME'
+                    style={style.header}
+                />
+                <Text style={style.text}>
+                    <FormattedTime
+                        timeZone={currentTimezone}
+                        hour12={!militaryTime}
+                        value={nowDate}
+                    />
+                </Text>
+            </View>
+        );
     };
 
     sendMessage = async () => {
@@ -171,7 +195,7 @@ export default class UserProfile extends PureComponent {
     };
 
     render() {
-        const {config, theme, user} = this.props;
+        const {config, theme, user, enableTimezone} = this.props;
         const style = createStyleSheet(theme);
 
         if (!user) {
@@ -195,11 +219,11 @@ export default class UserProfile extends PureComponent {
                         <Text style={style.username}>{`@${user.username}`}</Text>
                     </View>
                     <View style={style.content}>
+                        {enableTimezone && this.buildTimezoneBlock()}
                         {this.buildDisplayBlock('username')}
                         {config.ShowEmailAddress === 'true' && this.buildDisplayBlock('email')}
                         {this.buildDisplayBlock('position')}
                     </View>
-                    {this.displaySendMessageOption() &&
                     <UserProfileRow
                         action={this.sendMessage}
                         defaultMessage='Send Message'
@@ -208,7 +232,6 @@ export default class UserProfile extends PureComponent {
                         textId='mobile.routes.user_profile.send_message'
                         theme={theme}
                     />
-                    }
                     {this.renderAdditionalOptions()}
                 </ScrollView>
             </View>

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {Parser, Node} from 'commonmark';
 import Renderer from 'commonmark-react-renderer';
@@ -17,6 +17,7 @@ import Emoji from 'app/components/emoji';
 import FormattedText from 'app/components/formatted_text';
 import CustomPropTypes from 'app/constants/custom_prop_types';
 import {blendColors, concatStyles, makeStyleSheetFromTheme} from 'app/utils/theme';
+import {getScheme} from 'app/utils/url';
 
 import MarkdownBlockQuote from './markdown_block_quote';
 import MarkdownCodeBlock from './markdown_code_block';
@@ -32,11 +33,14 @@ import {addListItemIndices, pullOutImages} from './transform';
 
 export default class Markdown extends PureComponent {
     static propTypes = {
+        autolinkedUrlSchemes: PropTypes.array.isRequired,
         baseTextStyle: CustomPropTypes.Style,
         blockStyles: PropTypes.object,
         isEdited: PropTypes.bool,
+        isReplyPost: PropTypes.bool,
         isSearchResult: PropTypes.bool,
         navigator: PropTypes.object.isRequired,
+        onChannelLinkPress: PropTypes.func,
         onLongPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
@@ -54,8 +58,20 @@ export default class Markdown extends PureComponent {
     constructor(props) {
         super(props);
 
-        this.parser = new Parser();
+        this.parser = this.createParser();
         this.renderer = this.createRenderer();
+    }
+
+    createParser = () => {
+        return new Parser({
+            urlFilter: this.urlFilter,
+        });
+    }
+
+    urlFilter = (url) => {
+        const scheme = getScheme(url);
+
+        return !scheme || this.props.autolinkedUrlSchemes.indexOf(scheme) !== -1;
     }
 
     createRenderer = () => {
@@ -151,6 +167,7 @@ export default class Markdown extends PureComponent {
         return (
             <MarkdownImage
                 linkDestination={linkDestination}
+                isReplyPost={this.props.isReplyPost}
                 navigator={this.props.navigator}
                 onLongPress={this.props.onLongPress}
                 source={src}
@@ -180,6 +197,7 @@ export default class Markdown extends PureComponent {
             <ChannelLink
                 linkStyle={this.props.textStyles.link}
                 textStyle={this.computeTextStyle(this.props.baseTextStyle, context)}
+                onChannelLinkPress={this.props.onChannelLinkPress}
                 channelName={channelName}
             />
         );

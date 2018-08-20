@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -21,6 +21,7 @@ import {RequestStatus} from 'mattermost-redux/constants';
 
 import Autocomplete from 'app/components/autocomplete';
 import DateHeader from 'app/components/post_list/date_header';
+import {isDateLine} from 'app/components/post_list/date_header/utils';
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
 import PostListRetry from 'app/components/post_list_retry';
@@ -29,7 +30,6 @@ import SafeAreaView from 'app/components/safe_area_view';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
 import mattermostManaged from 'app/mattermost_managed';
-import {DATE_LINE} from 'app/selectors/post_list';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
@@ -56,10 +56,10 @@ export default class Search extends PureComponent {
             selectPost: PropTypes.func.isRequired,
         }).isRequired,
         currentTeamId: PropTypes.string.isRequired,
-        currentChannelId: PropTypes.string.isRequired,
         isLandscape: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
         postIds: PropTypes.array,
+        archivedPostIds: PropTypes.arrayOf(PropTypes.string),
         recent: PropTypes.array.isRequired,
         searchingStatus: PropTypes.string,
         theme: PropTypes.object.isRequired,
@@ -68,6 +68,7 @@ export default class Search extends PureComponent {
     static defaultProps = {
         postIds: [],
         recent: [],
+        archivedPostIds: [],
     };
 
     static contextTypes = {
@@ -260,15 +261,6 @@ export default class Search extends PureComponent {
         actions.removeSearchTerms(currentTeamId, item.terms);
     });
 
-    renderDateHeader = (date, index) => {
-        return (
-            <DateHeader
-                date={date}
-                index={index}
-            />
-        );
-    };
-
     renderModifiers = ({item}) => {
         const {theme} = this.props;
         const style = getStyleFromTheme(theme);
@@ -303,6 +295,30 @@ export default class Search extends PureComponent {
         );
     };
 
+    archivedIndicator = (postID, style) => {
+        const channelIsArchived = this.props.archivedPostIds.includes(postID);
+        let archivedIndicator = null;
+        if (channelIsArchived) {
+            archivedIndicator = (
+                <View style={style.archivedIndicator}>
+                    <Text>
+                        <AwesomeIcon
+                            name='archive'
+                            style={style.archivedText}
+                        />
+                        {' '}
+                        <FormattedText
+                            style={style.archivedText}
+                            id='search_item.channelArchived'
+                            defaultMessage='Archived'
+                        />
+                    </Text>
+                </View>
+            );
+        }
+        return archivedIndicator;
+    };
+
     renderPost = ({item, index}) => {
         const {postIds, theme} = this.props;
         const {managedConfig} = this.state;
@@ -316,20 +332,25 @@ export default class Search extends PureComponent {
             );
         }
 
-        if (item.indexOf(DATE_LINE) === 0) {
-            const date = item.substring(DATE_LINE.length);
-            return this.renderDateHeader(new Date(date), index);
+        if (isDateLine(item)) {
+            return (
+                <DateHeader
+                    dateLineString={item}
+                    index={index}
+                />
+            );
         }
 
         let separator;
         const nextPost = postIds[index + 1];
-        if (nextPost && nextPost.indexOf(DATE_LINE) === -1) {
+        if (nextPost && !isDateLine(nextPost)) {
             separator = <PostSeparator theme={theme}/>;
         }
 
         return (
             <View>
                 <ChannelDisplayName postId={item}/>
+                {this.archivedIndicator(postIds[index], style)}
                 <SearchResultPost
                     postId={item}
                     previewPost={this.previewPost}
@@ -445,7 +466,7 @@ export default class Search extends PureComponent {
             },
         });
 
-        actions.searchPosts(currentTeamId, terms.trim(), isOrSearch);
+        actions.searchPosts(currentTeamId, terms.trim(), isOrSearch, true);
     };
 
     handleSearchButtonPress = preventDoubleTap((text) => {
@@ -753,6 +774,16 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
         },
         searching: {
             marginTop: 65,
+        },
+        archivedIndicator: {
+            alignItems: 'flex-end',
+            width: 150,
+            alignSelf: 'flex-end',
+            marginTop: -17,
+            marginRight: 10,
+        },
+        archivedText: {
+            color: changeOpacity(theme.centerChannelColor, 0.4),
         },
     };
 });

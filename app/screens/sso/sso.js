@@ -1,12 +1,11 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape} from 'react-intl';
 import {
     InteractionManager,
-    Platform,
     Text,
     View,
     WebView,
@@ -22,19 +21,39 @@ import PushNotifications from 'app/push_notifications';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 import tracker from 'app/utils/time_tracker';
 
-const postMessageJS = "setTimeout(function() { postMessage(document.body.innerText, '*')});";
+const HEADERS = {
+    'X-Mobile-App': 'mattermost',
+};
+
+const postMessageJS = "setTimeout(function() { postMessage(document.body.innerText, '*')}, 0);";
 
 // Used to make sure that OneLogin forms scale appropriately on both platforms.
 const oneLoginFormScalingJS = `
     (function() {
-        document.getElementById('login-page').setAttribute('style', 'background-repeat: repeat-y;');
+        var loginPage = document.getElementById('login-page');
         var submitButton = document.getElementById('user_submit');
-        function resetPadding() {
-            document.getElementById('body-main').setAttribute('style', 'height: auto; padding: 10px 0;');
-            submitButton.removeEventListener('click', resetPadding);
+
+        if (loginPage) {
+            loginPage.setAttribute('style', 'background-repeat: repeat-y;');
         }
+        
+        function resetPadding() {
+            var mainBody = document.getElementById('body-main');
+            
+            if (mainBody) {
+                mainBody.setAttribute('style', 'height: auto; padding: 10px 0;');
+            }
+
+            if (submitButton) {
+                submitButton.removeEventListener('click', resetPadding);
+            }
+        }
+
         resetPadding();
-        submitButton.addEventListener('click', resetPadding);
+        
+        if (submitButton) {
+            submitButton.addEventListener('click', resetPadding);
+        }
     })();
 `;
 
@@ -58,8 +77,7 @@ class SSO extends PureComponent {
         this.state = {
             error: null,
             renderWebView: false,
-            onMessage: props.ssoType === ViewTypes.GITLAB ? this.onMessage : null,
-            jsCode: postMessageJS,
+            jsCode: '',
             scalePagesToFit: false,
         };
 
@@ -76,10 +94,14 @@ class SSO extends PureComponent {
     }
 
     componentDidMount() {
-        InteractionManager.runAfterInteractions(() => {
+        InteractionManager.runAfterInteractions(this.clearPreviousCookies);
+    }
+
+    clearPreviousCookies = () => {
+        CookieManager.clearAll().then(() => {
             this.setState({renderWebView: true});
         });
-    }
+    };
 
     goToLoadTeam = (expiresAt) => {
         const {intl, navigator} = this.props;
@@ -133,23 +155,16 @@ class SSO extends PureComponent {
     };
 
     onNavigationStateChange = (navState) => {
-        const {url, navigationType, loading} = navState;
-        let submitted = false;
-        if (Platform.OS === 'ios') {
-            submitted = url.includes(this.completedUrl) && navigationType === 'formsubmit';
-        } else {
-            submitted = url.includes(this.completedUrl) && loading;
-        }
-
+        const {url} = navState;
         const nextState = {};
 
         if (url.includes('.onelogin.com')) {
-            nextState.jsCode = `${oneLoginFormScalingJS}${postMessageJS}`;
+            nextState.jsCode = oneLoginFormScalingJS;
             nextState.scalePagesToFit = true;
-        }
-
-        if (submitted) {
-            nextState.onMessage = this.onMessage;
+        } else if (url.includes(this.props.serverUrl)) {
+            nextState.jsCode = postMessageJS;
+        } else {
+            nextState.jsCode = '';
         }
 
         if (Object.keys(nextState).length) {
@@ -176,10 +191,16 @@ class SSO extends PureComponent {
                     setStoreFromLocalData({url: this.props.serverUrl, token}).
                         then(handleSuccessfulLogin).
                         then(getSession).
-                        then(this.goToLoadTeam);
+                        then(this.goToLoadTeam).
+                        catch(this.onLoadEndError);
                 }
             });
         }
+    };
+
+    onLoadEndError = (e) => {
+        console.warn('Failed to set store from local data', e); // eslint-disable-line no-console
+        this.setState({error: e.message});
     };
 
     renderLoading = () => {
@@ -188,7 +209,7 @@ class SSO extends PureComponent {
 
     render() {
         const {theme} = this.props;
-        const {error, renderWebView, onMessage, jsCode, scalePagesToFit} = this.state;
+        const {error, renderWebView, jsCode, scalePagesToFit} = this.state;
         const style = getStyleSheet(theme);
 
         let content;
@@ -203,7 +224,7 @@ class SSO extends PureComponent {
         } else {
             content = (
                 <WebView
-                    source={{uri: this.loginUrl}}
+                    source={{uri: this.loginUrl, headers: HEADERS}}
                     javaScriptEnabledAndroid={true}
                     automaticallyAdjustContentInsets={false}
                     scalesPageToFit={scalePagesToFit}
@@ -211,7 +232,7 @@ class SSO extends PureComponent {
                     onNavigationStateChange={this.onNavigationStateChange}
                     onShouldStartLoadWithRequest={() => true}
                     renderLoading={this.renderLoading}
-                    onMessage={onMessage}
+                    onMessage={this.onMessage}
                     injectedJavaScript={jsCode}
                     onLoadEnd={this.onLoadEnd}
                 />

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -35,7 +35,6 @@ export default class FileAttachmentImage extends PureComponent {
         ]),
         imageWidth: PropTypes.number,
         onCaptureRef: PropTypes.func,
-        onCapturePreviewRef: PropTypes.func,
         resizeMode: PropTypes.string,
         resizeMethod: PropTypes.string,
         wrapperHeight: PropTypes.number,
@@ -92,14 +91,6 @@ export default class FileAttachmentImage extends PureComponent {
         }
     };
 
-    handleCapturePreviewRef = (ref) => {
-        const {onCapturePreviewRef} = this.props;
-
-        if (onCapturePreviewRef) {
-            onCapturePreviewRef(ref);
-        }
-    };
-
     render() {
         const {
             file,
@@ -135,7 +126,6 @@ export default class FileAttachmentImage extends PureComponent {
                 style={[style.fileImageWrapper, {height: wrapperHeight, width: wrapperWidth, overflow: 'hidden'}]}
             >
                 <ProgressiveImage
-                    ref={this.handleCapturePreviewRef}
                     style={imageStyle}
                     defaultSource={thumb}
                     tintDefaultSource={!file.localPath}

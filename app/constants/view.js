@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import keyMirror from 'mattermost-redux/utils/key_mirror';
 
@@ -67,6 +67,10 @@ const ViewTypes = keyMirror({
 
     LAUNCH_LOGIN: null,
     LAUNCH_CHANNEL: null,
+
+    SET_DEEP_LINK_URL: null,
+
+    SET_PROFILE_IMAGE_URI: null,
 });
 
 export default {

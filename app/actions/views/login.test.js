@@ -1,5 +1,5 @@
-// Copyright (c) 2016 Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import configureStore from 'redux-mock-store';
 import thunk from 'redux-thunk';
@@ -11,9 +11,17 @@ import {
     handlePasswordChanged,
 } from 'app/actions/views/login';
 
-jest.mock('react-native-fetch-blob', () => ({
-    DocumentDir: () => jest.fn(),
-    fs: {dirs: {CacheDir: () => jest.fn()}},
+jest.mock('react-native-fetch-blob/fs', () => ({
+    dirs: {
+        DocumentDir: () => jest.fn(),
+        CacheDir: () => jest.fn(),
+    },
+}));
+
+jest.mock('app/mattermost', () => ({
+    app: {
+        setAppCredentials: () => jest.fn(),
+    },
 }));
 
 const mockStore = configureStore([thunk]);

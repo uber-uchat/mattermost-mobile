@@ -1,32 +1,24 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 /* eslint-disable global-require*/
-import {AsyncStorage, NativeModules} from 'react-native';
-import DeviceInfo from 'react-native-device-info';
+import {AsyncStorage, Linking, NativeModules, Platform} from 'react-native';
 import {setGenericPassword, getGenericPassword, resetGenericPassword} from 'react-native-keychain';
 
 import {loadMe} from 'mattermost-redux/actions/users';
 import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
+import {setDeepLinkURL} from 'app/actions/views/root';
 import {ViewTypes} from 'app/constants';
 import tracker from 'app/utils/time_tracker';
-import telemetry from 'app/utils/telemetry';
+import {getCurrentLocale} from 'app/selectors/i18n';
 
+import {getTranslations as getLocalTranslations} from 'app/i18n';
 import {store, handleManagedConfig} from 'app/mattermost';
-import avoidNativeBridge from 'app/utils/avoid_bridge';
-const {StartTime} = NativeModules;
+import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 
-const lazyLoadLocalization = () => {
-    const IntlProvider = require('react-intl').IntlProvider;
-    const getTranslations = require('app/i18n').getTranslations;
-
-    return {
-        IntlProvider,
-        getTranslations,
-    };
-};
+const {Initialization} = NativeModules;
 
 const TOOLBAR_BACKGROUND = 'TOOLBAR_BACKGROUND';
 const TOOLBAR_TEXT_COLOR = 'TOOLBAR_TEXT_COLOR';
@@ -37,7 +29,6 @@ export default class App {
         // Usage: app.js
         this.shouldRelaunchWhenActive = false;
         this.inBackgroundSince = null;
-        this.nativeAppLaunched = false;
 
         // Usage: screen/entry.js
         this.startAppFromPushNotification = false;
@@ -46,7 +37,7 @@ export default class App {
         this.appStarted = false;
         this.emmEnabled = false;
         this.performingEMMAuthentication = false;
-        this.intl = null;
+        this.translations = null;
         this.toolbarBackground = null;
         this.toolbarTextColor = null;
         this.appBackground = null;
@@ -60,41 +51,44 @@ export default class App {
         this.token = null;
         this.url = null;
 
+        // Load polyfill for iOS 9
+        if (Platform.OS === 'ios') {
+            const majorVersionIOS = parseInt(Platform.Version, 10);
+            if (majorVersionIOS < 10) {
+                require('babel-polyfill');
+            }
+        }
+
+        // Usage deeplinking
+        Linking.addEventListener('url', this.handleDeepLink);
+
         this.getStartupThemes();
         this.getAppCredentials();
     }
 
-    getIntl = () => {
-        if (this.intl) {
-            return this.intl;
+    getTranslations = () => {
+        if (this.translations) {
+            return this.translations;
         }
-        const {
-            IntlProvider,
-            getTranslations,
-        } = lazyLoadLocalization();
 
         const state = store.getState();
-        let locale = DeviceInfo.getDeviceLocale().split('-')[0];
-        if (state.views.i18n.locale) {
-            locale = state.views.i18n.locale;
-        }
+        const locale = getCurrentLocale(state);
 
-        const intlProvider = new IntlProvider({locale, messages: getTranslations(locale)}, {});
-        const {intl} = intlProvider.getChildContext();
-        this.setIntl(intl);
-        return intl;
+        this.translations = getLocalTranslations(locale);
+        return this.translations;
     };
 
     getAppCredentials = async () => {
         try {
             const credentials = await avoidNativeBridge(
                 () => {
-                    return StartTime.credentialsExist;
+                    return Initialization.credentialsExist;
                 },
                 () => {
-                    return StartTime.credentials;
+                    return Initialization.credentials;
                 },
                 () => {
+                    this.waitForRehydration = true;
                     return getGenericPassword();
                 }
             );
@@ -109,12 +103,17 @@ export default class App {
                     const [deviceToken, currentUserId] = usernameParsed;
                     const [token, url] = passwordParsed;
 
-                    this.deviceToken = deviceToken;
-                    this.currentUserId = currentUserId;
-                    this.token = token;
-                    this.url = url;
-                    Client4.setUrl(url);
-                    Client4.setToken(token);
+                    // if for any case the url and the token aren't valid proceed with re-hydration
+                    if (url && url !== 'undefined' && token && token !== 'undefined') {
+                        this.deviceToken = deviceToken;
+                        this.currentUserId = currentUserId;
+                        this.token = token;
+                        this.url = url;
+                        Client4.setUrl(url);
+                        Client4.setToken(token);
+                    } else {
+                        this.waitForRehydration = true;
+                    }
                 }
             }
         } catch (error) {
@@ -132,14 +131,14 @@ export default class App {
                 appBackground,
             ] = await avoidNativeBridge(
                 () => {
-                    return StartTime.themesExist;
+                    return Initialization.themesExist;
                 },
                 () => {
                     return [
-                        StartTime.toolbarBackground,
-                        StartTime.toolbarTextColor,
-                        StartTime.appBackground,
-                    ]
+                        Initialization.toolbarBackground,
+                        Initialization.toolbarTextColor,
+                        Initialization.appBackground,
+                    ];
                 },
                 () => {
                     return Promise.all([
@@ -170,9 +169,24 @@ export default class App {
         if (!currentUserId) {
             return;
         }
+
         const username = `${deviceToken}, ${currentUserId}`;
         const password = `${token},${url}`;
-        setGenericPassword(username, password);
+
+        if (this.waitForRehydration) {
+            this.waitForRehydration = false;
+            this.token = token;
+            this.url = url;
+        }
+
+        // Only save to keychain if the url and token are set
+        if (url && token) {
+            try {
+                setGenericPassword(username, password);
+            } catch (e) {
+                console.warn('could not set credentials', e); //eslint-disable-line no-console
+            }
+        }
     };
 
     setStartupThemes = (toolbarBackground, toolbarTextColor, appBackground) => {
@@ -201,10 +215,6 @@ export default class App {
         this.emmEnabled = emmEnabled;
     };
 
-    setIntl = (intl) => {
-        this.intl = intl;
-    };
-
     setDeviceToken = (deviceToken) => {
         this.deviceToken = deviceToken;
     };
@@ -221,11 +231,7 @@ export default class App {
         this.shouldRelaunchWhenActive = shouldRelaunchWhenActive;
     };
 
-    setNativeAppLaunched = (nativeAppLaunched) => {
-        this.nativeAppLaunched = nativeAppLaunched;
-    };
-
-    clearCache = () => {
+    clearNativeCache = () => {
         resetGenericPassword();
         AsyncStorage.multiRemove([
             TOOLBAR_BACKGROUND,
@@ -233,6 +239,11 @@ export default class App {
             APP_BACKGROUND,
         ]);
     };
+
+    handleDeepLink = (event) => {
+        const {url} = event;
+        store.dispatch(setDeepLinkURL(url));
+    }
 
     launchApp = async () => {
         const shouldStart = await handleManagedConfig();
@@ -242,34 +253,39 @@ export default class App {
     };
 
     startApp = () => {
-        // TODO: should we check if entryComponent exists?
-
-        if (!this.appStarted) {
-            const {dispatch, getState} = store;
-            const {entities} = getState();
-
-            let screen = 'SelectServer';
-            if (entities) {
-                const {credentials} = entities.general;
-
-                if (credentials.token && credentials.url) {
-                    screen = 'Channel';
-                    tracker.initialLoad = Date.now();
-                    loadMe()(dispatch, getState);
-                }
-            }
-
-            switch (screen) {
-            case 'SelectServer':
-                EventEmitter.emit(ViewTypes.LAUNCH_LOGIN, true);
-                break;
-            case 'Channel':
-                EventEmitter.emit(ViewTypes.LAUNCH_CHANNEL, true);
-                break;
-            }
-
-            this.setStartAppFromPushNotification(false);
-            this.setAppStarted(true);
+        if (this.appStarted || this.waitForRehydration) {
+            return;
         }
+
+        const {dispatch} = store;
+
+        Linking.getInitialURL().then((url) => {
+            dispatch(setDeepLinkURL(url));
+        });
+
+        let screen = 'SelectServer';
+        if (this.token && this.url) {
+            screen = 'Channel';
+            tracker.initialLoad = Date.now();
+
+            try {
+                dispatch(loadMe());
+            } catch (e) {
+                // Fall through since we should have a previous version of the current user because we have a token
+                console.warn('Failed to load current user when starting on Channel screen', e); // eslint-disable-line no-console
+            }
+        }
+
+        switch (screen) {
+        case 'SelectServer':
+            EventEmitter.emit(ViewTypes.LAUNCH_LOGIN, true);
+            break;
+        case 'Channel':
+            EventEmitter.emit(ViewTypes.LAUNCH_CHANNEL, true);
+            break;
+        }
+
+        this.setStartAppFromPushNotification(false);
+        this.setAppStarted(true);
     }
 }

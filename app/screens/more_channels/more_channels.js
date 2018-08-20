@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -100,15 +100,30 @@ export default class MoreChannels extends PureComponent {
             setNavigatorStyles(this.props.navigator, nextProps.theme);
         }
 
+        const {page, searching, term} = this.state;
+
+        let channels;
+        if (nextProps.channels !== this.props.channels) {
+            channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+            if (term) {
+                channels = this.filterChannels(nextProps.channels, term);
+            }
+        }
+
         const {requestStatus} = this.props;
-        if (this.state.searching &&
-            nextProps.requestStatus.status === RequestStatus.SUCCESS) {
-            const channels = this.filterChannels(nextProps.channels, this.state.term);
-            this.setState({channels, showNoResults: true});
-        } else if (requestStatus.status === RequestStatus.STARTED &&
-            nextProps.requestStatus.status === RequestStatus.SUCCESS) {
-            const {page} = this.state;
-            const channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+        if (
+            searching &&
+            nextProps.requestStatus.status === RequestStatus.SUCCESS
+        ) {
+            channels = this.filterChannels(nextProps.channels, term);
+        } else if (
+            requestStatus.status === RequestStatus.STARTED &&
+            nextProps.requestStatus.status === RequestStatus.SUCCESS
+        ) {
+            channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+        }
+
+        if (channels) {
             this.setState({channels, showNoResults: true});
         }
 

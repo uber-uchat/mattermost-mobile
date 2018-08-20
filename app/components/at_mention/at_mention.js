@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React from 'react';
 import PropTypes from 'prop-types';
@@ -7,6 +7,8 @@ import {Clipboard, Platform, Text} from 'react-native';
 import {intlShape} from 'react-intl';
 
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
+
+import {emptyFunction} from 'app/utils/general';
 
 import CustomPropTypes from 'app/constants/custom_prop_types';
 import mattermostManaged from 'app/mattermost_managed';
@@ -23,6 +25,10 @@ export default class AtMention extends React.PureComponent {
         teammateNameDisplay: PropTypes.string,
         theme: PropTypes.object.isRequired,
         usersByUsername: PropTypes.object.isRequired,
+    };
+
+    static defaultProps = {
+        onLongPress: emptyFunction,
     };
 
     static contextTypes = {

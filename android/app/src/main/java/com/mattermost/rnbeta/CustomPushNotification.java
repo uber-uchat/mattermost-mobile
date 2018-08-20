@@ -143,8 +143,16 @@ public class CustomPushNotification extends PushNotification {
         // First, get a builder initialized with defaults from the core class.
         final Notification.Builder notification = new Notification.Builder(mContext);
         Bundle bundle = mNotificationProps.asBundle();
-        String title = bundle.getString("title");
-        if (title == null) {
+        String version = bundle.getString("version");
+
+        String title = null;
+        if (version != null && version.equals("v2")) {
+            title = bundle.getString("channel_name");
+        } else {
+            title = bundle.getString("title");
+        }
+
+        if (android.text.TextUtils.isEmpty(title)) {
             ApplicationInfo appInfo = mContext.getApplicationInfo();
             title = mContext.getPackageManager().getApplicationLabel(appInfo).toString();
         }
@@ -207,7 +215,13 @@ public class CustomPushNotification extends PushNotification {
                     .setStyle(new Notification.BigTextStyle()
                             .bigText(message));
         } else {
-            String summaryTitle = String.format("%s (%d)", title, numMessages);
+            String summaryTitle = null;
+
+            if (version != null && version.equals("v2")) {
+                summaryTitle = String.format("(%d) %s", numMessages, title);
+            } else {
+                summaryTitle = String.format("%s (%d)", title, numMessages);
+            }
 
             Notification.InboxStyle style = new Notification.InboxStyle();
             List<Bundle> bundleArray = channelIdToNotification.get(channelId);
@@ -218,6 +232,10 @@ public class CustomPushNotification extends PushNotification {
                 list = new ArrayList<Bundle>();
             }
 
+            if (version != null && version.equals("v2")) {
+                style.addLine(message);
+            }
+
             for (Bundle data : list) {
                 String msg = data.getString("message");
                 if (msg != message) {
@@ -225,10 +243,17 @@ public class CustomPushNotification extends PushNotification {
                 }
             }
 
-            style.setBigContentTitle(message)
-                    .setSummaryText(String.format("+%d more", (numMessages - 1)));
-            notification.setStyle(style)
-                    .setContentTitle(summaryTitle);
+            if (version != null && version.equals("v2")) {
+                notification
+                        .setContentTitle(summaryTitle)
+                        .setContentText(message)
+                        .setStyle(style);
+            } else {
+                style.setBigContentTitle(message)
+                        .setSummaryText(String.format("+%d more", (numMessages - 1)));
+                notification.setStyle(style)
+                        .setContentTitle(summaryTitle);
+            }
         }
 
         // Let's add a delete intent when the notification is dismissed
@@ -246,7 +271,7 @@ public class CustomPushNotification extends PushNotification {
             replyIntent.setAction(KEY_TEXT_REPLY);
             replyIntent.putExtra(NOTIFICATION_ID, notificationId);
             replyIntent.putExtra("pushNotification", bundle);
-            PendingIntent replyPendingIntent = PendingIntent.getService(mContext, 103, replyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+            PendingIntent replyPendingIntent = PendingIntent.getService(mContext, notificationId, replyIntent, PendingIntent.FLAG_UPDATE_CURRENT);
 
             RemoteInput remoteInput = new RemoteInput.Builder(KEY_TEXT_REPLY)
                     .setLabel("Reply")
