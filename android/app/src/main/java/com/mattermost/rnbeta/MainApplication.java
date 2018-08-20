@@ -3,15 +3,12 @@ package com.mattermost.rnbeta;
 import com.masteratul.exceptionhandler.DefaultErrorScreen;
 import com.mattermost.share.SharePackage;
 
-import android.app.Activity;
-import android.app.Application;
-import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
 
-import com.facebook.react.ReactApplication;
+import com.reactnativedocumentpicker.ReactNativeDocumentPicker;
 import com.oblador.keychain.KeychainPackage;
 import com.reactlibrary.RNReactNativeDocViewerPackage;
 import com.brentvatne.react.ReactVideoPackage;
@@ -24,10 +21,8 @@ import com.gantix.JailMonkey.JailMonkeyPackage;
 
 import io.sentry.Sentry;
 import io.tradle.react.LocalAuthPackage;
-import com.facebook.react.ReactInstanceManager;
-import com.facebook.react.ReactNativeHost;
+
 import com.facebook.react.ReactPackage;
-import com.facebook.react.shell.MainReactPackage;
 import com.facebook.soloader.SoLoader;
 
 import com.imagepicker.ImagePickerPackage;
@@ -36,7 +31,6 @@ import com.learnium.RNDeviceInfo.RNDeviceInfo;
 import com.psykar.cookiemanager.CookieManagerPackage;
 import com.oblador.vectoricons.VectorIconsPackage;
 import com.BV.LinearGradient.LinearGradientPackage;
-import com.github.yamill.orientation.OrientationPackage;
 import com.reactnativenavigation.NavigationApplication;
 import com.wix.reactnativenotifications.RNNotificationsPackage;
 import com.wix.reactnativenotifications.core.notification.INotificationsApplication;
@@ -51,6 +45,7 @@ import java.util.List;
 public class MainApplication extends NavigationApplication implements INotificationsApplication {
   public NotificationsLifecycleFacade notificationsLifecycleFacade;
   public Boolean sharedExtensionIsOpened = false;
+  public Boolean replyFromPushNotification = false;
 
   @Override
   public boolean isDebug() {
@@ -70,20 +65,20 @@ public class MainApplication extends NavigationApplication implements INotificat
             new VectorIconsPackage(),
             new SvgPackage(),
             new LinearGradientPackage(),
-            new OrientationPackage(),
             new RNNotificationsPackage(this),
             new LocalAuthPackage(),
             new JailMonkeyPackage(),
             new RNFetchBlobPackage(),
             new MattermostPackage(this),
-            new RNSentryPackage(this),
+            new RNSentryPackage(),
             new ReactNativeExceptionHandlerPackage(),
             new ReactNativeYouTube(),
             new ReactVideoPackage(),
             new RNReactNativeDocViewerPackage(),
+            new ReactNativeDocumentPicker(),
             new SharePackage(this),
             new KeychainPackage(),
-            new StartTimePackage(this)
+            new InitializationPackage(this)
     );
   }
 

@@ -1,39 +1,36 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {injectIntl, intlShape} from 'react-intl';
+import {intlShape} from 'react-intl';
 import {
     ActivityIndicator,
+    Dimensions,
     Image,
     InteractionManager,
     Keyboard,
     StyleSheet,
     Text,
-    TextInput,
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
 import Button from 'react-native-button';
 import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
-import Orientation from 'react-native-orientation';
 
 import ErrorText from 'app/components/error_text';
 import FormattedText from 'app/components/formatted_text';
+import QuickTextInput from 'app/components/quick_text_input';
 import StatusBar from 'app/components/status_bar';
 import PushNotifications from 'app/push_notifications';
 import {GlobalStyles} from 'app/styles';
 import {preventDoubleTap} from 'app/utils/tap';
 import tracker from 'app/utils/time_tracker';
 
-import logo from 'assets/images/logo.png';
-
 import {RequestStatus} from 'mattermost-redux/constants';
 
-class Login extends PureComponent {
+export default class Login extends PureComponent {
     static propTypes = {
-        intl: intlShape.isRequired,
         navigator: PropTypes.object,
         theme: PropTypes.object,
         actions: PropTypes.shape({
@@ -52,6 +49,10 @@ class Login extends PureComponent {
         loginRequest: PropTypes.object.isRequired,
     };
 
+    static contextTypes = {
+        intl: intlShape.isRequired,
+    };
+
     constructor(props) {
         super(props);
 
@@ -61,23 +62,24 @@ class Login extends PureComponent {
     }
 
     componentWillMount() {
-        Orientation.addOrientationListener(this.orientationDidChange);
+        Dimensions.addEventListener('change', this.orientationDidChange);
     }
 
     componentWillReceiveProps(nextProps) {
         if (this.props.loginRequest.status === RequestStatus.STARTED && nextProps.loginRequest.status === RequestStatus.SUCCESS) {
-            this.props.actions.handleSuccessfulLogin().then(this.props.actions.getSession).then(this.goToLoadTeam);
+            this.props.actions.handleSuccessfulLogin().then(this.props.actions.getSession).then(this.goToChannel);
         } else if (this.props.loginRequest.status !== nextProps.loginRequest.status && nextProps.loginRequest.status !== RequestStatus.STARTED) {
             this.setState({isLoading: false});
         }
     }
 
     componentWillUnmount() {
-        Orientation.removeOrientationListener(this.orientationDidChange);
+        Dimensions.removeEventListener('change', this.orientationDidChange);
     }
 
-    goToLoadTeam = (expiresAt) => {
-        const {intl, navigator} = this.props;
+    goToChannel = (expiresAt) => {
+        const {intl} = this.context;
+        const {navigator} = this.props;
         tracker.initialLoad = Date.now();
 
         if (expiresAt) {
@@ -110,7 +112,8 @@ class Login extends PureComponent {
     };
 
     goToMfa = () => {
-        const {intl, navigator, theme} = this.props;
+        const {intl} = this.context;
+        const {navigator, theme} = this.props;
 
         this.setState({isLoading: false});
 
@@ -152,13 +155,14 @@ class Login extends PureComponent {
                 }
 
                 this.setState({
+                    isLoading: false,
                     error: {
                         intl: {
                             id: msgId,
                             defaultMessage: '',
                             values: {
                                 ldapUsername: this.props.config.LdapLoginFieldName ||
-                                this.props.intl.formatMessage({
+                                this.context.intl.formatMessage({
                                     id: 'login.ldapUsernameLower',
                                     defaultMessage: 'AD/LDAP username',
                                 }),
@@ -171,6 +175,7 @@ class Login extends PureComponent {
 
             if (!this.props.password) {
                 this.setState({
+                    isLoading: false,
                     error: {
                         intl: {
                             id: 'login.noPassword',
@@ -202,7 +207,7 @@ class Login extends PureComponent {
     };
 
     createLoginPlaceholder() {
-        const {formatMessage} = this.props.intl;
+        const {formatMessage} = this.context.intl;
         const license = this.props.license;
         const config = this.props.config;
 
@@ -295,6 +300,23 @@ class Login extends PureComponent {
         this.scroll = ref;
     };
 
+    forgotPassword = () => {
+        const {intl} = this.context;
+        const {navigator, theme} = this.props;
+        navigator.push({
+            screen: 'ForgotPassword',
+            title: intl.formatMessage({id: 'password_form.title', defaultMessage: 'Password Reset'}),
+            animated: true,
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg,
+            },
+        });
+    }
+
     render() {
         const isLoading = this.props.loginRequest.status === RequestStatus.STARTED || this.state.isLoading;
 
@@ -346,7 +368,7 @@ class Login extends PureComponent {
                         enableOnAndroid={true}
                     >
                         <Image
-                            source={logo}
+                            source={require('assets/images/logo.png')}
                         />
                         <View>
                             <Text style={GlobalStyles.header}>
@@ -359,7 +381,7 @@ class Login extends PureComponent {
                             />
                         </View>
                         <ErrorText error={this.getLoginErrorMessage()}/>
-                        <TextInput
+                        <QuickTextInput
                             ref={this.loginRef}
                             value={this.props.loginId}
                             onChangeText={this.props.actions.handleLoginIdChanged}
@@ -374,12 +396,12 @@ class Login extends PureComponent {
                             blurOnSubmit={false}
                             disableFullscreenUI={true}
                         />
-                        <TextInput
+                        <QuickTextInput
                             ref={this.passwordRef}
                             value={this.props.password}
                             onChangeText={this.props.actions.handlePasswordChanged}
                             style={GlobalStyles.inputBox}
-                            placeholder={this.props.intl.formatMessage({id: 'login.password', defaultMessage: 'Password'})}
+                            placeholder={this.context.intl.formatMessage({id: 'login.password', defaultMessage: 'Password'})}
                             secureTextEntry={true}
                             autoCorrect={false}
                             autoCapitalize='none'
@@ -389,6 +411,16 @@ class Login extends PureComponent {
                             disableFullscreenUI={true}
                         />
                         {proceed}
+                        <Button
+                            onPress={this.forgotPassword}
+                            containerStyle={[style.forgotPasswordBtn]}
+                        >
+                            <FormattedText
+                                id='login.forgot'
+                                defaultMessage='I forgot my password'
+                                style={style.forgotPasswordTxt}
+                            />
+                        </Button>
                     </KeyboardAwareScrollView>
                 </TouchableWithoutFeedback>
             </View>
@@ -408,6 +440,11 @@ const style = StyleSheet.create({
         paddingHorizontal: 15,
         paddingVertical: 50,
     },
+    forgotPasswordBtn: {
+        borderColor: 'transparent',
+        marginTop: 15,
+    },
+    forgotPasswordTxt: {
+        color: '#2389D7',
+    },
 });
-
-export default injectIntl(Login);

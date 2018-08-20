@@ -1,22 +1,27 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     FlatList,
     InteractionManager,
+    Linking,
     Platform,
     StyleSheet,
 } from 'react-native';
 
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
+
 import Post from 'app/components/post';
-import {DATE_LINE, START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
+import {START_OF_NEW_MESSAGES} from 'app/selectors/post_list';
 import mattermostManaged from 'app/mattermost_managed';
 import {makeExtraData} from 'app/utils/list_view';
 import {changeOpacity} from 'app/utils/theme';
+import {matchPermalink} from 'app/utils/url';
 
 import DateHeader from './date_header';
+import {isDateLine} from './date_header/utils';
 import NewMessagesDivider from './new_messages_divider';
 import withLayout from './with_layout';
 
@@ -32,9 +37,11 @@ export default class PostList extends PureComponent {
             loadChannelsByTeamName: PropTypes.func.isRequired,
             refreshChannelWithRetry: PropTypes.func.isRequired,
             selectFocusedPostId: PropTypes.func.isRequired,
+            setDeepLinkURL: PropTypes.func.isRequired,
         }).isRequired,
         channelId: PropTypes.string,
         currentUserId: PropTypes.string,
+        deepLinkURL: PropTypes.string,
         deviceHeight: PropTypes.number.isRequired,
         extraData: PropTypes.any,
         highlightPostId: PropTypes.string,
@@ -43,6 +50,7 @@ export default class PostList extends PureComponent {
         lastViewedAt: PropTypes.number, // Used by container // eslint-disable-line no-unused-prop-types
         measureCellLayout: PropTypes.bool,
         navigator: PropTypes.object,
+        onContentSizeChange: PropTypes.func,
         onEndReached: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
@@ -50,7 +58,9 @@ export default class PostList extends PureComponent {
         postIds: PropTypes.array.isRequired,
         renderFooter: PropTypes.func,
         renderReplies: PropTypes.bool,
+        serverURL: PropTypes.string.isRequired,
         shouldRenderReplyButton: PropTypes.bool,
+        siteURL: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
     };
 
@@ -58,21 +68,25 @@ export default class PostList extends PureComponent {
         loadMore: () => true,
     };
 
-    newMessagesIndex = -1;
-    scrollToMessageTries = 0;
-    makeExtraData = makeExtraData();
-    itemMeasurements = {};
+    constructor(props) {
+        super(props);
 
-    state = {
-        managedConfig: {},
-        scrollToMessage: false,
-    };
+        this.newMessagesIndex = -1;
+        this.makeExtraData = makeExtraData();
+        this.itemMeasurements = {};
+
+        this.state = {
+            managedConfig: {},
+            scrollToMessage: false,
+        };
+    }
 
     componentWillMount() {
         this.listenerId = mattermostManaged.addEventListener('change', this.setManagedConfig);
     }
 
     componentDidMount() {
+        EventEmitter.on('reset_channel', this.scrollToBottomOffset);
         this.setManagedConfig();
     }
 
@@ -87,13 +101,19 @@ export default class PostList extends PureComponent {
         }
     }
 
-    componentDidUpdate() {
+    componentDidUpdate(prevProps) {
         if ((this.props.measureCellLayout || this.props.isSearchResult) && this.state.scrollToMessage) {
             this.scrollListToMessageOffset();
+        }
+
+        if (this.props.deepLinkURL) {
+            this.handleDeepLink(this.props.deepLinkURL);
+            this.props.actions.setDeepLinkURL('');
         }
     }
 
     componentWillUnmount() {
+        EventEmitter.off('reset_channel', this.scrollToBottomOffset);
         mattermostManaged.removeEventListener(this.listenerId);
     }
 
@@ -101,6 +121,18 @@ export default class PostList extends PureComponent {
         const {actions} = this.props;
         actions.selectFocusedPostId('');
         this.showingPermalink = false;
+    };
+
+    handleDeepLink = (url) => {
+        const {serverURL, siteURL} = this.props;
+
+        const match = matchPermalink(url, serverURL) || matchPermalink(url, siteURL);
+
+        if (match) {
+            const teamName = match[1];
+            const postId = match[2];
+            this.handlePermalinkPress(postId, teamName);
+        }
     };
 
     handlePermalinkPress = (postId, teamName) => {
@@ -171,7 +203,7 @@ export default class PostList extends PureComponent {
         const index = this.moreNewMessages ? this.props.postIds.length - 1 : this.newMessagesIndex;
 
         if (index !== -1) {
-            let offset = this.getMeasurementOffset(index) - (3 * this.itemMeasurements[index]);
+            let offset = this.getMeasurementOffset(index) + this.itemMeasurements[index];
             const windowHeight = this.state.postListHeight;
 
             if (offset < windowHeight) {
@@ -257,9 +289,14 @@ export default class PostList extends PureComponent {
                     moreMessages={this.moreNewMessages}
                 />
             );
-        } else if (item.indexOf(DATE_LINE) === 0) {
-            const date = item.substring(DATE_LINE.length);
-            return this.renderDateHeader(new Date(date), index);
+        } else if (isDateLine(item)) {
+            this.itemMeasurements[index] = DATE_HEADER_HEIGHT;
+            return (
+                <DateHeader
+                    dateLineString={item}
+                    index={index}
+                />
+            );
         }
 
         const postId = item;
@@ -270,16 +307,6 @@ export default class PostList extends PureComponent {
         const nextPostId = index > 0 ? this.props.postIds[index - 1] : null;
 
         return this.renderPost(postId, previousPostId, nextPostId, index);
-    };
-
-    renderDateHeader = (date, index) => {
-        this.itemMeasurements[index] = DATE_HEADER_HEIGHT;
-        return (
-            <DateHeader
-                date={date}
-                index={index}
-            />
-        );
     };
 
     renderPost = (postId, previousPostId, nextPostId, index) => {
@@ -343,6 +370,7 @@ export default class PostList extends PureComponent {
 
         return (
             <FlatList
+                onContentSizeChange={this.props.onContentSizeChange}
                 onLayout={this.onLayout}
                 ref='list'
                 data={postIds}
@@ -354,7 +382,7 @@ export default class PostList extends PureComponent {
                 ListFooterComponent={this.props.renderFooter}
                 onEndReached={onEndReached}
                 onEndReachedThreshold={Platform.OS === 'ios' ? 0 : 1}
-                removeClippedSubviews={Platform.OS === 'android'}
+                removeClippedSubviews={true}
                 {...refreshControl}
                 renderItem={this.renderItem}
                 contentContainerStyle={styles.postListContent}

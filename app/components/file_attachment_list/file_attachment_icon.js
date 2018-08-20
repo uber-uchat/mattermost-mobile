@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -42,7 +42,6 @@ export default class FileAttachmentIcon extends PureComponent {
         iconHeight: PropTypes.number,
         iconWidth: PropTypes.number,
         onCaptureRef: PropTypes.func,
-        onCapturePreviewRef: PropTypes.func,
         wrapperHeight: PropTypes.number,
         wrapperWidth: PropTypes.number,
     };
@@ -67,14 +66,6 @@ export default class FileAttachmentIcon extends PureComponent {
         }
     };
 
-    handleCapturePreviewRef = (ref) => {
-        const {onCapturePreviewRef} = this.props;
-
-        if (onCapturePreviewRef) {
-            onCapturePreviewRef(ref);
-        }
-    };
-
     render() {
         const {file, iconHeight, iconWidth, wrapperHeight, wrapperWidth} = this.props;
         const source = this.getFileIconPath(file);
@@ -85,7 +76,6 @@ export default class FileAttachmentIcon extends PureComponent {
                 style={[styles.fileIconWrapper, {height: wrapperHeight, width: wrapperWidth}]}
             >
                 <ProgressiveImage
-                    ref={this.handleCapturePreviewRef}
                     style={[styles.icon, {height: iconHeight, width: iconWidth}]}
                     defaultSource={source}
                 />

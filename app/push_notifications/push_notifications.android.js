@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import {AppRegistry, AppState} from 'react-native';
 import {NotificationsAndroid, PendingNotifications} from 'react-native-notifications';
@@ -38,7 +38,7 @@ class PushNotification {
             const notification = new Notification(deviceNotification);
             const data = notification.getData();
 
-            if (this.onReply && AppState.currentState === 'background') {
+            if (this.onReply) {
                 this.onReply(data, data.text, parseInt(data.badge, 10) - parseInt(data.msg_count, 10));
             } else {
                 this.deviceNotification = {

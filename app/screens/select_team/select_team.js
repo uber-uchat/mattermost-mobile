@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -25,6 +25,8 @@ import {changeOpacity, makeStyleSheetFromTheme, setNavigatorStyles} from 'app/ut
 import TeamIcon from 'app/components/team_icon';
 
 const VIEWABILITY_CONFIG = ListTypes.VISIBILITY_CONFIG_DEFAULTS;
+
+const TEAMS_PER_PAGE = 200;
 
 export default class SelectTeam extends PureComponent {
     static propTypes = {
@@ -55,7 +57,7 @@ export default class SelectTeam extends PureComponent {
     }
 
     componentDidMount() {
-        this.props.actions.getTeams().then(() => {
+        this.props.actions.getTeams(0, TEAMS_PER_PAGE).then(() => {
             this.buildData(this.props);
         });
     }

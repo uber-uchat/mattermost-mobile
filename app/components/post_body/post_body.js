@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -15,19 +15,22 @@ import {intlShape} from 'react-intl';
 import Icon from 'react-native-vector-icons/Ionicons';
 import LinearGradient from 'react-native-linear-gradient';
 
-import FileAttachmentList from 'app/components/file_attachment_list';
+import {Posts} from 'mattermost-redux/constants';
+
+import CombinedSystemMessage from 'app/components/combined_system_message';
 import FormattedText from 'app/components/formatted_text';
 import Markdown from 'app/components/markdown';
 import OptionsContext from 'app/components/options_context';
-import PostAddChannelMember from 'app/components/post_add_channel_member';
-
-import PostBodyAdditionalContent from 'app/components/post_body_additional_content';
 
 import {emptyFunction} from 'app/utils/general';
 import {getMarkdownTextStyles, getMarkdownBlockStyles} from 'app/utils/markdown';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
-import Reactions from 'app/components/reactions';
+
+let FileAttachmentList;
+let PostAddChannelMember;
+let PostBodyAdditionalContent;
+let Reactions;
 
 export default class PostBody extends PureComponent {
     static propTypes = {
@@ -65,7 +68,8 @@ export default class PostBody extends PureComponent {
         onPress: PropTypes.func,
         postId: PropTypes.string.isRequired,
         postProps: PropTypes.object,
-        renderReplyBar: PropTypes.func,
+        postType: PropTypes.string,
+        replyBarStyle: PropTypes.array,
         showAddReaction: PropTypes.bool,
         showLongPost: PropTypes.bool.isRequired,
         theme: PropTypes.object,
@@ -81,7 +85,7 @@ export default class PostBody extends PureComponent {
         onPostDelete: emptyFunction,
         onPostEdit: emptyFunction,
         onPress: emptyFunction,
-        renderReplyBar: emptyFunction,
+        replyBarStyle: [],
         toggleSelected: emptyFunction,
     };
 
@@ -169,14 +173,14 @@ export default class PostBody extends PureComponent {
                 actions.push({text: formatMessage({id: 'post_info.edit', defaultMessage: 'Edit'}), onPress: onPostEdit});
             }
 
-            if (canDelete && !hasBeenDeleted) {
-                actions.push({text: formatMessage({id: 'post_info.del', defaultMessage: 'Delete'}), onPress: onPostDelete});
-            }
-
             actions.push({
                 text: formatMessage({id: 'get_post_link_modal.title', defaultMessage: 'Copy Permalink'}),
                 onPress: this.props.onCopyPermalink,
             });
+        }
+
+        if (!isPendingOrFailedPost && !isPostEphemeral && canDelete && !hasBeenDeleted) {
+            actions.push({text: formatMessage({id: 'post_info.del', defaultMessage: 'Delete'}), onPress: onPostDelete});
         }
 
         return actions;
@@ -187,7 +191,7 @@ export default class PostBody extends PureComponent {
         const {height: deviceHeight} = Dimensions.get('window');
         const {showLongPost} = this.props;
 
-        if (!showLongPost && height >= 1000) {
+        if (!showLongPost && height >= (deviceHeight * 1.2)) {
             this.setState({
                 isLongPost: true,
                 maxHeight: (deviceHeight * 0.6),
@@ -229,6 +233,31 @@ export default class PostBody extends PureComponent {
         }
     };
 
+    renderAddChannelMember = (style, textStyles) => {
+        const {onPermalinkPress, onPress, postProps} = this.props;
+
+        if (!PostAddChannelMember) {
+            PostAddChannelMember = require('app/components/post_add_channel_member').default;
+        }
+
+        return (
+            <View style={style.row}>
+                <View style={style.flex}>
+                    <PostAddChannelMember
+                        navigator={navigator}
+                        onLongPress={this.showOptionsContext}
+                        onPermalinkPress={onPermalinkPress}
+                        onPostPress={onPress}
+                        textStyles={textStyles}
+                        postId={postProps.add_channel_member.post_id}
+                        userIds={postProps.add_channel_member.user_ids}
+                        usernames={postProps.add_channel_member.usernames}
+                    />
+                </View>
+            </View>
+        );
+    };
+
     renderFileAttachments() {
         const {
             fileIds,
@@ -246,6 +275,10 @@ export default class PostBody extends PureComponent {
 
         let attachments;
         if (fileIds.length > 0) {
+            if (!FileAttachmentList) {
+                FileAttachmentList = require('app/components/file_attachment_list').default;
+            }
+
             attachments = (
                 <FileAttachmentList
                     fileIds={fileIds}
@@ -264,6 +297,10 @@ export default class PostBody extends PureComponent {
 
     renderPostAdditionalContent = (blockStyles, messageStyle, textStyles) => {
         const {isReplyPost, message, navigator, onPermalinkPress, postId, postProps} = this.props;
+
+        if (!PostBodyAdditionalContent) {
+            PostBodyAdditionalContent = require('app/components/post_body_additional_content').default;
+        }
 
         return (
             <PostBodyAdditionalContent
@@ -286,6 +323,10 @@ export default class PostBody extends PureComponent {
 
         if (!hasReactions || isSearchResult || showLongPost) {
             return null;
+        }
+
+        if (!Reactions) {
+            Reactions = require('app/components/reactions').default;
         }
 
         return (
@@ -357,6 +398,7 @@ export default class PostBody extends PureComponent {
             isFailed,
             isPending,
             isPostAddChannelMember,
+            isReplyPost,
             isSearchResult,
             isSystemMessage,
             message,
@@ -365,7 +407,8 @@ export default class PostBody extends PureComponent {
             onPermalinkPress,
             onPress,
             postProps,
-            renderReplyBar,
+            postType,
+            replyBarStyle,
             theme,
             toggleSelected,
         } = this.props;
@@ -397,21 +440,25 @@ export default class PostBody extends PureComponent {
             );
             body = (<View>{messageComponent}</View>);
         } else if (isPostAddChannelMember) {
+            messageComponent = this.renderAddChannelMember(style, textStyles);
+        } else if (postType === Posts.POST_TYPES.COMBINED_USER_ACTIVITY) {
+            const {allUserIds, allUsernames, messageData} = postProps.user_activity;
             messageComponent = (
-                <View style={style.row}>
-                    <View style={style.flex}>
-                        <PostAddChannelMember
-                            navigator={navigator}
-                            onLongPress={this.showOptionsContext}
-                            onPermalinkPress={onPermalinkPress}
-                            onPostPress={onPress}
-                            textStyles={textStyles}
-                            postId={postProps.add_channel_member.post_id}
-                            userIds={postProps.add_channel_member.user_ids}
-                            usernames={postProps.add_channel_member.usernames}
-                        />
+                <TouchableOpacity onLongPress={this.showOptionsContext}>
+                    <View style={style.row}>
+                        <View style={style.flex}>
+                            <CombinedSystemMessage
+                                allUserIds={allUserIds}
+                                allUsernames={allUsernames}
+                                linkStyle={textStyles.link}
+                                messageData={messageData}
+                                navigator={navigator}
+                                textStyles={textStyles}
+                                theme={theme}
+                            />
+                        </View>
                     </View>
-                </View>
+                </TouchableOpacity>
             );
         } else if (message.length) {
             messageComponent = (
@@ -424,6 +471,7 @@ export default class PostBody extends PureComponent {
                             baseTextStyle={messageStyle}
                             blockStyles={blockStyles}
                             isEdited={hasBeenEdited}
+                            isReplyPost={isReplyPost}
                             isSearchResult={isSearchResult}
                             navigator={navigator}
                             onLongPress={this.showOptionsContext}
@@ -439,42 +487,44 @@ export default class PostBody extends PureComponent {
 
         if (!hasBeenDeleted) {
             body = (
-                <OptionsContext
-                    actions={this.getPostActions()}
-                    ref='options'
-                    onPress={onPress}
-                    toggleSelected={toggleSelected}
-                    cancelText={formatMessage({id: 'channel_modal.cancel', defaultMessage: 'Cancel'})}
-                >
-                    <View onLayout={this.measurePost}>
-                        {messageComponent}
-                        {this.renderShowMoreOption(style)}
-                    </View>
-                    {this.renderPostAdditionalContent(blockStyles, messageStyle, textStyles)}
-                    {this.renderFileAttachments()}
-                    {this.renderReactions()}
-                </OptionsContext>
+                <View style={style.messageBody}>
+                    <OptionsContext
+                        actions={this.getPostActions()}
+                        ref='options'
+                        onPress={onPress}
+                        toggleSelected={toggleSelected}
+                        cancelText={formatMessage({id: 'channel_modal.cancel', defaultMessage: 'Cancel'})}
+                    >
+                        <View onLayout={this.measurePost}>
+                            {messageComponent}
+                            {this.renderShowMoreOption(style)}
+                        </View>
+                        {this.renderPostAdditionalContent(blockStyles, messageStyle, textStyles)}
+                        {this.renderFileAttachments()}
+                        {this.renderReactions()}
+                    </OptionsContext>
+                </View>
             );
         }
 
         return (
             <View style={style.messageContainerWithReplyBar}>
-                {renderReplyBar()}
+                <View style={replyBarStyle}/>
                 <View style={[style.flex, style.row]}>
                     <View style={style.flex}>
                         {body}
                     </View>
                     {isFailed &&
-                    <TouchableOpacity
-                        onPress={onFailedPostPress}
-                        style={style.retry}
-                    >
-                        <Icon
-                            name='ios-information-circle-outline'
-                            size={26}
-                            color={theme.errorTextColor}
-                        />
-                    </TouchableOpacity>
+                        <TouchableOpacity
+                            onPress={onFailedPostPress}
+                            style={style.retry}
+                        >
+                            <Icon
+                                name='ios-information-circle-outline'
+                                size={26}
+                                color={theme.errorTextColor}
+                            />
+                        </TouchableOpacity>
                     }
                 </View>
             </View>
@@ -489,6 +539,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         row: {
             flexDirection: 'row',
+        },
+        messageBody: {
+            paddingBottom: 2,
+            paddingTop: 2,
         },
         retry: {
             justifyContent: 'center',

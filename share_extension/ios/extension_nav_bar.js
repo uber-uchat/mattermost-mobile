@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -24,7 +24,6 @@ export default class ExtensionNavBar extends PureComponent {
     static defaultProps = {
         backButton: false,
         onLeftButtonPress: emptyFunction,
-        title: 'Mattermost',
     };
 
     renderLeftButton = (styles) => {
@@ -114,12 +113,12 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         backButtonContainer: {
             justifyContent: 'center',
-            paddingHorizontal: 15,
-            width: '30%',
+            flex: 1,
+            paddingLeft: 15,
         },
         titleContainer: {
             alignItems: 'center',
-            flex: 1,
+            flex: 3,
             justifyContent: 'center',
         },
         backButton: {
@@ -129,21 +128,23 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         leftButton: {
             color: theme.linkColor,
             fontSize: 16,
+            fontWeight: '600',
         },
         title: {
             fontSize: 17,
             fontWeight: '600',
+            textAlign: 'center',
         },
         rightButtonContainer: {
-            alignItems: 'flex-end',
             justifyContent: 'center',
-            paddingHorizontal: 15,
-            width: '30%',
+            flex: 1,
+            paddingRight: 15,
         },
         rightButton: {
             color: theme.linkColor,
             fontSize: 16,
             fontWeight: '600',
+            textAlign: 'right',
         },
     };
 });

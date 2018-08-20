@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {connect} from 'react-redux';
 
@@ -15,6 +15,7 @@ function mapStateToProps(state) {
 
     return {
         currentChannelName: currentChannel ? currentChannel.display_name : '',
+        isArchived: currentChannel ? currentChannel.delete_at !== 0 : false,
         displayName: state.views.channel.displayName,
         isChannelMuted: isChannelMuted(myChannelMember),
         theme: getTheme(state),

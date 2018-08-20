@@ -1,17 +1,17 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape} from 'react-intl';
 import {
+    Dimensions,
     Image,
     ScrollView,
     StyleSheet,
     Text,
 } from 'react-native';
 import Button from 'react-native-button';
-import Orientation from 'react-native-orientation';
 
 import {ViewTypes} from 'app/constants';
 import FormattedText from 'app/components/formatted_text';
@@ -33,11 +33,11 @@ class LoginOptions extends PureComponent {
     };
 
     componentWillMount() {
-        Orientation.addOrientationListener(this.orientationDidChange);
+        Dimensions.addEventListener('change', this.orientationDidChange);
     }
 
     componentWillUnmount() {
-        Orientation.removeOrientationListener(this.orientationDidChange);
+        Dimensions.removeEventListener('change', this.orientationDidChange);
     }
 
     goToLogin = preventDoubleTap(() => {
@@ -89,7 +89,7 @@ class LoginOptions extends PureComponent {
                 backgroundColor,
             };
 
-            if (config.hasOwnProperty('EmailLoginButtonBorderColor')) {
+            if (config.EmailLoginButtonBorderColor) {
                 additionalStyle.borderColor = config.EmailLoginButtonBorderColor;
             }
 
@@ -123,7 +123,7 @@ class LoginOptions extends PureComponent {
                 backgroundColor,
             };
 
-            if (config.hasOwnProperty('LDAPLoginButtonBorderColor')) {
+            if (config.LDAPLoginButtonBorderColor) {
                 additionalStyle.borderColor = config.LDAPLoginButtonBorderColor;
             }
 

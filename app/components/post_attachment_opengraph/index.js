@@ -1,12 +1,20 @@
-// Copyright (c) 2017 Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
 
 import {getOpenGraphMetadata} from 'mattermost-redux/actions/posts';
 
+import {getDimensions} from 'app/selectors/device';
+
 import PostAttachmentOpenGraph from './post_attachment_opengraph';
+
+function mapStateToProps(state) {
+    return {
+        ...getDimensions(state),
+    };
+}
 
 function mapDispatchToProps(dispatch) {
     return {
@@ -16,4 +24,4 @@ function mapDispatchToProps(dispatch) {
     };
 }
 
-export default connect(null, mapDispatchToProps)(PostAttachmentOpenGraph);
+export default connect(mapStateToProps, mapDispatchToProps)(PostAttachmentOpenGraph);

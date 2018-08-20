@@ -1,11 +1,12 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     Alert,
     Animated,
+    Image,
     Platform,
     SafeAreaView,
     ScrollView,
@@ -24,17 +25,16 @@ import Gallery from 'react-native-image-gallery';
 
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
-import {DeviceTypes} from 'app/constants/';
 import FileAttachmentDocument from 'app/components/file_attachment_list/file_attachment_document';
 import FileAttachmentIcon from 'app/components/file_attachment_list/file_attachment_icon';
-import {NavigationTypes, PermissionTypes} from 'app/constants';
-import {isDocument, isVideo} from 'app/utils/file';
+import ProgressiveImage from 'app/components/progressive_image';
+import {DeviceTypes, NavigationTypes, PermissionTypes} from 'app/constants';
+import {getLocalFilePathFromFile, isDocument, isVideo} from 'app/utils/file';
 import {emptyFunction} from 'app/utils/general';
+import {calculateDimensions} from 'app/utils/images';
 
 import Downloader from './downloader';
 import VideoPreview from './video_preview';
-
-import ProgressiveImage from 'app/components/progressive_image';
 
 const {VIDEOS_PATH} = DeviceTypes;
 const {View: AnimatedView} = Animated;
@@ -49,7 +49,6 @@ export default class ImagePreview extends PureComponent {
         deviceWidth: PropTypes.number.isRequired,
         files: PropTypes.array,
         getItemMeasures: PropTypes.func.isRequired,
-        getPreviewProps: PropTypes.func.isRequired,
         index: PropTypes.number.isRequired,
         navigator: PropTypes.object,
         origin: PropTypes.object,
@@ -179,9 +178,22 @@ export default class ImagePreview extends PureComponent {
     };
 
     getSwipeableStyle = () => {
-        const {deviceHeight, deviceWidth} = this.props;
-        const {origin, target} = this.state;
+        const {deviceHeight, deviceWidth, files} = this.props;
+        const {origin, target, index} = this.state;
         const inputRange = [0, 1];
+
+        let toHeight = deviceHeight;
+        let toWidth = deviceWidth;
+        if (files[index].dimensions) {
+            const {height, width} = files[index].dimensions;
+            if (width < deviceWidth) {
+                toWidth = width;
+            }
+
+            if (height < deviceWidth) {
+                toHeight = height;
+            }
+        }
 
         return {
             left: this.openAnim.interpolate({
@@ -194,11 +206,11 @@ export default class ImagePreview extends PureComponent {
             }),
             width: this.openAnim.interpolate({
                 inputRange,
-                outputRange: [origin.width, deviceWidth],
+                outputRange: [origin.width, toWidth],
             }),
             height: this.openAnim.interpolate({
                 inputRange,
-                outputRange: [origin.height, deviceHeight],
+                outputRange: [origin.height, toHeight],
             }),
         };
     };
@@ -323,6 +335,7 @@ export default class ImagePreview extends PureComponent {
         return (
             <Gallery
                 errorComponent={this.renderOtherItems}
+                imageComponent={this.renderImageComponent}
                 images={this.props.files}
                 initialPage={this.state.index}
                 onLayout={this.handleGalleryLayout}
@@ -364,6 +377,27 @@ export default class ImagePreview extends PureComponent {
         );
     }
 
+    renderImageComponent = (imageProps, imageDimensions) => {
+        if (imageDimensions) {
+            const {height, width} = imageDimensions;
+            const {style, ...otherProps} = imageProps;
+            const flattenStyle = StyleSheet.flatten(style);
+            const calculatedDimensions = calculateDimensions(height, width, flattenStyle.width, flattenStyle.height);
+            const imageStyle = {...flattenStyle, ...calculatedDimensions};
+
+            return (
+                <View style={[style, {justifyContent: 'center', alignItems: 'center'}]}>
+                    <Image
+                        {...otherProps}
+                        style={imageStyle}
+                    />
+                </View>
+            );
+        }
+
+        return null;
+    }
+
     renderOtherItems = (index) => {
         const {files} = this.props;
         const file = files[index];
@@ -382,23 +416,19 @@ export default class ImagePreview extends PureComponent {
     };
 
     renderSelectedItem = () => {
-        const {hide, index} = this.state;
+        const {hide} = this.state;
         const file = this.getCurrentFile();
 
-        if (hide || isDocument(file.data) || isVideo(file.data)) {
+        if (hide || !file || !file.source || !file.source.uri || isDocument(file.data) || isVideo(file.data)) {
             return null;
         }
 
-        const {getPreviewProps} = this.props;
         const containerStyle = this.getSwipeableStyle();
-        const previewProps = getPreviewProps(index);
-        Reflect.deleteProperty(previewProps, 'thumbnailUri');
-
         return (
             <ScrollView scrollEnabled={false}>
                 <Animated.View style={[style.center, style.flex, containerStyle]}>
                     <ProgressiveImage
-                        {...previewProps}
+                        imageUri={file.source.uri}
                         style={[StyleSheet.absoluteFill, style.fullWidth]}
                         resizeMode='contain'
                     />
@@ -423,11 +453,10 @@ export default class ImagePreview extends PureComponent {
 
     saveVideoIOS = () => {
         const file = this.getCurrentFile();
-        const {data} = file;
 
         if (this.refs.downloader) {
             EventEmitter.emit(NavigationTypes.NAVIGATION_CLOSE_MODAL);
-            this.refs.downloader.saveVideo(`${VIDEOS_PATH}/${data.id}-${file.caption}`);
+            this.refs.downloader.saveVideo(getLocalFilePathFromFile(VIDEOS_PATH, file));
         }
     };
 
@@ -508,7 +537,7 @@ export default class ImagePreview extends PureComponent {
         }
 
         if (isVideo(file.data)) {
-            const path = `${VIDEOS_PATH}/${file.data.id}-${file.caption}`;
+            const path = getLocalFilePathFromFile(VIDEOS_PATH, file);
             const exist = await RNFetchBlob.fs.exists(path);
             if (exist) {
                 items.push({

@@ -1,10 +1,12 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {injectIntl, intlShape} from 'react-intl';
 import {TextInput} from 'react-native';
+
+import QuickTextInput from 'app/components/quick_text_input';
 
 class TextInputWithLocalizedPlaceholder extends PureComponent {
     static propTypes = {
@@ -29,7 +31,7 @@ class TextInputWithLocalizedPlaceholder extends PureComponent {
         }
 
         return (
-            <TextInput
+            <QuickTextInput
                 ref='input'
                 {...otherProps}
                 placeholder={placeholderString}

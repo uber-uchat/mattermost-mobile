@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import {Platform} from 'react-native';
 
@@ -9,12 +9,14 @@ import {Client4} from 'mattermost-redux/client';
 
 import {markChannelAsRead} from 'mattermost-redux/actions/channels';
 import {setDeviceToken} from 'mattermost-redux/actions/general';
+import {getPosts} from 'mattermost-redux/actions/posts';
 import {General} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {ViewTypes} from 'app/constants';
+import {retryGetPostsAction} from 'app/actions/views/channel';
 import {
-    createPost,
+    createPostForNotificationReply,
     loadFromPushNotification,
 } from 'app/actions/views/root';
 
@@ -46,11 +48,21 @@ const onRegisterDevice = (data) => {
     }
 };
 
+const loadFromNotification = async (notification) => {
+    await store.dispatch(loadFromPushNotification(notification));
+    if (!app.startAppFromPushNotification) {
+        EventEmitter.emit(ViewTypes.NOTIFICATION_TAPPED);
+        PushNotifications.resetNotification();
+    }
+};
+
 const onPushNotification = async (deviceNotification) => {
     const {dispatch, getState} = store;
+    let unsubscribeFromStore = null;
+    let stopLoadingNotification = false;
 
     // mark the app as started as soon as possible
-    if (!app.appStarted && Platform.OS !== 'ios') {
+    if (Platform.OS === 'android' && !app.appStarted) {
         app.setStartAppFromPushNotification(true);
     }
 
@@ -66,15 +78,28 @@ const onPushNotification = async (deviceNotification) => {
 
     if (data.type === 'clear') {
         dispatch(markChannelAsRead(data.channel_id, null, false));
-    } else if (foreground) {
-        EventEmitter.emit(ViewTypes.NOTIFICATION_IN_APP, notification);
-    } else if (userInteraction && !notification.localNotification) {
-        EventEmitter.emit('close_channel_drawer');
-        if (getState().views.root.hydrationComplete) {
-            await dispatch(loadFromPushNotification(notification));
-            if (!app.startAppFromPushNotification) {
-                EventEmitter.emit(ViewTypes.NOTIFICATION_TAPPED);
-                PushNotifications.resetNotification();
+    } else {
+        // get the posts for the channel as soon as possible
+        retryGetPostsAction(getPosts(data.channel_id), dispatch, getState);
+
+        if (foreground) {
+            EventEmitter.emit(ViewTypes.NOTIFICATION_IN_APP, notification);
+        } else if (userInteraction && !notification.localNotification) {
+            EventEmitter.emit('close_channel_drawer');
+            if (getState().views.root.hydrationComplete) {
+                setTimeout(() => {
+                    loadFromNotification(notification);
+                }, 0);
+            } else {
+                const waitForHydration = () => {
+                    if (getState().views.root.hydrationComplete && !stopLoadingNotification) {
+                        stopLoadingNotification = true;
+                        unsubscribeFromStore();
+                        loadFromNotification(notification);
+                    }
+                };
+
+                unsubscribeFromStore = store.subscribe(waitForHydration);
             }
         }
     }
@@ -83,7 +108,13 @@ const onPushNotification = async (deviceNotification) => {
 export const onPushNotificationReply = (data, text, badge, completed) => {
     const {dispatch, getState} = store;
     const state = getState();
-    const {currentUserId} = state.entities.users;
+    const {currentUserId: reduxCurrentUserId} = state.entities.users;
+    const reduxCredentialsUrl = state.entities.general.credentials.url;
+    const reduxCredentialsToken = state.entities.general.credentials.token;
+
+    const currentUserId = reduxCurrentUserId || app.currentUserId;
+    const url = reduxCredentialsUrl || app.url;
+    const token = reduxCredentialsToken || app.token;
 
     if (currentUserId) {
         // one thing to note is that for android it will reply to the last post in the stack
@@ -98,23 +129,29 @@ export const onPushNotificationReply = (data, text, badge, completed) => {
 
         if (!Client4.getUrl()) {
             // Make sure the Client has the server url set
-            Client4.setUrl(state.entities.general.credentials.url);
+            Client4.setUrl(url);
         }
 
         if (!Client4.getToken()) {
             // Make sure the Client has the server token set
-            Client4.setToken(state.entities.general.credentials.token);
+            Client4.setToken(token);
         }
 
-        createPost(post)(dispatch, getState).then(() => {
-            markChannelAsRead(data.channel_id)(dispatch, getState);
+        retryGetPostsAction(getPosts(data.channel_id), dispatch, getState);
+        dispatch(createPostForNotificationReply(post)).
+            then(() => {
+                dispatch(markChannelAsRead(data.channel_id));
 
-            if (badge >= 0) {
-                PushNotifications.setApplicationIconBadgeNumber(badge);
-            }
+                if (badge >= 0) {
+                    PushNotifications.setApplicationIconBadgeNumber(badge);
+                }
 
-            app.setReplyNotificationData(null);
-        }).then(completed);
+                app.setReplyNotificationData(null);
+            }).
+            then(completed).
+            catch((e) => {
+                console.warn('Failed to send reply to push notification', e); // eslint-disable-line no-console
+            });
     } else {
         app.setReplyNotificationData({
             data,
@@ -133,5 +170,8 @@ export const configurePushNotifications = () => {
         popInitialNotification: true,
         requestPermissions: true,
     });
-    app.setIsNotificationsConfigured(true);
+
+    if (app) {
+        app.setIsNotificationsConfigured(true);
+    }
 };

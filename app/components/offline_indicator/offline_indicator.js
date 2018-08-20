@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
@@ -16,7 +16,9 @@ import IonIcon from 'react-native-vector-icons/Ionicons';
 
 import FormattedText from 'app/components/formatted_text';
 import {ViewTypes} from 'app/constants';
+import mattermostBucket from 'app/mattermost_bucket';
 import checkNetwork from 'app/utils/network';
+import LocalConfig from 'assets/config';
 
 import {RequestStatus} from 'mattermost-redux/constants';
 
@@ -64,13 +66,17 @@ export default class OfflineIndicator extends Component {
         this.backgroundColor = new Animated.Value(0);
     }
 
+    componentDidMount() {
+        this.mounted = true;
+    }
+
     componentWillReceiveProps(nextProps) {
         const {isLandscape, webSocketStatus} = this.props;
 
         if (nextProps.isLandscape !== isLandscape && this.state.network) {
             const navBar = this.getNavBarHeight(nextProps.isLandscape);
             const top = new Animated.Value(navBar - HEIGHT);
-            this.setState({navBar, top});
+            this.setLocalState({navBar, top});
         }
 
         if (nextProps.isOnline) {
@@ -90,14 +96,18 @@ export default class OfflineIndicator extends Component {
         return (nextState.network !== this.state.network || nextProps.isLandscape !== this.props.isLandscape);
     }
 
+    componentWillUnmount() {
+        this.mounted = false;
+    }
+
     connect = () => {
         checkNetwork((result) => {
-            this.setState({network: CONNECTING}, () => {
+            this.setLocalState({network: CONNECTING}, () => {
                 if (result) {
                     this.props.actions.connection(true);
-                    this.props.actions.initWebSocket(Platform.OS);
+                    this.initializeWebSocket();
                 } else {
-                    this.setState({network: OFFLINE});
+                    this.setLocalState({network: OFFLINE});
                 }
             });
         });
@@ -121,13 +131,13 @@ export default class OfflineIndicator extends Component {
             ),
         ]).start(() => {
             this.backgroundColor.setValue(0);
-            this.setState({network: null});
+            this.setLocalState({network: null});
         });
     };
 
     connecting = () => {
         const prevState = this.state.network;
-        this.setState({network: CONNECTING}, () => {
+        this.setLocalState({network: CONNECTING}, () => {
             if (prevState !== OFFLINE) {
                 this.show();
             }
@@ -154,10 +164,30 @@ export default class OfflineIndicator extends Component {
         return IOS_TOP_PORTRAIT;
     };
 
+    initializeWebSocket = async () => {
+        const {actions} = this.props;
+        const {initWebSocket} = actions;
+        const platform = Platform.OS;
+        let certificate = null;
+        if (platform === 'ios') {
+            certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
+        }
+
+        initWebSocket(platform, null, null, null, {certificate});
+    };
+
     offline = () => {
-        this.setState({network: OFFLINE}, () => {
+        this.setLocalState({network: OFFLINE}, () => {
             this.show();
         });
+    };
+
+    setLocalState = (state, callback) => {
+        if (!this.mounted) {
+            return;
+        }
+
+        this.setState(state, callback);
     };
 
     show = () => {

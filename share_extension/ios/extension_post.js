@@ -1,17 +1,17 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {intlShape} from 'react-intl';
 import {
     ActivityIndicator,
+    DeviceEventEmitter,
     Dimensions,
     Image,
     NativeModules,
     ScrollView,
     Text,
-    TextInput,
     TouchableHighlight,
     View,
 } from 'react-native';
@@ -26,6 +26,7 @@ import {getChannel} from 'mattermost-redux/selectors/entities/channels';
 import {getFormattedFileSize, lookupMimeType} from 'mattermost-redux/utils/file_utils';
 import {isMinimumServerVersion} from 'mattermost-redux/utils/helpers';
 
+import QuickTextInput from 'app/components/quick_text_input';
 import mattermostBucket from 'app/mattermost_bucket';
 import {generateId, getAllowedServerMaxFileSize} from 'app/utils/file';
 import {preventDoubleTap} from 'app/utils/tap';
@@ -66,6 +67,7 @@ export default class ExtensionPost extends PureComponent {
         navigator: PropTypes.object.isRequired,
         onClose: PropTypes.func.isRequired,
         theme: PropTypes.object.isRequired,
+        title: PropTypes.string,
     };
 
     static contextTypes = {
@@ -93,11 +95,16 @@ export default class ExtensionPost extends PureComponent {
     }
 
     componentWillMount() {
+        this.event = DeviceEventEmitter.addListener('extensionPostFailed', this.handlePostFailed);
         this.loadData();
     }
 
     componentDidMount() {
         this.focusInput();
+    }
+
+    componentWillUnmount() {
+        this.event.remove();
     }
 
     componentDidUpdate() {
@@ -141,6 +148,10 @@ export default class ExtensionPost extends PureComponent {
         const {navigator, theme} = this.props;
         const {channel, entities, team} = this.state;
 
+        if (!entities || !team || !channel) {
+            return;
+        }
+
         navigator.push({
             component: ExtensionChannels,
             wrapperStyle: {
@@ -161,7 +172,11 @@ export default class ExtensionPost extends PureComponent {
     goToTeams = preventDoubleTap(() => {
         const {navigator, theme} = this.props;
         const {formatMessage} = this.context.intl;
-        const {team} = this.state;
+        const {entities, team} = this.state;
+
+        if (!entities || !team) {
+            return;
+        }
 
         navigator.push({
             component: ExtensionTeams,
@@ -171,7 +186,7 @@ export default class ExtensionPost extends PureComponent {
                 backgroundColor: theme.centerChannelBg,
             },
             passProps: {
-                entities: this.state.entities,
+                entities,
                 currentTeamId: team.id,
                 onSelectTeam: this.selectTeam,
                 theme,
@@ -185,6 +200,19 @@ export default class ExtensionPost extends PureComponent {
 
     handleTextChange = (value) => {
         this.setState({value});
+    };
+
+    handlePostFailed = () => {
+        const {formatMessage} = this.context.intl;
+        this.setState({
+            error: {
+                message: formatMessage({
+                    id: 'mobile.share_extension.post_error',
+                    defaultMessage: 'An error has occurred while posting the message. Please try again.',
+                }),
+            },
+            sending: false,
+        });
     };
 
     loadData = async () => {
@@ -205,7 +233,7 @@ export default class ExtensionPost extends PureComponent {
                 let totalSize = 0;
                 let exceededSize = false;
 
-                if (channel.type === General.GM_CHANNEL || channel.type === General.DM_CHANNEL) {
+                if (channel && (channel.type === General.GM_CHANNEL || channel.type === General.DM_CHANNEL)) {
                     channel = getChannel({entities}, channel.id);
                 }
 
@@ -220,9 +248,9 @@ export default class ExtensionPost extends PureComponent {
                         break;
                     default: {
                         const fullPath = item.value;
-                        const filePath = fullPath.replace('file://', '');
+                        const filePath = decodeURIComponent(fullPath.replace('file://', ''));
                         const fileSize = await RNFetchBlob.fs.stat(filePath);
-                        const filename = fullPath.replace(/^.*[\\/]/, '');
+                        const filename = decodeURIComponent(fullPath.replace(/^.*[\\/]/, ''));
                         const extension = filename.split('.').pop();
 
                         if (this.useBackgroundUpload) {
@@ -287,6 +315,16 @@ export default class ExtensionPost extends PureComponent {
         const serverMaxFileSize = getAllowedServerMaxFileSize(config);
         const maxSize = Math.min(MAX_FILE_SIZE, serverMaxFileSize);
 
+        if (error) {
+            return (
+                <View style={styles.unauthenticatedContainer}>
+                    <Text style={styles.unauthenticated}>
+                        {error.message}
+                    </Text>
+                </View>
+            );
+        }
+
         if (sending) {
             return (
                 <View style={styles.sendingContainer}>
@@ -321,7 +359,7 @@ export default class ExtensionPost extends PureComponent {
                     contentContainerStyle={styles.scrollView}
                     style={styles.flex}
                 >
-                    <TextInput
+                    <QuickTextInput
                         ref={this.getInputRef}
                         maxLength={MAX_MESSAGE_LENGTH}
                         multiline={true}
@@ -333,16 +371,6 @@ export default class ExtensionPost extends PureComponent {
                     />
                     {this.renderFiles(styles)}
                 </ScrollView>
-            );
-        }
-
-        if (error) {
-            return (
-                <View style={styles.unauthenticatedContainer}>
-                    <Text style={styles.unauthenticated}>
-                        {error.message}
-                    </Text>
-                </View>
             );
         }
 
@@ -552,7 +580,7 @@ export default class ExtensionPost extends PureComponent {
                     this.setState({channel: townSquare});
                 }
             } else {
-                this.setState({error});
+                this.setState({error, channel: null});
             }
         });
     };
@@ -563,12 +591,13 @@ export default class ExtensionPost extends PureComponent {
         const {currentUserId} = entities.users;
 
         // If no text and no files do nothing
-        if (!value && !files.length) {
+        if ((!value && !files.length) || !channel) {
             return;
         }
 
         if (currentUserId && authenticated) {
             await this.emmAuthenticationIfNeeded();
+            const certificate = await mattermostBucket.getPreference('cert', Config.AppGroupId);
 
             try {
                 // Check to see if the use still belongs to the channel
@@ -584,6 +613,7 @@ export default class ExtensionPost extends PureComponent {
                     post,
                     requestId: generateId().replace(/-/g, ''),
                     useBackgroundUpload: this.useBackgroundUpload,
+                    certificate: certificate || '',
                 };
 
                 this.setState({sending: true});
@@ -626,14 +656,21 @@ export default class ExtensionPost extends PureComponent {
     };
 
     render() {
-        const {authenticated, theme} = this.props;
-        const {channel, totalSize, sending} = this.state;
+        const {authenticated, theme, title} = this.props;
+        const {channel, error, totalSize, sending} = this.state;
         const {formatMessage} = this.context.intl;
         const styles = getStyleSheet(theme);
 
         let postButtonText = formatMessage({id: 'mobile.share_extension.send', defaultMessage: 'Send'});
-        if (totalSize >= MAX_FILE_SIZE || sending || !channel) {
+        if (totalSize >= MAX_FILE_SIZE || sending || error || !channel) {
             postButtonText = null;
+        }
+
+        let cancelButton = formatMessage({id: 'mobile.share_extension.cancel', defaultMessage: 'Cancel'});
+        if (sending) {
+            cancelButton = null;
+        } else if (error) {
+            cancelButton = formatMessage({id: 'mobile.share_extension.error_close', defaultMessage: 'Close'});
         }
 
         return (
@@ -643,15 +680,16 @@ export default class ExtensionPost extends PureComponent {
             >
                 <ExtensionNavBar
                     authenticated={authenticated}
-                    leftButtonTitle={sending ? null : formatMessage({id: 'mobile.share_extension.cancel', defaultMessage: 'Cancel'})}
+                    leftButtonTitle={cancelButton}
                     onLeftButtonPress={this.handleCancel}
                     onRightButtonPress={this.sendMessage}
                     rightButtonTitle={postButtonText}
                     theme={theme}
+                    title={title}
                 />
                 {this.renderBody(styles)}
-                {this.renderTeamButton(styles)}
-                {this.renderChannelButton(styles)}
+                {!error && this.renderTeamButton(styles)}
+                {!error && this.renderChannelButton(styles)}
             </View>
         );
     }

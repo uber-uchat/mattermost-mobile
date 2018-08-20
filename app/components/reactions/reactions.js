@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -68,25 +68,28 @@ export default class Reactions extends PureComponent {
     };
 
     render() {
-        const {position, reactions} = this.props;
+        const {position, reactions, canAddReaction} = this.props;
         const styles = getStyleSheet(this.props.theme);
 
         if (!reactions.size) {
             return null;
         }
 
-        const addMoreReactions = (
-            <TouchableOpacity
-                key='addReaction'
-                onPress={this.props.onAddReaction}
-                style={[styles.reaction]}
-            >
-                <Image
-                    source={addReactionIcon}
-                    style={styles.addReaction}
-                />
-            </TouchableOpacity>
-        );
+        let addMoreReactions = null;
+        if (canAddReaction) {
+            addMoreReactions = (
+                <TouchableOpacity
+                    key='addReaction'
+                    onPress={this.props.onAddReaction}
+                    style={[styles.reaction]}
+                >
+                    <Image
+                        source={addReactionIcon}
+                        style={styles.addReaction}
+                    />
+                </TouchableOpacity>
+            );
+        }
 
         const reactionElements = [];
         switch (position) {

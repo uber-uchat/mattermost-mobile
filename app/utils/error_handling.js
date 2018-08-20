@@ -1,3 +1,5 @@
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 import {
     Alert,
 } from 'react-native';
@@ -14,35 +16,43 @@ import {close as closeWebSocket} from 'mattermost-redux/actions/websocket';
 import {purgeOfflineStore} from 'app/actions/views/root';
 import {
     captureException,
+    captureJSException,
     initializeSentry,
-    LOGGER_JAVASCRIPT,
-    // LOGGER_NATIVE,
+    LOGGER_NATIVE,
 } from 'app/utils/sentry';
 
 import {app, store} from 'app/mattermost';
 
 const errorHandler = (e, isFatal) => {
-    console.warn('Handling Javascript error ' + JSON.stringify(e)); // eslint-disable-line no-console
-    const {dispatch, getState} = store;
-
-    captureException(e, LOGGER_JAVASCRIPT, store);
-
-    const intl = app.getIntl();
-    closeWebSocket()(dispatch, getState);
-
-    if (Client4.getUrl()) {
-        logError(e)(dispatch, getState);
+    if (__DEV__ && !e && !isFatal) {
+        // react-native-exception-handler redirects console.error to call this, and React calls
+        // console.error without an exception when prop type validation fails, so this ends up
+        // being called with no arguments when the error handler is enabled in dev mode.
+        return;
     }
 
-    if (isFatal) {
+    console.warn('Handling Javascript error', e, isFatal); // eslint-disable-line no-console
+    captureJSException(e, isFatal, store);
+
+    const {dispatch} = store;
+
+    dispatch(closeWebSocket());
+
+    if (Client4.getUrl()) {
+        dispatch(logError(e));
+    }
+
+    if (isFatal && e instanceof Error) {
+        const translations = app.getTranslations();
+
         Alert.alert(
-            intl.formatMessage({id: 'mobile.error_handler.title', defaultMessage: 'Unexpected error occurred'}),
-            intl.formatMessage({id: 'mobile.error_handler.description', defaultMessage: '\nClick relaunch to open the app again. After restart, you can report the problem from the settings menu.\n'}),
+            translations['mobile.error_handler.title'],
+            translations['mobile.error_handler.description'],
             [{
-                text: intl.formatMessage({id: 'mobile.error_handler.button', defaultMessage: 'Relaunch'}),
+                text: translations['mobile.error_handler.button'],
                 onPress: () => {
                     // purge the store
-                    purgeOfflineStore()(dispatch, getState);
+                    dispatch(purgeOfflineStore());
                 },
             }],
             {cancelable: false}

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -18,6 +18,7 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import VideoControls, {PLAYER_STATE} from 'app/components/video_controls';
 import {DeviceTypes} from 'app/constants/';
+import {getLocalFilePathFromFile} from 'app/utils/file';
 
 import Downloader from './downloader.ios';
 
@@ -40,6 +41,12 @@ export default class VideoPreview extends PureComponent {
     constructor(props) {
         super(props);
 
+        let path = null;
+        const {file} = props;
+        if (file && file.data && file.data.localPath) {
+            path = file.data.localPath;
+        }
+
         this.state = {
             isLoading: true,
             isFullScreen: false,
@@ -47,7 +54,7 @@ export default class VideoPreview extends PureComponent {
             paused: true,
             currentTime: 0,
             duration: 0,
-            path: null,
+            path,
             showDownloader: true,
         };
     }
@@ -64,7 +71,7 @@ export default class VideoPreview extends PureComponent {
     async initializeComponent() {
         const {file} = this.props;
         const prefix = Platform.OS === 'android' ? 'file:/' : '';
-        const path = `${VIDEOS_PATH}/${file.data.id}-${file.caption}`;
+        const path = getLocalFilePathFromFile(VIDEOS_PATH, file);
         const exist = await RNFetchBlob.fs.exists(`${prefix}${path}`);
 
         if (exist) {
@@ -84,7 +91,7 @@ export default class VideoPreview extends PureComponent {
 
     onDownloadSuccess = () => {
         const {file} = this.props;
-        const path = `${VIDEOS_PATH}/${file.data.id}-${file.caption}`;
+        const path = file.data.localPath || getLocalFilePathFromFile(VIDEOS_PATH, file);
 
         this.setState({showDownloader: false, path});
     };

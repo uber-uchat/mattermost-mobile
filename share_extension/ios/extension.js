@@ -1,12 +1,14 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {Animated, Dimensions, NavigatorIOS, StyleSheet, View} from 'react-native';
+import {intlShape} from 'react-intl';
 
 import {Preferences} from 'mattermost-redux/constants';
 
+import initialState from 'app/initial_state';
 import mattermostBucket from 'app/mattermost_bucket';
 
 import ExtensionPost from './extension_post';
@@ -17,6 +19,10 @@ export default class SharedApp extends PureComponent {
     static propTypes = {
         appGroupId: PropTypes.string.isRequired,
         onClose: PropTypes.func.isRequired,
+    };
+
+    static contextTypes = {
+        intl: intlShape,
     };
 
     constructor(props) {
@@ -32,7 +38,7 @@ export default class SharedApp extends PureComponent {
         };
 
         mattermostBucket.readFromFile('entities', props.appGroupId).then((value) => {
-            this.entities = value;
+            this.entities = value || initialState;
             this.setState({init: true});
         });
     }
@@ -74,22 +80,30 @@ export default class SharedApp extends PureComponent {
 
     render() {
         const {init, isLandscape} = this.state;
+        const {intl} = this.context;
+        const {formatMessage} = intl;
 
         if (!init) {
             return null;
         }
 
+        const title = formatMessage({
+            id: 'mobile.extension.title',
+            defaultMessage: 'Share in Mattermost',
+        });
+
         const theme = Preferences.THEMES.default;
 
         const initialRoute = {
             component: ExtensionPost,
-            title: 'Mattermost',
+            title,
             passProps: {
                 authenticated: this.userIsLoggedIn(),
                 entities: this.entities,
                 onClose: this.props.onClose,
                 isLandscape,
                 theme,
+                title,
             },
             wrapperStyle: {
                 borderRadius: 10,

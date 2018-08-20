@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -63,6 +63,7 @@ class ChannelAddMembers extends PureComponent {
             selectedMembers: {},
             showNoResults: false,
             term: '',
+            isLoading: true,
         };
         this.addButton.title = props.intl.formatMessage({id: 'integrations.add', defaultMessage: 'Add'});
 
@@ -122,6 +123,12 @@ class ChannelAddMembers extends PureComponent {
                 this.setState({adding: false, canSelect: true});
                 break;
             }
+        }
+
+        if ((loadMoreRequestStatus !== nextProps.loadMoreRequestStatus) || (this.props.searchRequestStatus !== nextProps.searchRequestStatus)) {
+            const isLoading = (nextProps.loadMoreRequestStatus === RequestStatus.STARTED) ||
+                (nextProps.searchRequestStatus === RequestStatus.STARTED);
+            this.setState({isLoading});
         }
     }
 
@@ -222,11 +229,9 @@ class ChannelAddMembers extends PureComponent {
     };
 
     render() {
-        const {intl, loadMoreRequestStatus, searchRequestStatus, preferences, theme} = this.props;
+        const {intl, preferences, theme} = this.props;
         const {adding, profiles, searching, term} = this.state;
         const {formatMessage} = intl;
-        const isLoading = (loadMoreRequestStatus === RequestStatus.STARTED) ||
-            (searchRequestStatus === RequestStatus.STARTED);
         const style = getStyleFromTheme(theme);
         const more = searching ? () => true : this.loadMoreMembers;
 
@@ -281,12 +286,13 @@ class ChannelAddMembers extends PureComponent {
                     onListEndReached={more}
                     preferences={preferences}
                     listScrollRenderAheadDistance={50}
-                    loading={isLoading}
+                    loading={this.state.isLoading}
                     loadingText={loadingText}
                     selectable={this.state.canSelect}
                     onRowSelect={this.handleRowSelect}
                     renderRow={UserListRow}
                     createSections={createMembersSections}
+                    showNoResults={this.state.showNoResults}
                 />
             </View>
         );

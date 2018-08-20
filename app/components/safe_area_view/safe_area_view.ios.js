@@ -1,12 +1,11 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {Keyboard, NativeModules, View} from 'react-native';
+import {Dimensions, Keyboard, NativeModules, View} from 'react-native';
 import DeviceInfo from 'react-native-device-info';
 import SafeArea from 'react-native-safe-area';
-import Orientation from 'react-native-orientation';
 
 const {StatusBarManager} = NativeModules;
 
@@ -41,7 +40,10 @@ export default class SafeAreaIos extends PureComponent {
         this.state = {
             keyboard: false,
             safeAreaInsets: {
-                top: 20, left: 0, bottom: 15, right: 0,
+                top: this.isX ? 44 : 20,
+                left: 0,
+                bottom: this.isX ? 34 : 15,
+                right: 0,
             },
             statusBarHeight: 20,
         };
@@ -54,7 +56,7 @@ export default class SafeAreaIos extends PureComponent {
     }
 
     componentDidMount() {
-        Orientation.addOrientationListener(this.getSafeAreaInsets);
+        Dimensions.addEventListener('change', this.getSafeAreaInsets);
         this.keyboardDidShowListener = Keyboard.addListener('keyboardWillShow', this.keyboardWillShow);
         this.keyboardDidHideListener = Keyboard.addListener('keyboardWillHide', this.keyboardWillHide);
         this.getStatusBarHeight();
@@ -62,7 +64,7 @@ export default class SafeAreaIos extends PureComponent {
 
     componentWillUnmount() {
         this.mounted = false;
-        Orientation.removeOrientationListener(this.getSafeAreaInsets);
+        Dimensions.removeEventListener('change', this.getSafeAreaInsets);
         this.keyboardDidShowListener.remove();
         this.keyboardDidHideListener.remove();
         this.mounted = false;
@@ -88,6 +90,7 @@ export default class SafeAreaIos extends PureComponent {
         if (this.isX) {
             SafeArea.getSafeAreaInsetsForRootView().then((result) => {
                 const {safeAreaInsets} = result;
+
                 if (this.mounted) {
                     this.setState({safeAreaInsets});
                 }

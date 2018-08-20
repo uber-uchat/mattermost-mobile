@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
@@ -22,9 +22,9 @@ function makeMapStateToProps() {
 
         return {
             channelName: channel ? channel.display_name : '',
-            hasReactions: post.has_reactions,
+            hasReactions: post ? post.has_reactions : false,
             inThreadView: Boolean(state.entities.posts.selectedPostId),
-            fileIds: post.file_ids,
+            fileIds: post ? post.file_ids : false,
             theme: getTheme(state),
         };
     };
