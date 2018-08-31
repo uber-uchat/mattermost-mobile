@@ -113,8 +113,9 @@ android {
         applicationId "com.mattermost.rnbeta"
         minSdkVersion 21
         targetSdkVersion 26
-        versionCode 133
+        versionCode 135
         versionName "1.12.0"
+        multiDexEnabled = true
         ndk {
             abiFilters "armeabi-v7a", "x86"
         }
@@ -187,8 +188,9 @@ configurations.all {
 
 dependencies {
     implementation fileTree(dir: "libs", include: ["*.jar"])
-    implementation "com.android.support:appcompat-v7:26.0.1"
-    implementation 'com.android.support:percent:26.0.1'
+    implementation "com.android.support:appcompat-v7:27.1.1"
+    implementation 'com.android.support:design:27.1.1'
+    implementation 'com.android.support:percent:27.1.1'
     implementation "com.facebook.react:react-native:+"  // From node_modules
     implementation project(':react-native-document-picker')
     implementation project(':react-native-keychain')
@@ -197,9 +199,6 @@ dependencies {
     implementation project(':react-native-navigation')
     implementation project(':react-native-image-picker')
     implementation project(':react-native-bottom-sheet')
-    implementation ('com.google.android.gms:play-services-gcm:9.4.0') {
-        force = true;
-    }
     implementation project(':react-native-device-info')
     implementation project(':reactnativenotifications')
     implementation project(':react-native-cookies')
