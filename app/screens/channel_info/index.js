@@ -7,6 +7,7 @@ import {connect} from 'react-redux';
 import {
     favoriteChannel,
     getChannelStats,
+    getChannel,
     deleteChannel,
     unfavoriteChannel,
     updateChannelNotifyProps,
@@ -89,22 +90,20 @@ function mapStateToProps(state) {
 
 function mapDispatchToProps(dispatch) {
     return {
-        actions: bindActionCreators(
-            {
-                closeDMChannel,
-                closeGMChannel,
-                deleteChannel,
-                getChannelStats,
-                leaveChannel,
-                loadChannelsByTeamName,
-                favoriteChannel,
-                unfavoriteChannel,
-                getCustomEmojisInText,
-                selectFocusedPostId,
-                updateChannelNotifyProps,
-            },
-            dispatch
-        ),
+        actions: bindActionCreators({
+            closeDMChannel,
+            closeGMChannel,
+            deleteChannel,
+            getChannelStats,
+            getChannel,
+            leaveChannel,
+            loadChannelsByTeamName,
+            favoriteChannel,
+            unfavoriteChannel,
+            getCustomEmojisInText,
+            selectFocusedPostId,
+            updateChannelNotifyProps,
+        }, dispatch),
     };
 }
 

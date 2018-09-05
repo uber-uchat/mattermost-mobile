@@ -236,9 +236,11 @@ export default class PostList extends PureComponent {
             nextConfig = await mattermostManaged.getLocalConfig();
         }
 
-        this.setState({
-            managedConfig: nextConfig,
-        });
+        if (Object.keys(nextConfig).length) {
+            this.setState({
+                managedConfig: nextConfig,
+            });
+        }
     };
 
     keyExtractor = (item) => {
