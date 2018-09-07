@@ -34,7 +34,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
     static propTypes = {
         baseTextStyle: CustomPropTypes.Style,
         blockStyles: PropTypes.object,
-        config: PropTypes.object,
+        googleDeveloperKey: PropTypes.string,
         deviceHeight: PropTypes.number.isRequired,
         deviceWidth: PropTypes.number.isRequired,
         isReplyPost: PropTypes.bool,
@@ -188,7 +188,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
 
                 return (
                     <TouchableOpacity
-                        style={[styles.imageContainer, {height: imgHeight}]}
+                        style={[styles.imageContainer, {height: imgHeight || MAX_YOUTUBE_IMAGE_HEIGHT}]}
                         {...this.responder}
                         onPress={this.playYouTubeVideo}
                     >
@@ -215,13 +215,13 @@ export default class PostBodyAdditionalContent extends PureComponent {
                 return (
                     <TouchableWithoutFeedback
                         onPress={this.handlePreviewImage}
-                        style={[styles.imageContainer, {height: imgHeight}]}
+                        style={[styles.imageContainer, {height: imgHeight || MAX_YOUTUBE_IMAGE_HEIGHT}]}
                         {...this.responder}
                     >
                         <View ref='item'>
                             <ProgressiveImage
                                 ref='image'
-                                style={[styles.image, {width, height: imgHeight}]}
+                                style={[styles.image, {width, height: imgHeight || MAX_YOUTUBE_IMAGE_HEIGHT}]}
                                 defaultSource={{uri}}
                                 resizeMode='contain'
                                 onError={this.handleLinkLoadError}
@@ -382,11 +382,11 @@ export default class PostBodyAdditionalContent extends PureComponent {
                 playVideo(videoId, startTime).
                 catch(this.playYouTubeVideoError);
         } else {
-            const {config} = this.props;
+            const {googleDeveloperKey} = this.props;
 
-            if (config.GoogleDeveloperKey) {
+            if (googleDeveloperKey) {
                 YouTubeStandaloneAndroid.playVideo({
-                    apiKey: config.GoogleDeveloperKey,
+                    apiKey: googleDeveloperKey,
                     videoId,
                     autoplay: true,
                     startTime,
