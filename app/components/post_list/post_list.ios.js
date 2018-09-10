@@ -123,6 +123,7 @@ export default class PostList extends PostListBase {
                 ListFooterComponent={this.props.renderFooter}
                 maxToRenderPerBatch={INITIAL_BATCH_TO_RENDER + 1}
                 onContentSizeChange={this.handleContentSizeChange}
+                onEndReachedThreshold={1}
                 onLayout={this.handleLayout}
                 onScroll={this.handleScroll}
                 onScrollToIndexFailed={this.handleScrollToIndexFailed}
