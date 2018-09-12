@@ -22,6 +22,7 @@ const {View: AnimatedView} = Animated;
 export default class ChannelItem extends PureComponent {
     static propTypes = {
         channelId: PropTypes.string.isRequired,
+        currentChannelId: PropTypes.string.isRequired,
         displayName: PropTypes.string.isRequired,
         fake: PropTypes.bool,
         isActive: PropTypes.bool,
@@ -87,6 +88,7 @@ export default class ChannelItem extends PureComponent {
     render() {
         const {
             channelId,
+            currentChannelId,
             displayName,
             isActive,
             isChannelMuted,

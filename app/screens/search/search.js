@@ -20,6 +20,7 @@ import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import {RequestStatus} from 'mattermost-redux/constants';
 
 import Autocomplete from 'app/components/autocomplete';
+import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import DateHeader from 'app/components/post_list/date_header';
 import {isDateLine} from 'app/components/post_list/date_header/utils';
 import FormattedText from 'app/components/formatted_text';
@@ -51,7 +52,7 @@ export default class Search extends PureComponent {
             loadChannelsByTeamName: PropTypes.func.isRequired,
             loadThreadIfNecessary: PropTypes.func.isRequired,
             removeSearchTerms: PropTypes.func.isRequired,
-            searchPosts: PropTypes.func.isRequired,
+            searchPostsWithParams: PropTypes.func.isRequired,
             selectFocusedPostId: PropTypes.func.isRequired,
             selectPost: PropTypes.func.isRequired,
         }).isRequired,
@@ -63,6 +64,8 @@ export default class Search extends PureComponent {
         recent: PropTypes.array.isRequired,
         searchingStatus: PropTypes.string,
         theme: PropTypes.object.isRequired,
+        enableDateSuggestion: PropTypes.bool,
+        timezoneOffsetInSeconds: PropTypes.number.isRequired,
     };
 
     static defaultProps = {
@@ -102,7 +105,7 @@ export default class Search extends PureComponent {
     }
 
     componentDidUpdate(prevProps) {
-        const {searchingStatus: status, recent} = this.props;
+        const {searchingStatus: status, recent, enableDateSuggestion} = this.props;
         const {searchingStatus: prevStatus} = prevProps;
         const recentLength = recent.length;
         const shouldScroll = prevStatus !== status && (status === RequestStatus.SUCCESS || status === RequestStatus.STARTED);
@@ -112,12 +115,13 @@ export default class Search extends PureComponent {
         }
 
         if (shouldScroll) {
-            requestAnimationFrame(() => {
+            setTimeout(() => {
+                const modifiersCount = enableDateSuggestion ? 5 : 2;
                 this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
                     animated: true,
-                    offset: SECTION_HEIGHT + (2 * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
+                    offset: SECTION_HEIGHT + (modifiersCount * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
                 });
-            });
+            }, 100);
         }
     }
 
@@ -466,7 +470,8 @@ export default class Search extends PureComponent {
             },
         });
 
-        actions.searchPosts(currentTeamId, terms.trim(), isOrSearch, true);
+        // timezone offset in seconds
+        actions.searchPostsWithParams(currentTeamId, {terms: terms.trim(), is_or_search: isOrSearch, time_zone_offset: this.props.timezoneOffsetInSeconds}, true);
     };
 
     handleSearchButtonPress = preventDoubleTap((text) => {
@@ -514,22 +519,53 @@ export default class Search extends PureComponent {
             value,
         } = this.state;
         const style = getStyleFromTheme(theme);
+
+        const sectionsData = [{
+            value: 'from:',
+            modifier: `from:${intl.formatMessage({id: 'mobile.search.from_modifier_title', defaultMessage: 'username'})}`,
+            description: intl.formatMessage({
+                id: 'mobile.search.from_modifier_description',
+                defaultMessage: 'to find posts from specific users',
+            }),
+        }, {
+            value: 'in:',
+            modifier: `in:${intl.formatMessage({id: 'mobile.search.in_modifier_title', defaultMessage: 'channel-name'})}`,
+            description: intl.formatMessage({
+                id: 'mobile.search.in_modifier_description',
+                defaultMessage: 'to find posts in specific channels',
+            }),
+        }];
+
+        // if search by date filters supported
+        if (this.props.enableDateSuggestion) {
+            sectionsData.push({
+                value: 'on:',
+                modifier: 'on: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.on_modifier_description',
+                    defaultMessage: 'to find posts on a specific date',
+                }),
+            });
+            sectionsData.push({
+                value: 'after:',
+                modifier: 'after: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.after_modifier_description',
+                    defaultMessage: 'to find posts after a specific date',
+                }),
+            });
+            sectionsData.push({
+                value: 'before:',
+                modifier: 'before: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.before_modifier_description',
+                    defaultMessage: 'to find posts before a specific date',
+                }),
+            });
+        }
+
         const sections = [{
-            data: [{
-                value: 'from:',
-                modifier: `from:${intl.formatMessage({id: 'mobile.search.from_modifier_title', defaultMessage: 'username'})}`,
-                description: intl.formatMessage({
-                    id: 'mobile.search.from_modifier_description',
-                    defaultMessage: 'to find posts from specific users',
-                }),
-            }, {
-                value: 'in:',
-                modifier: `in:${intl.formatMessage({id: 'mobile.search.in_modifier_title', defaultMessage: 'channel-name'})}`,
-                description: intl.formatMessage({
-                    id: 'mobile.search.in_modifier_description',
-                    defaultMessage: 'to find posts in specific channels',
-                }),
-            }],
+            data: sectionsData,
             key: 'modifiers',
             title: '',
             renderItem: this.renderModifiers,
@@ -612,7 +648,7 @@ export default class Search extends PureComponent {
                 excludeHeader={isLandscape && this.isX}
                 forceTop={44}
             >
-                <View style={style.container}>
+                <KeyboardLayout>
                     <StatusBar/>
                     <View style={style.header}>
                         <SearchBar
@@ -651,8 +687,9 @@ export default class Search extends PureComponent {
                         onChangeText={this.handleTextChanged}
                         isSearch={true}
                         value={value}
+                        enableDateSuggestion={this.props.enableDateSuggestion}
                     />
-                </View>
+                </KeyboardLayout>
             </SafeAreaView>
         );
     }
@@ -660,9 +697,6 @@ export default class Search extends PureComponent {
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
-        container: {
-            flex: 1,
-        },
         header: {
             backgroundColor: theme.sidebarHeaderBg,
             width: '100%',

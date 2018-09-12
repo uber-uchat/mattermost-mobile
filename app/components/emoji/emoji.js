@@ -10,16 +10,9 @@ import {
     StyleSheet,
     Text,
 } from 'react-native';
-import FastImage from 'react-native-fast-image';
 
 import CustomPropTypes from 'app/constants/custom_prop_types';
-
-const scaleEmojiBasedOnDevice = (size) => {
-    if (Platform.OS === 'ios') {
-        return size * 1.1; // slightly larger emojis look better on ios
-    }
-    return size * PixelRatio.get();
-};
+import ImageCacheManager from 'app/utils/image_cache_manager';
 
 export default class Emoji extends React.PureComponent {
     static propTypes = {
@@ -46,7 +39,6 @@ export default class Emoji extends React.PureComponent {
         literal: PropTypes.string,
         size: PropTypes.number,
         textStyle: CustomPropTypes.Style,
-        token: PropTypes.string.isRequired,
     };
 
     static defaultProps = {
@@ -60,29 +52,29 @@ export default class Emoji extends React.PureComponent {
         super(props);
 
         this.state = {
-            originalWidth: 0,
-            originalHeight: 0,
+            imageUrl: null,
         };
     }
 
     componentWillMount() {
+        const {displayTextOnly, emojiName, imageUrl} = this.props;
         this.mounted = true;
-        if (!this.props.displayTextOnly && this.props.imageUrl && this.props.isCustomEmoji) {
-            this.updateImageHeight(this.props.imageUrl);
+        if (!displayTextOnly && imageUrl) {
+            ImageCacheManager.cache(`emoji-${emojiName}`, imageUrl, this.setImageUrl);
         }
     }
 
     componentWillReceiveProps(nextProps) {
-        if (nextProps.emojiName !== this.props.emojiName) {
+        const {displayTextOnly, emojiName, imageUrl} = nextProps;
+        if (emojiName !== this.props.emojiName) {
             this.setState({
-                originalWidth: 0,
-                originalHeight: 0,
+                imageUrl: null,
             });
         }
 
-        if (!nextProps.displayTextOnly && nextProps.imageUrl && nextProps.isCustomEmoji &&
-                nextProps.imageUrl !== this.props.imageUrl) {
-            this.updateImageHeight(nextProps.imageUrl);
+        if (!displayTextOnly && imageUrl &&
+                imageUrl !== this.props.imageUrl) {
+            ImageCacheManager.cache(`emoji-${emojiName}`, imageUrl, this.setImageUrl);
         }
     }
 
@@ -90,58 +82,40 @@ export default class Emoji extends React.PureComponent {
         this.mounted = false;
     }
 
-    updateImageHeight = (imageUrl) => {
-        Image.getSize(imageUrl, (originalWidth, originalHeight) => {
-            if (this.mounted) {
-                this.setState({
-                    originalWidth,
-                    originalHeight,
-                });
-            }
+    setImageUrl = (imageUrl) => {
+        let prefix = '';
+        if (Platform.OS === 'android') {
+            prefix = 'file://';
+        }
+
+        const uri = `${prefix}${imageUrl}`;
+        this.setState({
+            imageUrl: uri,
         });
-    }
+    };
 
     render() {
         const {
             literal,
             textStyle,
-            token,
-            imageUrl,
             displayTextOnly,
         } = this.props;
+        const {imageUrl} = this.state;
 
         let size = this.props.size;
         let fontSize = size;
         if (!size && textStyle) {
             const flatten = StyleSheet.flatten(textStyle);
             fontSize = flatten.fontSize;
-            size = scaleEmojiBasedOnDevice(fontSize);
+            size = fontSize * (Platform.OS === 'android' ? PixelRatio.get() : 1);
         }
 
         if (displayTextOnly) {
             return <Text style={textStyle}>{literal}</Text>;
         }
 
-        const source = {
-            uri: imageUrl,
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-        };
-
-        let width = size;
-        let height = size;
-        let {originalHeight, originalWidth} = this.state;
-        originalHeight = scaleEmojiBasedOnDevice(originalHeight);
-        originalWidth = scaleEmojiBasedOnDevice(originalWidth);
-        if (originalHeight && originalWidth) {
-            if (originalWidth > originalHeight) {
-                height = (size * originalHeight) / originalWidth;
-            } else if (originalWidth < originalHeight) {
-                // This may cause text to reflow, but its impossible to add a horizontal margin
-                width = (size * originalWidth) / originalHeight;
-            }
-        }
+        const width = size;
+        const height = size;
 
         let marginTop = 0;
         if (textStyle) {
@@ -157,16 +131,9 @@ export default class Emoji extends React.PureComponent {
         // force a new image to be rendered when the size changes
         const key = Platform.OS === 'android' ? (height + '-' + width) : null;
 
-        let ImageComponent;
-        if (Platform.OS === 'android') {
-            ImageComponent = Image;
-        } else {
-            ImageComponent = FastImage;
-        }
-
         if (!imageUrl) {
             return (
-                <ImageComponent
+                <Image
                     key={key}
                     style={{width, height, marginTop}}
                 />
@@ -174,10 +141,10 @@ export default class Emoji extends React.PureComponent {
         }
 
         return (
-            <ImageComponent
+            <Image
                 key={key}
                 style={{width, height, marginTop}}
-                source={source}
+                source={{uri: imageUrl}}
                 onError={this.onError}
             />
         );

@@ -2,22 +2,23 @@
 // See LICENSE.txt for license information.
 
 import React from 'react';
-import {configure} from 'enzyme';
-import Adapter from 'enzyme-adapter-react-16';
-configure({adapter: new Adapter()});
 
 import {shallowWithIntl} from 'test/intl-test-helper';
+import {emptyFunction} from 'app/utils/general';
 
-import NotificationSettingsMobileAndroid from './notification_settings_email.android.js';
+import RadioButtonGroup from 'app/components/radio_button';
 
-describe('NotificationSettingsMobileAndroid', () => {
+import NotificationSettingsEmailAndroid from './notification_settings_email.android.js';
+
+describe('NotificationSettingsEmailAndroid', () => {
     const baseProps = {
-        currentUserId: 'current_user_id',
+        currentUser: {id: 'current_user_id'},
         emailInterval: '30',
         enableEmailBatching: false,
-        navigator: {setOnNavigatorEvent: () => {}}, // eslint-disable-line no-empty-function
+        navigator: {setOnNavigatorEvent: emptyFunction},
         actions: {
-            savePreferences: () => {}, // eslint-disable-line no-empty-function
+            updateMe: jest.fn(),
+            savePreferences: jest.fn(),
         },
         sendEmailNotifications: true,
         siteName: 'Mattermost',
@@ -29,7 +30,7 @@ describe('NotificationSettingsMobileAndroid', () => {
 
     test('should match snapshot', () => {
         const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
+            <NotificationSettingsEmailAndroid {...baseProps}/>
         );
 
         const style = {
@@ -52,7 +53,7 @@ describe('NotificationSettingsMobileAndroid', () => {
 
     test('should match state on setEmailNotifications', () => {
         const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
+            <NotificationSettingsEmailAndroid {...baseProps}/>
         );
 
         wrapper.setState({email: 'false', interval: '0'});
@@ -66,9 +67,32 @@ describe('NotificationSettingsMobileAndroid', () => {
         expect(wrapper.state({email: 'true', interval: '3600'}));
     });
 
+    test('should match state on select of RadioButtonGroup', () => {
+        const wrapper = shallowWithIntl(
+            <NotificationSettingsEmailAndroid
+                {...baseProps}
+                sendEmailNotifications={false}
+            />
+        );
+        expect(wrapper.find(RadioButtonGroup).exists()).toBe(false);
+        wrapper.setProps({sendEmailNotifications: true});
+        expect(wrapper.find(RadioButtonGroup).exists()).toBe(true);
+
+        wrapper.setState({email: 'false', interval: '0'});
+
+        wrapper.find(RadioButtonGroup).first().prop('onSelect')('30');
+        expect(wrapper.state({email: 'true', interval: '30'}));
+
+        wrapper.find(RadioButtonGroup).first().prop('onSelect')('0');
+        expect(wrapper.state({email: 'false', interval: '0'}));
+
+        wrapper.find(RadioButtonGroup).first().prop('onSelect')('3600');
+        expect(wrapper.state({email: 'true', interval: '3600'}));
+    });
+
     test('should match state on handleClose', () => {
         const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
+            <NotificationSettingsEmailAndroid {...baseProps}/>
         );
 
         wrapper.setState({showEmailNotificationsModal: true, interval: '30', newInterval: '3600'});
@@ -79,7 +103,7 @@ describe('NotificationSettingsMobileAndroid', () => {
 
     test('should saveEmailNotifyProps and handleClose on handleSaveEmailNotification', () => {
         const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
+            <NotificationSettingsEmailAndroid {...baseProps}/>
         );
 
         const instance = wrapper.instance();
@@ -89,23 +113,31 @@ describe('NotificationSettingsMobileAndroid', () => {
         expect(instance.saveEmailNotifyProps).toHaveBeenCalledTimes(1);
     });
 
+    test('should call actions.updateMe and actions.savePreferences on saveEmailNotifyProps', () => {
+        const savePreferences = jest.fn();
+        const updateMe = jest.fn();
+        const props = {...baseProps, actions: {savePreferences, updateMe}};
+        const wrapper = shallowWithIntl(
+            <NotificationSettingsEmailAndroid {...props}/>
+        );
+
+        wrapper.setState({email: 'true', newInterval: 30});
+        wrapper.instance().saveEmailNotifyProps();
+
+        expect(updateMe).toHaveBeenCalledTimes(1);
+        expect(updateMe.mock.calls[0][0].notify_props.email).toBe('true');
+
+        expect(savePreferences).toHaveBeenCalledTimes(1);
+        expect(savePreferences).toBeCalledWith('current_user_id', [{category: 'notifications', name: 'email_interval', user_id: 'current_user_id', value: 30}]);
+    });
+
     test('should match state on showEmailModal', () => {
         const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
+            <NotificationSettingsEmailAndroid {...baseProps}/>
         );
 
         wrapper.setState({showEmailNotificationsModal: false});
         wrapper.instance().showEmailModal();
         expect(wrapper.state('showEmailNotificationsModal')).toEqual(true);
-    });
-
-    test('should match state on handleChange', () => {
-        const wrapper = shallowWithIntl(
-            <NotificationSettingsMobileAndroid {...baseProps}/>
-        );
-
-        wrapper.setState({newInterval: '3600'});
-        wrapper.instance().handleChange('30');
-        expect(wrapper.state('newInterval')).toEqual('30');
     });
 });
