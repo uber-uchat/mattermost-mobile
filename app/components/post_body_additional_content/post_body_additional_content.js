@@ -22,7 +22,7 @@ import CustomPropTypes from 'app/constants/custom_prop_types';
 import {emptyFunction} from 'app/utils/general';
 import ImageCacheManager from 'app/utils/image_cache_manager';
 import {previewImageAtIndex, calculateDimensions} from 'app/utils/images';
-import {getYouTubeVideoId, isImageLink, isYoutubeLink, getShortenedLink} from 'app/utils/url';
+import {getYouTubeVideoId, isImageLink, isYoutubeLink} from 'app/utils/url';
 
 const VIEWPORT_IMAGE_OFFSET = 66;
 const VIEWPORT_IMAGE_REPLY_OFFSET = 13;
@@ -32,6 +32,9 @@ let PostAttachmentOpenGraph;
 
 export default class PostBodyAdditionalContent extends PureComponent {
     static propTypes = {
+        actions: PropTypes.shape({
+            getRedirectLocation: PropTypes.func.isRequired,
+        }).isRequired,
         baseTextStyle: CustomPropTypes.Style,
         blockStyles: PropTypes.object,
         googleDeveloperKey: PropTypes.string,
@@ -41,6 +44,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
         link: PropTypes.string,
         message: PropTypes.string.isRequired,
         navigator: PropTypes.object.isRequired,
+        onHashtagPress: PropTypes.func,
         onLongPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         openGraphData: PropTypes.object,
@@ -99,7 +103,13 @@ export default class PostBodyAdditionalContent extends PureComponent {
                 imageUrl = `https://i.ytimg.com/vi/${videoId}/hqdefault.jpg`;
                 ImageCacheManager.cache(null, `https://i.ytimg.com/vi/${videoId}/default.jpg`, () => true);
             } else {
-                const shortenedLink = await getShortenedLink(link);
+                const {data} = await this.props.actions.getRedirectLocation(link);
+
+                let shortenedLink;
+                if (data && data.location) {
+                    shortenedLink = data.location;
+                }
+
                 if (shortenedLink) {
                     if (isImageLink(shortenedLink)) {
                         imageUrl = shortenedLink;
@@ -282,6 +292,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
             baseTextStyle,
             blockStyles,
             navigator,
+            onHashtagPress,
             onPermalinkPress,
             textStyles,
             theme,
@@ -302,6 +313,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
                     postId={postId}
                     textStyles={textStyles}
                     theme={theme}
+                    onHashtagPress={onHashtagPress}
                     onLongPress={this.props.onLongPress}
                     onPermalinkPress={onPermalinkPress}
                 />

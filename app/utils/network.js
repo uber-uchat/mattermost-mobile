@@ -47,7 +47,7 @@ export async function checkConnection(isConnected) {
 function handleConnectionChange(onChange) {
     return async (isConnected) => {
         // Set device internet connectivity immediately
-        onChange(isConnected);
+        // onChange(isConnected);
 
         // Check if connected to server
         const result = await checkConnection(isConnected);
