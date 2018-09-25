@@ -57,7 +57,7 @@ function handleConnectionChange(onChange) {
 
 export default function networkConnectionListener(onChange) {
     const connectionChanged = handleConnectionChange(onChange);
-
+    Client4.setOnline(true);
     NetInfo.isConnected.addEventListener('connectionChange', connectionChanged);
     NetInfo.isConnected.fetch().then(connectionChanged);
 
