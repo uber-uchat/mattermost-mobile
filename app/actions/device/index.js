@@ -8,7 +8,7 @@ import {DeviceTypes} from 'app/constants';
 
 export function connection(isOnline) {
     return async (dispatch) => {
-        Client4.setOnline(isOnline);
+        // Client4.setOnline(false);
         dispatch(networkStatusChangedAction(isOnline));
         dispatch({
             type: DeviceTypes.CONNECTION_CHANGED,
