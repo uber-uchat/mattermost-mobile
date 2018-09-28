@@ -40,7 +40,19 @@ export function handleTeamChange(teamId, selectChannel = true) {
 
 export function selectDefaultTeam() {
     return async (dispatch, getState) => {
-        const state = getState();
+        let state = getState();
+
+        const {teams: currentTeams} = state.entities.teams;
+
+        if (!Object.keys(currentTeams).length) {
+            await new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 500);
+            });
+
+            state = getState();
+        }
 
         const {ExperimentalPrimaryTeam} = getConfig(state);
         const {teams: allTeams, myMembers} = state.entities.teams;
