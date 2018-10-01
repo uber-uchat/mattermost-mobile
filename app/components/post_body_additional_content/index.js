@@ -1,11 +1,10 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
-
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {connect} from 'react-redux';
+import {bindActionCreators} from 'redux';
 
+import {getRedirectLocation} from 'mattermost-redux/actions/general';
 import {Preferences} from 'mattermost-redux/constants';
 import {getConfig} from 'mattermost-redux/selectors/entities/general';
 import {getOpenGraphMetadataForUrl} from 'mattermost-redux/selectors/entities/posts';
@@ -45,7 +44,7 @@ function makeMapStateToProps() {
 
         return {
             ...getDimensions(state),
-            config,
+            googleDeveloperKey: config.GoogleDeveloperKey,
             link,
             openGraphData: getOpenGraphMetadataForUrl(state, link),
             showLinkPreviews: previewsEnabled && config.EnableLinkPreviews === 'true',
@@ -54,4 +53,12 @@ function makeMapStateToProps() {
     };
 }
 
-export default connect(makeMapStateToProps)(PostBodyAdditionalContent);
+function mapDispatchToProps(dispatch) {
+    return {
+        actions: bindActionCreators({
+            getRedirectLocation,
+        }, dispatch),
+    };
+}
+
+export default connect(makeMapStateToProps, mapDispatchToProps)(PostBodyAdditionalContent);

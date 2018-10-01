@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {ListView, Platform, Text, View} from 'react-native';
@@ -60,10 +60,9 @@ export default class CustomList extends PureComponent {
                 newData = this.props.createSections(data);
             }
 
-            const mergedData = Object.assign({}, newData, this.state.data);
-            const dataSource = showSections ? this.state.dataSource.cloneWithRowsAndSections(mergedData) : this.state.dataSource.cloneWithRows(mergedData);
+            const dataSource = showSections ? this.state.dataSource.cloneWithRowsAndSections(newData) : this.state.dataSource.cloneWithRows(newData);
             this.setState({
-                data: mergedData,
+                data: newData,
                 dataSource,
             });
         }
@@ -217,7 +216,7 @@ export default class CustomList extends PureComponent {
         }
 
         return (
-            <View style={{flex: 1}}>
+            <View style={style.container}>
                 <ListView
                     style={style.listView}
                     dataSource={dataSource}
@@ -240,6 +239,9 @@ export default class CustomList extends PureComponent {
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
+        container: {
+            flex: 1,
+        },
         listView: {
             flex: 1,
             backgroundColor: theme.centerChannelBg,

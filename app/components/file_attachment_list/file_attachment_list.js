@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
@@ -17,6 +17,7 @@ import {RequestStatus} from 'mattermost-redux/constants';
 
 import {isDocument, isGif, isVideo} from 'app/utils/file';
 import {getCacheFile} from 'app/utils/image_cache_manager';
+import {previewImageAtIndex} from 'app/utils/images';
 import {preventDoubleTap} from 'app/utils/tap';
 
 import FileAttachment from './file_attachment';
@@ -24,6 +25,7 @@ import FileAttachment from './file_attachment';
 export default class FileAttachmentList extends Component {
     static propTypes = {
         actions: PropTypes.object.isRequired,
+        canDownloadFiles: PropTypes.bool.isRequired,
         deviceHeight: PropTypes.number.isRequired,
         deviceWidth: PropTypes.number.isRequired,
         fileIds: PropTypes.array.isRequired,
@@ -32,7 +34,6 @@ export default class FileAttachmentList extends Component {
         isFailed: PropTypes.bool,
         navigator: PropTypes.object,
         onLongPress: PropTypes.func,
-        onPress: PropTypes.func,
         postId: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
         toggleSelected: PropTypes.func.isRequired,
@@ -119,74 +120,14 @@ export default class FileAttachmentList extends Component {
         return results;
     };
 
-    getItemMeasures = (index, cb) => {
-        const activeComponent = this.items[index];
-
-        if (!activeComponent) {
-            cb(null);
-            return;
-        }
-
-        activeComponent.measure((rx, ry, width, height, x, y) => {
-            cb({
-                origin: {x, y, width, height},
-            });
-        });
-    };
-
-    getPreviewProps = (index) => {
-        const previewComponent = this.previewItems[index];
-        return previewComponent ? {...previewComponent.props} : {};
-    };
-
-    goToImagePreview = (passProps) => {
-        this.props.navigator.showModal({
-            screen: 'ImagePreview',
-            title: '',
-            animationType: 'none',
-            passProps,
-            navigatorStyle: {
-                navBarHidden: true,
-                statusBarHidden: false,
-                statusBarHideWithNavBar: false,
-                screenBackgroundColor: 'transparent',
-                modalPresentationStyle: 'overCurrentContext',
-            },
-        });
-    };
-
     handleCaptureRef = (ref, idx) => {
         this.items[idx] = ref;
-    };
-
-    handleCapturePreviewRef = (ref, idx) => {
-        this.previewItems[idx] = ref;
-    };
-
-    handleInfoPress = () => {
-        this.props.hideOptionsContext();
-        this.props.onPress();
     };
 
     handlePreviewPress = preventDoubleTap((idx) => {
         this.props.hideOptionsContext();
         Keyboard.dismiss();
-        const component = this.items[idx];
-
-        if (!component) {
-            return;
-        }
-
-        component.measure((rx, ry, width, height, x, y) => {
-            this.goToImagePreview({
-                index: idx,
-                origin: {x, y, width, height},
-                target: {x: 0, y: 0, opacity: 1},
-                files: this.galleryFiles,
-                getItemMeasures: this.getItemMeasures,
-                getPreviewProps: this.getPreviewProps,
-            });
-        });
+        previewImageAtIndex(this.props.navigator, this.items, idx, this.galleryFiles);
     });
 
     handlePressIn = () => {
@@ -198,12 +139,13 @@ export default class FileAttachmentList extends Component {
     };
 
     renderItems = () => {
-        const {deviceWidth, fileIds, files, navigator} = this.props;
+        const {canDownloadFiles, deviceWidth, fileIds, files, navigator} = this.props;
 
         if (!files.length && fileIds.length > 0) {
             return fileIds.map((id, idx) => (
                 <FileAttachment
                     key={id}
+                    canDownloadFiles={canDownloadFiles}
                     deviceWidth={deviceWidth}
                     file={{loading: true}}
                     index={idx}
@@ -226,13 +168,12 @@ export default class FileAttachmentList extends Component {
                     onPressOut={this.handlePressOut}
                 >
                     <FileAttachment
+                        canDownloadFiles={canDownloadFiles}
                         deviceWidth={deviceWidth}
                         file={f}
                         index={idx}
                         navigator={navigator}
                         onCaptureRef={this.handleCaptureRef}
-                        onCapturePreviewRef={this.handleCapturePreviewRef}
-                        onInfoPress={this.handleInfoPress}
                         onPreviewPress={this.handlePreviewPress}
                         theme={this.props.theme}
                     />

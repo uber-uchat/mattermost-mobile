@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -18,8 +18,6 @@ import FlagIcon from 'app/components/flag_icon';
 import {emptyFunction} from 'app/utils/general';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
-const BOT_NAME = 'BOT';
-
 export default class PostHeader extends PureComponent {
     static propTypes = {
         commentCount: PropTypes.number,
@@ -31,6 +29,7 @@ export default class PostHeader extends PureComponent {
         isPendingOrFailedPost: PropTypes.bool,
         isSearchResult: PropTypes.bool,
         isSystemMessage: PropTypes.bool,
+        fromAutoResponder: PropTypes.bool,
         militaryTime: PropTypes.bool,
         onPress: PropTypes.func,
         onUsernamePress: PropTypes.func,
@@ -40,7 +39,9 @@ export default class PostHeader extends PureComponent {
         showFullDate: PropTypes.bool,
         theme: PropTypes.object.isRequired,
         username: PropTypes.string,
+        userTimezone: PropTypes.string,
         isFlagged: PropTypes.bool,
+        enableTimezone: PropTypes.bool,
     };
 
     static defaultProps = {
@@ -60,6 +61,7 @@ export default class PostHeader extends PureComponent {
             enablePostUsernameOverride,
             fromWebHook,
             isSystemMessage,
+            fromAutoResponder,
             overrideUsername,
         } = this.props;
 
@@ -70,13 +72,33 @@ export default class PostHeader extends PureComponent {
             }
 
             return (
-                <View style={style.botContainer}>
+                <View style={style.indicatorContainer}>
                     <Text style={style.displayName}>
                         {name}
                     </Text>
-                    <Text style={style.bot}>
-                        {BOT_NAME}
+                    <FormattedText
+                        id='post_info.bot'
+                        defaultMessage='BOT'
+                        style={style.bot}
+                    />
+                </View>
+            );
+        } else if (fromAutoResponder) {
+            let name = this.props.displayName;
+            if (overrideUsername && enablePostUsernameOverride) {
+                name = overrideUsername;
+            }
+
+            return (
+                <View style={style.indicatorContainer}>
+                    <Text style={style.displayName}>
+                        {name}
                     </Text>
+                    <FormattedText
+                        id='post_info.auto_responder'
+                        defaultMessage='AUTOMATIC REPLY'
+                        style={style.bot}
+                    />
                 </View>
             );
         } else if (isSystemMessage) {
@@ -152,6 +174,7 @@ export default class PostHeader extends PureComponent {
             createAt,
             isPendingOrFailedPost,
             isSearchResult,
+            userTimezone,
             militaryTime,
             onPress,
             renderReplies,
@@ -172,6 +195,7 @@ export default class PostHeader extends PureComponent {
                     </Text>
                     <Text style={style.time}>
                         <FormattedTime
+                            timeZone={userTimezone}
                             hour12={!militaryTime}
                             value={createAt}
                         />
@@ -182,6 +206,7 @@ export default class PostHeader extends PureComponent {
             dateComponent = (
                 <Text style={style.time}>
                     <FormattedTime
+                        timeZone={userTimezone}
                         hour12={!militaryTime}
                         value={createAt}
                     />
@@ -190,7 +215,7 @@ export default class PostHeader extends PureComponent {
         }
 
         return (
-            <View>
+            <React.Fragment>
                 <View style={[style.postInfoContainer, (isPendingOrFailedPost && style.pendingPost)]}>
                     <View style={{flexDirection: 'row', flex: 1}}>
                         {this.getDisplayName(style)}
@@ -228,7 +253,7 @@ export default class PostHeader extends PureComponent {
                     {this.renderCommentedOnMessage(style)}
                 </View>
                 }
-            </View>
+            </React.Fragment>
         );
     }
 }
@@ -266,7 +291,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flexDirection: 'row',
             alignItems: 'center',
             justifyContent: 'center',
-            height: 35,
+            marginVertical: -10,
             minWidth: 40,
             paddingVertical: 10,
         },
@@ -275,7 +300,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             marginLeft: 3,
             color: theme.linkColor,
         },
-        botContainer: {
+        indicatorContainer: {
             flexDirection: 'row',
         },
         bot: {

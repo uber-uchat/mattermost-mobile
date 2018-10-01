@@ -1,21 +1,27 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {Alert, BackHandler, Keyboard, Platform, Text, TextInput, TouchableOpacity, View} from 'react-native';
 import {intlShape} from 'react-intl';
-import {RequestStatus} from 'mattermost-redux/constants';
+import Button from 'react-native-button';
+import {General, RequestStatus} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import AttachmentButton from 'app/components/attachment_button';
 import Autocomplete from 'app/components/autocomplete';
 import FileUploadPreview from 'app/components/file_upload_preview';
-import PaperPlane from 'app/components/paper_plane';
+import QuickTextInput from 'app/components/quick_text_input';
 import {INITIAL_HEIGHT, INSERT_TO_COMMENT, INSERT_TO_DRAFT, IS_REACTION_REGEX, MAX_CONTENT_HEIGHT, MAX_FILE_COUNT} from 'app/constants/post_textbox';
+import {confirmOutOfOfficeDisabled} from 'app/utils/status';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+import FormattedMarkdownText from 'app/components/formatted_markdown_text';
+import FormattedText from 'app/components/formatted_text';
 
 import Typing from './components/typing';
+
+let PaperPlane = null;
 
 export default class PostTextbox extends PureComponent {
     static propTypes = {
@@ -31,6 +37,9 @@ export default class PostTextbox extends PureComponent {
             initUploadFiles: PropTypes.func.isRequired,
             userTyping: PropTypes.func.isRequired,
             handleCommentDraftSelectionChanged: PropTypes.func.isRequired,
+            setStatus: PropTypes.func.isRequired,
+            setChannelDisplayName: PropTypes.func.isRequired,
+            setChannelLoading: PropTypes.func.isRequired,
         }).isRequired,
         canUploadFiles: PropTypes.bool.isRequired,
         channelId: PropTypes.string.isRequired,
@@ -38,7 +47,6 @@ export default class PostTextbox extends PureComponent {
         channelIsReadOnly: PropTypes.bool.isRequired,
         currentUserId: PropTypes.string.isRequired,
         deactivatedChannel: PropTypes.bool.isRequired,
-        disablePostToChannel: PropTypes.bool,
         files: PropTypes.array,
         maxMessageLength: PropTypes.number.isRequired,
         navigator: PropTypes.object,
@@ -46,10 +54,13 @@ export default class PostTextbox extends PureComponent {
         theme: PropTypes.object.isRequired,
         uploadFileRequestStatus: PropTypes.string.isRequired,
         value: PropTypes.string.isRequired,
+        userIsOutOfOffice: PropTypes.bool.isRequired,
+        channelIsArchived: PropTypes.bool,
+        defaultChannel: PropTypes.object,
+        onCloseChannel: PropTypes.func,
     };
 
     static defaultProps = {
-        disablePostToChannel: false,
         files: [],
         rootId: '',
         value: '',
@@ -81,7 +92,7 @@ export default class PostTextbox extends PureComponent {
     }
 
     componentWillReceiveProps(nextProps) {
-        if (nextProps.channelId !== this.props.channelId || nextProps.rootId !== this.props.rootId || nextProps.value !== this.state.value) {
+        if (nextProps.channelId !== this.props.channelId || nextProps.rootId !== this.props.rootId) {
             this.setState({value: nextProps.value});
         }
     }
@@ -284,35 +295,44 @@ export default class PostTextbox extends PureComponent {
         const {files, theme} = this.props;
         const style = getStyleSheet(theme);
 
-        const icon = (
-            <PaperPlane
-                height={13}
-                width={15}
-                color={theme.buttonColor}
-            />
-        );
+        const canSend = this.canSend();
+        const imagesLoading = files.filter((f) => f.loading).length > 0;
 
         let button = null;
-        const imagesLoading = files.filter((f) => f.loading).length > 0;
-        if (imagesLoading) {
-            button = (
-                <View style={style.sendButtonContainer}>
-                    <View style={[style.sendButton, style.disableButton]}>
-                        {icon}
-                    </View>
-                </View>
+
+        if (canSend || imagesLoading) {
+            if (!PaperPlane) {
+                PaperPlane = require('app/components/paper_plane').default;
+            }
+
+            const icon = (
+                <PaperPlane
+                    height={13}
+                    width={15}
+                    color={theme.buttonColor}
+                />
             );
-        } else if (this.canSend()) {
-            button = (
-                <TouchableOpacity
-                    onPress={this.handleSendMessage}
-                    style={style.sendButtonContainer}
-                >
-                    <View style={style.sendButton}>
-                        {icon}
+
+            if (imagesLoading) {
+                button = (
+                    <View style={style.sendButtonContainer}>
+                        <View style={[style.sendButton, style.disableButton]}>
+                            {icon}
+                        </View>
                     </View>
-                </TouchableOpacity>
-            );
+                );
+            } else if (canSend) {
+                button = (
+                    <TouchableOpacity
+                        onPress={this.handleSendMessage}
+                        style={style.sendButtonContainer}
+                    >
+                        <View style={style.sendButton}>
+                            {icon}
+                        </View>
+                    </TouchableOpacity>
+                );
+            }
         }
 
         return button;
@@ -377,12 +397,43 @@ export default class PostTextbox extends PureComponent {
         }
     };
 
+    getStatusFromSlashCommand = (message) => {
+        const tokens = message.split(' ');
+
+        if (tokens.length > 0) {
+            return tokens[0].substring(1);
+        }
+        return '';
+    };
+
+    isStatusSlashCommand = (command) => {
+        return command === General.ONLINE || command === General.AWAY ||
+            command === General.DND || command === General.OFFLINE;
+    };
+
+    updateStatus = (status) => {
+        const {actions, currentUserId} = this.props;
+        actions.setStatus({
+            user_id: currentUserId,
+            status,
+        });
+    };
+
     sendCommand = async (msg) => {
         const {intl} = this.context;
-        const {actions, channelId, rootId} = this.props;
+        const {userIsOutOfOffice, actions, channelId, rootId} = this.props;
+
+        const status = this.getStatusFromSlashCommand(msg);
+        if (userIsOutOfOffice && this.isStatusSlashCommand(status)) {
+            confirmOutOfOfficeDisabled(intl, status, this.updateStatus);
+            return;
+        }
+
         const {error} = await actions.executeCommand(msg, channelId, rootId);
 
         if (error) {
+            this.handleTextChange(msg);
+            this.changeDraft(msg);
             Alert.alert(
                 intl.formatMessage({
                     id: 'mobile.commands.error_title',
@@ -408,11 +459,39 @@ export default class PostTextbox extends PureComponent {
         });
     };
 
-    render() {
-        if (this.props.disablePostToChannel) {
-            return null;
+    onCloseChannelPress = () => {
+        const {defaultChannel, channelId, onCloseChannel} = this.props;
+        const {setChannelDisplayName, setChannelLoading} = this.props.actions;
+        setChannelLoading(true);
+        setChannelDisplayName(defaultChannel.display_name);
+        EventEmitter.emit('switch_channel', defaultChannel, channelId);
+        if (onCloseChannel) {
+            onCloseChannel();
         }
+    };
 
+    archivedView = (theme, style) => {
+        return (<View style={style.archivedWrapper}>
+            <FormattedMarkdownText
+                id='archivedChannelMessage'
+                defaultMessage='You are viewing an **archived channel**. New messages cannot be posted.'
+                theme={theme}
+                style={style.archivedText}
+            />
+            <Button
+                containerStyle={style.closeButton}
+                onPress={this.onCloseChannelPress}
+            >
+                <FormattedText
+                    id='center_panel.archived.closeChannel'
+                    defaultMessage='Close Channel'
+                    style={style.closeButtonText}
+                />
+            </Button>
+        </View>);
+    };
+
+    render() {
         const {intl} = this.context;
         const {
             canUploadFiles,
@@ -424,6 +503,7 @@ export default class PostTextbox extends PureComponent {
             navigator,
             rootId,
             theme,
+            channelIsArchived,
         } = this.props;
 
         const style = getStyleSheet(theme);
@@ -470,6 +550,8 @@ export default class PostTextbox extends PureComponent {
             inputContainerStyle.push(style.inputContainerWithoutFileUpload);
         }
 
+        const InputComponent = Platform.OS === 'android' ? TextInput : QuickTextInput;
+
         return (
             <View>
                 <Typing/>
@@ -487,10 +569,10 @@ export default class PostTextbox extends PureComponent {
                     value={this.state.value}
                     rootId={rootId}
                 />
-                <View style={style.inputWrapper}>
+                {!channelIsArchived && <View style={style.inputWrapper}>
                     {!channelIsReadOnly && attachmentButton}
                     <View style={[inputContainerStyle, (channelIsReadOnly && {marginLeft: 10})]}>
-                        <TextInput
+                        <InputComponent
                             ref='input'
                             value={textValue}
                             onChangeText={this.handleTextChange}
@@ -510,7 +592,8 @@ export default class PostTextbox extends PureComponent {
                         />
                         {this.renderSendButton()}
                     </View>
-                </View>
+                </View>}
+                {channelIsArchived && this.archivedView(theme, style)}
             </View>
         );
     }
@@ -582,6 +665,32 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             width: 28,
             alignItems: 'center',
             justifyContent: 'center',
+        },
+        archivedWrapper: {
+            paddingLeft: 20,
+            paddingRight: 20,
+            paddingTop: 10,
+            paddingBottom: 10,
+            borderTopWidth: 1,
+            borderTopColor: changeOpacity(theme.centerChannelColor, 0.20),
+        },
+        archivedText: {
+            textAlign: 'center',
+            color: theme.centerChannelColor,
+        },
+        closeButton: {
+            backgroundColor: theme.buttonBg,
+            alignItems: 'center',
+            paddingTop: 5,
+            paddingBottom: 5,
+            borderRadius: 4,
+            marginTop: 10,
+            height: 40,
+        },
+        closeButtonText: {
+            marginTop: 7,
+            color: 'white',
+            fontWeight: 'bold',
         },
     };
 });

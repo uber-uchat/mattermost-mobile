@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {batchActions} from 'redux-batched-actions';
 import {AsyncStorage, Platform} from 'react-native';
@@ -20,7 +20,7 @@ import {createSentryMiddleware} from 'app/utils/sentry/middleware';
 import mattermostBucket from 'app/mattermost_bucket';
 import Config from 'assets/config';
 
-import {messageRetention, shareExtensionData} from './middleware';
+import {messageRetention} from './middleware';
 import {transformSet} from './utils';
 
 function getAppReducer() {
@@ -38,15 +38,20 @@ const channelSetTransform = [
     'channelsInTeam',
 ];
 
+const rolesSetTransform = [
+    'pending',
+];
+
 const setTransforms = [
     ...usersSetTransform,
     ...channelSetTransform,
+    ...rolesSetTransform,
 ];
 
 export default function configureAppStore(initialState) {
     const viewsBlackListFilter = createBlacklistFilter(
         'views',
-        ['announcement', 'extension', 'login', 'root']
+        ['extension', 'login', 'root']
     );
 
     const typingBlackListFilter = createBlacklistFilter(
@@ -151,7 +156,31 @@ export default function configureAppStore(initialState) {
                 store.subscribe(throttle(() => {
                     const state = store.getState();
                     if (state.entities) {
-                        mattermostBucket.writeToFile('entities', JSON.stringify(state.entities), Config.AppGroupId);
+                        const channelsInTeam = {...state.entities.channels.channelsInTeam};
+                        Object.keys(channelsInTeam).forEach((teamId) => {
+                            channelsInTeam[teamId] = Array.from(channelsInTeam[teamId]);
+                        });
+
+                        const profilesInChannel = {...state.entities.users.profilesInChannel};
+                        Object.keys(profilesInChannel).forEach((channelId) => {
+                            profilesInChannel[channelId] = Array.from(profilesInChannel[channelId]);
+                        });
+
+                        const entities = {
+                            ...state.entities,
+                            channels: {
+                                ...state.entities.channels,
+                                channelsInTeam,
+                            },
+                            users: {
+                                ...state.entities.users,
+                                profilesInChannel,
+                                profilesNotInTeam: [],
+                                profilesWithoutTeam: [],
+                                profilesNotInChannel: [],
+                            },
+                        };
+                        mattermostBucket.writeToFile('entities', JSON.stringify(entities), Config.AppGroupId);
                     }
                 }, 1000));
             }
@@ -178,6 +207,11 @@ export default function configureAppStore(initialState) {
                             data: state.entities.general.deviceToken,
                         },
                     ]));
+
+                    // When logging out remove the data stored in the bucket
+                    mattermostBucket.removePreference('cert', Config.AppGroupId);
+                    mattermostBucket.removePreference('emm', Config.AppGroupId);
+                    mattermostBucket.removeFile('entities', Config.AppGroupId);
 
                     setTimeout(() => {
                         purging = false;
@@ -211,6 +245,10 @@ export default function configureAppStore(initialState) {
                             type: ViewTypes.SERVER_URL_CHANGED,
                             serverUrl: state.entities.general.credentials.url || state.views.selectServer.serverUrl,
                         },
+                        {
+                            type: GeneralTypes.RECEIVED_SERVER_VERSION,
+                            data: state.entities.general.serverVersion,
+                        },
                     ], 'BATCH_FOR_RESTART'));
 
                     setTimeout(() => {
@@ -238,7 +276,7 @@ export default function configureAppStore(initialState) {
         },
     };
 
-    const additionalMiddleware = [createSentryMiddleware(), messageRetention, shareExtensionData];
+    const additionalMiddleware = [createSentryMiddleware(), messageRetention];
     return configureStore(initialState, appReducer, offlineOptions, getAppReducer, {
         additionalMiddleware,
     });

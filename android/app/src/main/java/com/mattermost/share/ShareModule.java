@@ -68,6 +68,7 @@ public class ShareModule extends ReactContextBaseJavaModule {
     public Map<String, Object> getConstants() {
         HashMap<String, Object> constants = new HashMap<>(1);
         constants.put("isOpened", mApplication.sharedExtensionIsOpened);
+        mApplication.sharedExtensionIsOpened = false;
         return constants;
     }
 
@@ -101,6 +102,23 @@ public class ShareModule extends ReactContextBaseJavaModule {
         promise.resolve(processIntent());
     }
 
+    @ReactMethod
+    public void getFilePath(String filePath, Promise promise) {
+        Activity currentActivity = getCurrentActivity();
+        WritableMap map = Arguments.createMap();
+
+        if (currentActivity != null) {
+            Uri uri = Uri.parse(filePath);
+            String path = RealPathUtil.getRealPathFromURI(currentActivity, uri);
+            if (path != null) {
+                String text = "file://" + path;
+                map.putString("filePath", text);
+            }
+        }
+
+        promise.resolve(map);
+    }
+
     public WritableArray processIntent() {
         WritableMap map = Arguments.createMap();
         WritableArray items = Arguments.createArray();
@@ -129,6 +147,13 @@ public class ShareModule extends ReactContextBaseJavaModule {
                 Uri uri = (Uri) intent.getParcelableExtra(Intent.EXTRA_STREAM);
                 text = "file://" + RealPathUtil.getRealPathFromURI(currentActivity, uri);
                 map.putString("value", text);
+
+                if (type.equals("image/*")) {
+                    type = "image/jpeg";
+                } else if (type.equals("video/*")) {
+                    type = "video/mp4";
+                }
+
                 map.putString("type", type);
                 items.pushMap(map);
             } else if (Intent.ACTION_SEND_MULTIPLE.equals(action)) {
@@ -138,7 +163,15 @@ public class ShareModule extends ReactContextBaseJavaModule {
                     map = Arguments.createMap();
                     text = "file://" + filePath;
                     map.putString("value", text);
-                    map.putString("type", RealPathUtil.getMimeTypeFromUri(currentActivity, uri));
+
+                    type = RealPathUtil.getMimeTypeFromUri(currentActivity, uri);
+                    if (type.equals("image/*")) {
+                        type = "image/jpeg";
+                    } else if (type.equals("video/*")) {
+                        type = "video/mp4";
+                    }
+
+                    map.putString("type", type);
                     items.pushMap(map);
                 }
             }

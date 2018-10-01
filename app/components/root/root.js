@@ -1,11 +1,12 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {IntlProvider} from 'react-intl';
 import {Platform} from 'react-native';
 
+import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {NavigationTypes, ViewTypes} from 'app/constants';
@@ -23,10 +24,19 @@ export default class Root extends PureComponent {
     };
 
     componentWillMount() {
+        Client4.setAcceptLanguage(this.props.locale);
+
         if (!this.props.excludeEvents) {
             EventEmitter.on(ViewTypes.NOTIFICATION_IN_APP, this.handleInAppNotification);
             EventEmitter.on(ViewTypes.NOTIFICATION_TAPPED, this.handleNotificationTapped);
             EventEmitter.on(NavigationTypes.NAVIGATION_NO_TEAMS, this.handleNoTeams);
+            EventEmitter.on(NavigationTypes.NAVIGATION_ERROR_TEAMS, this.errorTeamsList);
+        }
+    }
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.locale !== this.props.locale) {
+            Client4.setAcceptLanguage(this.props.locale);
         }
     }
 
@@ -35,6 +45,7 @@ export default class Root extends PureComponent {
             EventEmitter.off(ViewTypes.NOTIFICATION_IN_APP, this.handleInAppNotification);
             EventEmitter.off(ViewTypes.NOTIFICATION_TAPPED, this.handleNotificationTapped);
             EventEmitter.off(NavigationTypes.NAVIGATION_NO_TEAMS, this.handleNoTeams);
+            EventEmitter.off(NavigationTypes.NAVIGATION_ERROR_TEAMS, this.errorTeamsList);
         }
     }
 
@@ -42,7 +53,7 @@ export default class Root extends PureComponent {
         const {data} = notification;
         const {currentChannelId, navigator} = this.props;
 
-        if (data.channel_id !== currentChannelId) {
+        if (data && data.channel_id !== currentChannelId) {
             navigator.showInAppNotification({
                 screen: 'Notification',
                 position: 'top',
@@ -60,11 +71,23 @@ export default class Root extends PureComponent {
             setTimeout(this.handleNoTeams, 200);
             return;
         }
+        this.navigateToTeamsPage('SelectTeam');
+    };
 
+    errorTeamsList = () => {
+        if (!this.refs.provider) {
+            setTimeout(this.errorTeamsList, 200);
+            return;
+        }
+        this.navigateToTeamsPage('ErrorTeamsList');
+    }
+
+    navigateToTeamsPage = (screen) => {
         const {currentUrl, navigator, theme} = this.props;
         const {intl} = this.refs.provider.getChildContext();
 
         let navigatorButtons;
+        let passProps = {theme};
         if (Platform.OS === 'android') {
             navigatorButtons = {
                 rightButtons: [{
@@ -84,8 +107,16 @@ export default class Root extends PureComponent {
             };
         }
 
+        if (screen === 'SelectTeam') {
+            passProps = {
+                ...passProps,
+                currentUrl,
+                userWithoutTeams: true,
+            };
+        }
+
         navigator.resetTo({
-            screen: 'SelectTeam',
+            screen,
             title: intl.formatMessage({id: 'mobile.routes.selectTeam', defaultMessage: 'Select Team'}),
             animated: false,
             backButtonTitle: '',
@@ -96,13 +127,9 @@ export default class Root extends PureComponent {
                 screenBackgroundColor: theme.centerChannelBg,
             },
             navigatorButtons,
-            passProps: {
-                currentUrl,
-                userWithoutTeams: true,
-                theme,
-            },
+            passProps,
         });
-    };
+    }
 
     handleNotificationTapped = async () => {
         const {navigator} = this.props;

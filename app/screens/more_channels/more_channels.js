@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -15,6 +15,7 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import CustomList from 'app/components/custom_list';
 import ChannelListRow from 'app/components/custom_list/channel_list_row';
+import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import Loading from 'app/components/loading';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
@@ -100,15 +101,30 @@ export default class MoreChannels extends PureComponent {
             setNavigatorStyles(this.props.navigator, nextProps.theme);
         }
 
+        const {page, searching, term} = this.state;
+
+        let channels;
+        if (nextProps.channels !== this.props.channels) {
+            channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+            if (term) {
+                channels = this.filterChannels(nextProps.channels, term);
+            }
+        }
+
         const {requestStatus} = this.props;
-        if (this.state.searching &&
-            nextProps.requestStatus.status === RequestStatus.SUCCESS) {
-            const channels = this.filterChannels(nextProps.channels, this.state.term);
-            this.setState({channels, showNoResults: true});
-        } else if (requestStatus.status === RequestStatus.STARTED &&
-            nextProps.requestStatus.status === RequestStatus.SUCCESS) {
-            const {page} = this.state;
-            const channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+        if (
+            searching &&
+            nextProps.requestStatus.status === RequestStatus.SUCCESS
+        ) {
+            channels = this.filterChannels(nextProps.channels, term);
+        } else if (
+            requestStatus.status === RequestStatus.STARTED &&
+            nextProps.requestStatus.status === RequestStatus.SUCCESS
+        ) {
+            channels = nextProps.channels.slice(0, (page + 1) * General.CHANNELS_CHUNK_SIZE);
+        }
+
+        if (channels) {
             this.setState({channels, showNoResults: true});
         }
 
@@ -302,7 +318,7 @@ export default class MoreChannels extends PureComponent {
             };
 
             content = (
-                <View style={style.flex}>
+                <React.Fragment>
                     <View style={style.wrapper}>
                         <SearchBar
                             ref='search_bar'
@@ -335,24 +351,21 @@ export default class MoreChannels extends PureComponent {
                         loadingText={{id: 'mobile.loading_channels', defaultMessage: 'Loading Channels...'}}
                         showNoResults={this.state.showNoResults}
                     />
-                </View>
+                </React.Fragment>
             );
         }
 
         return (
-            <View style={style.container}>
+            <KeyboardLayout>
                 <StatusBar/>
                 {content}
-            </View>
+            </KeyboardLayout>
         );
     }
 }
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
-        flex: {
-            flex: 1,
-        },
         wrapper: {
             marginVertical: 5,
         },

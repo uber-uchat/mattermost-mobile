@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
@@ -7,18 +7,17 @@ import {
     Platform,
     StyleSheet,
     View,
-    InteractionManager,
 } from 'react-native';
 
-import {debounce} from 'mattermost-redux/actions/helpers';
-
 import AnnouncementBanner from 'app/components/announcement_banner';
-import ChannelIntro from 'app/components/channel_intro';
-import LoadMorePosts from 'app/components/load_more_posts';
 import PostList from 'app/components/post_list';
 import PostListRetry from 'app/components/post_list_retry';
 import RetryBarIndicator from 'app/components/retry_bar_indicator';
+import {ListTypes, ViewTypes} from 'app/constants';
 import tracker from 'app/utils/time_tracker';
+
+let ChannelIntro = null;
+let LoadMorePosts = null;
 
 export default class ChannelPostList extends PureComponent {
     static propTypes = {
@@ -42,7 +41,7 @@ export default class ChannelPostList extends PureComponent {
     };
 
     static defaultProps = {
-        postVisibility: 15,
+        postVisibility: ViewTypes.POST_VISIBILITY_CHUNK_SIZE,
     };
 
     constructor(props) {
@@ -50,38 +49,28 @@ export default class ChannelPostList extends PureComponent {
 
         this.state = {
             visiblePostIds: this.getVisiblePostIds(props),
-            loading: true,
         };
+
+        this.contentHeight = 0;
     }
 
     componentWillReceiveProps(nextProps) {
         const {postIds: nextPostIds} = nextProps;
 
         let visiblePostIds = this.state.visiblePostIds;
-        const channelSwitch = nextProps.channelId !== this.props.channelId;
-
         if (nextPostIds !== this.props.postIds || nextProps.postVisibility !== this.props.postVisibility) {
             visiblePostIds = this.getVisiblePostIds(nextProps);
         }
 
-        this.setState({
-            visiblePostIds,
-            loading: channelSwitch,
-        }, () => InteractionManager.runAfterInteractions(() => {
-            if (channelSwitch) {
-                this.setState({loading: false});
-            }
-        }));
+        this.setState({visiblePostIds});
     }
 
     componentDidUpdate(prevProps) {
         if (prevProps.channelId !== this.props.channelId && tracker.channelSwitch) {
+            this.isLoadingMoreTop = false;
+            this.isLoadingMoreBottom = false;
             this.props.actions.recordLoadTime('Switch Channel', 'channelSwitch');
         }
-    }
-
-    componentDidMount() {
-        InteractionManager.runAfterInteractions(() => this.setState({loading: false}));
     }
 
     getVisiblePostIds = (props) => {
@@ -118,12 +107,29 @@ export default class ChannelPostList extends PureComponent {
         }
     };
 
-    loadMorePosts = debounce(() => {
-        if (this.props.loadMorePostsVisible) {
-            const {actions, channelId} = this.props;
-            actions.increasePostVisibility(channelId);
+    loadMorePostsTop = async () => {
+        const {actions, channelId} = this.props;
+        if (!this.isLoadingMoreTop) {
+            this.isLoadingMoreTop = true;
+            actions.increasePostVisibility(channelId).then((hasMore) => {
+                this.isLoadingMoreTop = !hasMore;
+            });
         }
-    }, 100);
+    };
+
+    loadMorePostsBottom = async () => {
+        const {actions, channelId} = this.props;
+        if (!this.isLoadingMoreBottom) {
+            this.isLoadingMoreBottom = true;
+            actions.increasePostVisibility(
+                channelId,
+                null,
+                ListTypes.VISIBILITY_SCROLL_DOWN,
+            ).then((hasMore) => {
+                this.isLoadingMoreBottom = !hasMore;
+            });
+        }
+    };
 
     loadPostsRetry = () => {
         const {actions, channelId} = this.props;
@@ -136,13 +142,21 @@ export default class ChannelPostList extends PureComponent {
         }
 
         if (this.props.loadMorePostsVisible) {
+            if (!LoadMorePosts) {
+                LoadMorePosts = require('app/components/load_more_posts').default;
+            }
+
             return (
                 <LoadMorePosts
                     channelId={this.props.channelId}
-                    loadMore={this.loadMorePosts}
+                    loadMore={this.loadMorePostsTop}
                     theme={this.props.theme}
                 />
             );
+        }
+
+        if (!ChannelIntro) {
+            ChannelIntro = require('app/components/channel_intro').default;
         }
 
         return (
@@ -166,15 +180,7 @@ export default class ChannelPostList extends PureComponent {
             theme,
         } = this.props;
 
-        const {
-            visiblePostIds,
-            loading,
-        } = this.state;
-
-        if (loading) {
-            return null;
-        }
-
+        const {visiblePostIds} = this.state;
         let component;
 
         if (!postIds.length && channelRefreshingFailed) {
@@ -189,7 +195,8 @@ export default class ChannelPostList extends PureComponent {
                 <PostList
                     postIds={visiblePostIds}
                     extraData={loadMorePostsVisible}
-                    onEndReached={this.loadMorePosts}
+                    onLoadMoreDown={this.loadMorePostsBottom}
+                    onLoadMoreUp={this.loadMorePostsTop}
                     onPostPress={this.goToThread}
                     onRefresh={actions.setChannelRefreshing}
                     renderReplies={true}
@@ -206,7 +213,7 @@ export default class ChannelPostList extends PureComponent {
         return (
             <View style={style.container}>
                 {component}
-                <AnnouncementBanner/>
+                <AnnouncementBanner navigator={navigator}/>
                 <RetryBarIndicator/>
             </View>
         );

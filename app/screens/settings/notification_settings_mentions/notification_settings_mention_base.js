@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -57,6 +57,7 @@ export default class NotificationSettingsMentionsBase extends PureComponent {
         const newState = {
             ...notifyProps,
             comments,
+            newReplyValue: comments,
             usernameMention: usernameMentionIndex > -1,
             mention_keys: mentionKeys.join(','),
             showKeywordsModal: false,
@@ -64,7 +65,6 @@ export default class NotificationSettingsMentionsBase extends PureComponent {
         };
 
         this.keywords = newState.mention_keys;
-        this.replyValue = comments;
 
         return newState;
     };

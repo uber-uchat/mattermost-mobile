@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {combineReducers} from 'redux';
 
@@ -15,6 +15,7 @@ import search from './search';
 import selectServer from './select_server';
 import team from './team';
 import thread from './thread';
+import user from './user';
 import emoji from './emoji';
 
 export default combineReducers({
@@ -30,5 +31,6 @@ export default combineReducers({
     selectServer,
     team,
     thread,
+    user,
     emoji,
 });

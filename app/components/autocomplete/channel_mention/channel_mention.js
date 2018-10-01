@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -24,11 +24,13 @@ export default class ChannelMention extends PureComponent {
         listHeight: PropTypes.number,
         matchTerm: PropTypes.string,
         myChannels: PropTypes.array,
+        myMembers: PropTypes.object,
         otherChannels: PropTypes.array,
         onChangeText: PropTypes.func.isRequired,
         onResultCountChange: PropTypes.func.isRequired,
         privateChannels: PropTypes.array,
         publicChannels: PropTypes.array,
+        deletedPublicChannels: PropTypes.instanceOf(Set),
         requestStatus: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
         value: PropTypes.string,
@@ -48,7 +50,7 @@ export default class ChannelMention extends PureComponent {
     }
 
     componentWillReceiveProps(nextProps) {
-        const {isSearch, matchTerm, myChannels, otherChannels, privateChannels, publicChannels, requestStatus} = nextProps;
+        const {isSearch, matchTerm, myChannels, otherChannels, privateChannels, publicChannels, requestStatus, myMembers, deletedPublicChannels} = nextProps;
 
         if ((matchTerm !== this.props.matchTerm && matchTerm === null) || this.state.mentionComplete) {
             // if the term changes but is null or the mention has been completed we render this component as null
@@ -74,7 +76,8 @@ export default class ChannelMention extends PureComponent {
 
         if (requestStatus !== RequestStatus.STARTED &&
             (myChannels !== this.props.myChannels || otherChannels !== this.props.otherChannels ||
-                privateChannels !== this.props.privateChannels || publicChannels !== this.props.publicChannels)) {
+                privateChannels !== this.props.privateChannels || publicChannels !== this.props.publicChannels ||
+                myMembers !== this.props.myMembers || deletedPublicChannels !== this.props.deletedPublicChannels)) {
             // if the request is complete and the term is not null we show the autocomplete
             const sections = [];
             if (isSearch) {
@@ -82,7 +85,7 @@ export default class ChannelMention extends PureComponent {
                     sections.push({
                         id: 'suggestion.search.public',
                         defaultMessage: 'Public Channels',
-                        data: publicChannels,
+                        data: publicChannels.filter((cId) => !deletedPublicChannels.has(cId) || myMembers[cId]),
                         key: 'publicChannels',
                     });
                 }

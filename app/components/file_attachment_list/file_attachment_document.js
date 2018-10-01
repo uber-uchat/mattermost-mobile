@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -14,7 +14,7 @@ import {
     View,
 } from 'react-native';
 import OpenFile from 'react-native-doc-viewer';
-import RNFetchBlob from 'react-native-fetch-blob';
+import RNFetchBlob from 'rn-fetch-blob';
 import {CircularProgress} from 'react-native-circular-progress';
 import {intlShape} from 'react-intl';
 import tinyColor from 'tinycolor2';
@@ -22,7 +22,10 @@ import tinyColor from 'tinycolor2';
 import {getFileUrl} from 'mattermost-redux/utils/file_utils.js';
 
 import {DeviceTypes} from 'app/constants/';
+import mattermostBucket from 'app/mattermost_bucket';
 import {changeOpacity} from 'app/utils/theme';
+
+import LocalConfig from 'assets/config';
 
 import FileAttachmentIcon from './file_attachment_icon';
 
@@ -34,8 +37,11 @@ const TEXT_PREVIEW_FORMATS = [
     'text/plain',
 ];
 
+const circularProgressWidth = 4;
+
 export default class FileAttachmentDocument extends PureComponent {
     static propTypes = {
+        canDownloadFiles: PropTypes.bool.isRequired,
         iconHeight: PropTypes.number,
         iconWidth: PropTypes.number,
         file: PropTypes.object.isRequired,
@@ -106,6 +112,7 @@ export default class FileAttachmentDocument extends PureComponent {
         this.setState({didCancel: false});
 
         try {
+            const certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
             const isDir = await RNFetchBlob.fs.isDir(DOCUMENTS_PATH);
             if (!isDir) {
                 try {
@@ -122,6 +129,7 @@ export default class FileAttachmentDocument extends PureComponent {
                 indicator: true,
                 overwrite: true,
                 path,
+                certificate,
             };
 
             const mime = data.mime_type.split(';')[0];
@@ -166,8 +174,13 @@ export default class FileAttachmentDocument extends PureComponent {
     };
 
     handlePreviewPress = async () => {
-        const {file} = this.props;
+        const {canDownloadFiles, file} = this.props;
         const {downloading, progress} = this.state;
+
+        if (!canDownloadFiles) {
+            this.showDownloadDisabledAlert();
+            return;
+        }
 
         if (downloading && progress < 100) {
             this.cancelDownload();
@@ -269,19 +282,33 @@ export default class FileAttachmentDocument extends PureComponent {
     };
 
     renderProgress = () => {
-        const {iconHeight, iconWidth, file, theme, wrapperWidth} = this.props;
+        const {wrapperWidth} = this.props;
 
         return (
             <View style={[style.circularProgressContent, {width: wrapperWidth}]}>
-                <FileAttachmentIcon
-                    file={file.data}
-                    iconHeight={iconHeight}
-                    iconWidth={iconWidth}
-                    theme={theme}
-                    wrapperHeight={iconHeight}
-                    wrapperWidth={iconWidth}
-                />
+                {this.renderFileAttachmentIcon()}
             </View>
+        );
+    };
+
+    showDownloadDisabledAlert = () => {
+        const {intl} = this.context;
+
+        Alert.alert(
+            intl.formatMessage({
+                id: 'mobile.downloader.disabled_title',
+                defaultMessage: 'Download disabled',
+            }),
+            intl.formatMessage({
+                id: 'mobile.downloader.disabled_description',
+                defaultMessage: 'File downloads are disabled on this server. Please contact your System Admin for more details.\n',
+            }),
+            [{
+                text: intl.formatMessage({
+                    id: 'mobile.server_upgrade.button',
+                    defaultMessage: 'OK',
+                }),
+            }]
         );
     };
 
@@ -306,8 +333,23 @@ export default class FileAttachmentDocument extends PureComponent {
         );
     };
 
-    render() {
+    renderFileAttachmentIcon = () => {
         const {iconHeight, iconWidth, file, theme, wrapperHeight, wrapperWidth} = this.props;
+
+        return (
+            <FileAttachmentIcon
+                file={file.data}
+                theme={theme}
+                iconHeight={iconHeight}
+                iconWidth={iconWidth}
+                wrapperHeight={wrapperHeight}
+                wrapperWidth={wrapperWidth}
+            />
+        );
+    }
+
+    render() {
+        const {theme, wrapperHeight} = this.props;
         const {downloading, progress} = this.state;
 
         let fileAttachmentComponent;
@@ -316,7 +358,7 @@ export default class FileAttachmentDocument extends PureComponent {
                 <CircularProgress
                     size={wrapperHeight}
                     fill={progress}
-                    width={4}
+                    width={circularProgressWidth}
                     backgroundColor={changeOpacity(theme.centerChannelColor, 0.5)}
                     tintColor={theme.linkColor}
                     rotation={0}
@@ -325,21 +367,14 @@ export default class FileAttachmentDocument extends PureComponent {
                 </CircularProgress>
             );
         } else {
-            fileAttachmentComponent = (
-                <FileAttachmentIcon
-                    file={file.data}
-                    theme={theme}
-                    iconHeight={iconHeight}
-                    iconWidth={iconWidth}
-                    wrapperHeight={wrapperHeight}
-                    wrapperWidth={wrapperWidth}
-                />
-            );
+            fileAttachmentComponent = this.renderFileAttachmentIcon();
         }
 
         return (
             <TouchableOpacity onPress={this.handlePreviewPress}>
-                {fileAttachmentComponent}
+                <View style={style.whiteBackgroud}>
+                    {fileAttachmentComponent}
+                </View>
             </TouchableOpacity>
         );
     }
@@ -350,8 +385,11 @@ const style = StyleSheet.create({
         alignItems: 'center',
         height: '100%',
         justifyContent: 'center',
-        left: 0,
+        left: -circularProgressWidth,
         position: 'absolute',
         top: 0,
+    },
+    whiteBackgroud: {
+        backgroundColor: '#fff',
     },
 });

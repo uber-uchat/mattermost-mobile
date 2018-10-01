@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -14,19 +14,19 @@ import {
 import {intlShape} from 'react-intl';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
+import FlagIcon from 'app/components/flag_icon';
 import PostBody from 'app/components/post_body';
 import PostHeader from 'app/components/post_header';
 import PostProfilePicture from 'app/components/post_profile_picture';
 import {NavigationTypes} from 'app/constants';
-import {emptyFunction} from 'app/utils/general';
+import {fromAutoResponder} from 'app/utils/general';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 import {getToolTipVisible} from 'app/utils/tooltip';
 
 import {Posts} from 'mattermost-redux/constants';
-import DelayedAction from 'mattermost-redux/utils/delayed_action';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
-import {editDisable, isPostEphemeral, isPostPendingOrFailed, isSystemMessage} from 'mattermost-redux/utils/post_utils';
+import {isPostEphemeral, isPostPendingOrFailed, isSystemMessage} from 'mattermost-redux/utils/post_utils';
 
 import Config from 'assets/config';
 
@@ -40,10 +40,8 @@ export default class Post extends PureComponent {
             removePost: PropTypes.func.isRequired,
         }).isRequired,
         channelIsReadOnly: PropTypes.bool,
-        config: PropTypes.object.isRequired,
         currentTeamUrl: PropTypes.string.isRequired,
         currentUserId: PropTypes.string.isRequired,
-        deviceWidth: PropTypes.number.isRequired,
         highlight: PropTypes.bool,
         style: ViewPropTypes.style,
         post: PropTypes.object,
@@ -51,13 +49,16 @@ export default class Post extends PureComponent {
         renderReplies: PropTypes.bool,
         isFirstReply: PropTypes.bool,
         isLastReply: PropTypes.bool,
+        consecutivePost: PropTypes.bool,
+        hasComments: PropTypes.bool,
         isSearchResult: PropTypes.bool,
         commentedOnPost: PropTypes.object,
-        license: PropTypes.object.isRequired,
         managedConfig: PropTypes.object.isRequired,
         navigator: PropTypes.object,
         canEdit: PropTypes.bool.isRequired,
+        canEditUntil: PropTypes.number.isRequired,
         canDelete: PropTypes.bool.isRequired,
+        onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         shouldRenderReplyButton: PropTypes.bool,
         showAddReaction: PropTypes.bool,
@@ -79,37 +80,6 @@ export default class Post extends PureComponent {
     static contextTypes = {
         intl: intlShape.isRequired,
     };
-
-    constructor(props) {
-        super(props);
-
-        const {config, license, currentUserId, post} = props;
-        this.editDisableAction = new DelayedAction(this.handleEditDisable);
-        if (post) {
-            editDisable(config, license, currentUserId, post, this.editDisableAction);
-        }
-        this.state = {
-            canEdit: this.props.canEdit,
-        };
-    }
-
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.config !== this.props.config ||
-            nextProps.license !== this.props.license ||
-            nextProps.currentUserId !== this.props.currentUserId ||
-            nextProps.post !== this.props.post) {
-            const {config, license, currentUserId, post} = nextProps;
-
-            editDisable(config, license, currentUserId, post, this.editDisableAction);
-            this.setState({
-                canEdit: nextProps.canEdit,
-            });
-        }
-    }
-
-    componentWillUnmount() {
-        this.editDisableAction.cancel();
-    }
 
     goToUserProfile = () => {
         const {intl} = this.context;
@@ -139,10 +109,6 @@ export default class Post extends PureComponent {
 
     autofillUserMention = (username) => {
         this.props.actions.insertToDraft(`@${username} `);
-    }
-
-    handleEditDisable = () => {
-        this.setState({canEdit: false});
     };
 
     handlePostDelete = () => {
@@ -151,7 +117,10 @@ export default class Post extends PureComponent {
 
         Alert.alert(
             formatMessage({id: 'mobile.post.delete_title', defaultMessage: 'Delete Post'}),
-            formatMessage({id: 'mobile.post.delete_question', defaultMessage: 'Are you sure you want to delete this post?'}),
+            formatMessage({
+                id: 'mobile.post.delete_question',
+                defaultMessage: 'Are you sure you want to delete this post?',
+            }),
             [{
                 text: formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'}),
                 style: 'cancel',
@@ -159,7 +128,6 @@ export default class Post extends PureComponent {
                 text: formatMessage({id: 'post_info.del', defaultMessage: 'Delete'}),
                 style: 'destructive',
                 onPress: () => {
-                    this.editDisableAction.cancel();
                     actions.deletePost(post);
                     if (post.user_id === currentUserId) {
                         actions.removePost(post);
@@ -194,31 +162,30 @@ export default class Post extends PureComponent {
     handleAddReactionToPost = (emoji) => {
         const {post} = this.props;
         this.props.actions.addReaction(post.id, emoji);
-    }
+    };
 
     handleAddReaction = preventDoubleTap(() => {
         const {intl} = this.context;
         const {navigator, post, theme} = this.props;
 
-        MaterialIcon.getImageSource('close', 20, theme.sidebarHeaderTextColor).
-            then((source) => {
-                navigator.showModal({
-                    screen: 'AddReaction',
-                    title: intl.formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
-                    animated: true,
-                    navigatorStyle: {
-                        navBarTextColor: theme.sidebarHeaderTextColor,
-                        navBarBackgroundColor: theme.sidebarHeaderBg,
-                        navBarButtonColor: theme.sidebarHeaderTextColor,
-                        screenBackgroundColor: theme.centerChannelBg,
-                    },
-                    passProps: {
-                        post,
-                        closeButton: source,
-                        onEmojiPress: this.handleAddReactionToPost,
-                    },
-                });
+        MaterialIcon.getImageSource('close', 20, theme.sidebarHeaderTextColor).then((source) => {
+            navigator.showModal({
+                screen: 'AddReaction',
+                title: intl.formatMessage({id: 'mobile.post_info.add_reaction', defaultMessage: 'Add Reaction'}),
+                animated: true,
+                navigatorStyle: {
+                    navBarTextColor: theme.sidebarHeaderTextColor,
+                    navBarBackgroundColor: theme.sidebarHeaderBg,
+                    navBarButtonColor: theme.sidebarHeaderTextColor,
+                    screenBackgroundColor: theme.centerChannelBg,
+                },
+                passProps: {
+                    post,
+                    closeButton: source,
+                    onEmojiPress: this.handleAddReactionToPost,
+                },
             });
+        });
     });
 
     handleFailedPostPress = () => {
@@ -279,7 +246,8 @@ export default class Post extends PureComponent {
         } = this.props;
 
         if (!getToolTipVisible()) {
-            if (onPress && post.state !== Posts.POST_DELETED && !isSystemMessage(post) && !isPostPendingOrFailed(post)) {
+            const isValidSystemMessage = fromAutoResponder(post) || !isSystemMessage(post);
+            if (onPress && post.state !== Posts.POST_DELETED && isValidSystemMessage && !isPostPendingOrFailed(post)) {
                 onPress(post);
             } else if ((isPostEphemeral(post) || post.state === Posts.POST_DELETED) && !showLongPost) {
                 this.onRemovePost(post);
@@ -309,7 +277,7 @@ export default class Post extends PureComponent {
         return Boolean(renderReplies && post.root_id && !isPostEphemeral(post));
     };
 
-    renderReplyBar = () => {
+    replyBarStyle = () => {
         const {
             commentedOnPost,
             isFirstReply,
@@ -332,7 +300,7 @@ export default class Post extends PureComponent {
             replyBarStyle.push(style.replyBarLast);
         }
 
-        return <View style={replyBarStyle}/>;
+        return replyBarStyle;
     };
 
     viewUserProfile = preventDoubleTap(() => {
@@ -342,9 +310,7 @@ export default class Post extends PureComponent {
     });
 
     toggleSelected = (selected) => {
-        if (!getToolTipVisible()) {
-            this.setState({selected});
-        }
+        this.setState({selected});
     };
 
     handleCopyText = (text) => {
@@ -354,7 +320,7 @@ export default class Post extends PureComponent {
         }
 
         Clipboard.setString(textToCopy);
-    }
+    };
 
     handleCopyPermalink = () => {
         const {currentTeamUrl, postId} = this.props;
@@ -384,6 +350,7 @@ export default class Post extends PureComponent {
             highlight,
             isLastReply,
             isSearchResult,
+            onHashtagPress,
             onPermalinkPress,
             post,
             renderReplies,
@@ -393,6 +360,8 @@ export default class Post extends PureComponent {
             showLongPost,
             theme,
             managedConfig,
+            consecutivePost,
+            hasComments,
             isFlagged,
         } = this.props;
 
@@ -404,14 +373,32 @@ export default class Post extends PureComponent {
         const selected = this.state && this.state.selected ? style.selected : null;
         const highlighted = highlight ? style.highlight : null;
         const isReplyPost = this.isReplyPost();
-
         const onUsernamePress = Config.ExperimentalUsernamePressIsMention ? this.autofillUserMention : this.viewUserProfile;
+        const mergeMessage = consecutivePost && !hasComments;
 
-        // postWidth = deviceWidth - profilePic width - profilePictureContainer margins - right column margin
-        const postWidth = this.props.deviceWidth - 66;
+        let postHeader;
+        let userProfile;
+        let consecutiveStyle;
 
-        return (
-            <View style={[style.container, this.props.style, highlighted, selected]}>
+        if (mergeMessage) {
+            consecutiveStyle = {marginTop: 0};
+            if (isFlagged) {
+                userProfile = (
+                    <View style={style.consecutivePostContainer}>
+                        <View style={style.consecutivePostWithFlag}>
+                            <FlagIcon
+                                height={11}
+                                width={11}
+                                color={theme.linkColor}
+                            />
+                        </View>
+                    </View>
+                );
+            } else {
+                userProfile = <View style={style.consecutivePostContainer}/>;
+            }
+        } else {
+            userProfile = (
                 <TouchableHighlight
                     style={[style.profilePictureContainer, (isPostPendingOrFailed(post) && style.pendingPost)]}
                     onPress={this.handlePress}
@@ -425,49 +412,58 @@ export default class Post extends PureComponent {
                         postId={post.id}
                     />
                 </TouchableHighlight>
+            );
+            postHeader = (
+                <PostHeader
+                    postId={post.id}
+                    commentedOnUserId={commentedOnPost && commentedOnPost.user_id}
+                    createAt={post.create_at}
+                    isSearchResult={isSearchResult}
+                    shouldRenderReplyButton={shouldRenderReplyButton}
+                    showFullDate={showFullDate}
+                    onPress={this.handleReply}
+                    onUsernamePress={onUsernamePress}
+                    renderReplies={renderReplies}
+                    theme={theme}
+                    isFlagged={isFlagged}
+                />
+            );
+        }
+        const replyBarStyle = this.replyBarStyle();
+
+        return (
+            <View style={[style.container, this.props.style, consecutiveStyle, highlighted, selected]}>
+                {userProfile}
                 <View style={style.messageContainerWithReplyBar}>
-                    {!commentedOnPost && this.renderReplyBar()}
                     <View style={[style.rightColumn, (commentedOnPost && isLastReply && style.rightColumnPadding)]}>
-                        <PostHeader
-                            postId={post.id}
-                            commentedOnUserId={commentedOnPost && commentedOnPost.user_id}
-                            createAt={post.create_at}
+                        {postHeader}
+                        <PostBody
+                            ref={'postBody'}
+                            canDelete={this.props.canDelete}
+                            canEdit={this.props.canEdit}
+                            canEditUntil={this.props.canEditUntil}
+                            highlight={highlight}
+                            channelIsReadOnly={channelIsReadOnly}
                             isSearchResult={isSearchResult}
-                            shouldRenderReplyButton={shouldRenderReplyButton}
-                            showFullDate={showFullDate}
-                            onPress={this.handleReply}
-                            onUsernamePress={onUsernamePress}
-                            renderReplies={renderReplies}
-                            theme={theme}
+                            navigator={this.props.navigator}
+                            onAddReaction={this.handleAddReaction}
+                            onCopyPermalink={this.handleCopyPermalink}
+                            onCopyText={this.handleCopyText}
+                            onFailedPostPress={this.handleFailedPostPress}
+                            onHashtagPress={onHashtagPress}
+                            onPermalinkPress={onPermalinkPress}
+                            onPostDelete={this.handlePostDelete}
+                            onPostEdit={this.handlePostEdit}
+                            onPress={this.handlePress}
+                            postId={post.id}
+                            replyBarStyle={replyBarStyle}
+                            toggleSelected={this.toggleSelected}
+                            managedConfig={managedConfig}
                             isFlagged={isFlagged}
+                            isReplyPost={isReplyPost}
+                            showAddReaction={showAddReaction}
+                            showLongPost={showLongPost}
                         />
-                        <View style={{maxWidth: postWidth}}>
-                            <PostBody
-                                ref={'postBody'}
-                                canDelete={this.props.canDelete}
-                                canEdit={this.state.canEdit}
-                                highlight={highlight}
-                                channelIsReadOnly={channelIsReadOnly}
-                                isSearchResult={isSearchResult}
-                                navigator={this.props.navigator}
-                                onAddReaction={this.handleAddReaction}
-                                onCopyPermalink={this.handleCopyPermalink}
-                                onCopyText={this.handleCopyText}
-                                onFailedPostPress={this.handleFailedPostPress}
-                                onPermalinkPress={onPermalinkPress}
-                                onPostDelete={this.handlePostDelete}
-                                onPostEdit={this.handlePostEdit}
-                                onPress={this.handlePress}
-                                postId={post.id}
-                                renderReplyBar={commentedOnPost ? this.renderReplyBar : emptyFunction}
-                                toggleSelected={this.toggleSelected}
-                                managedConfig={managedConfig}
-                                isFlagged={isFlagged}
-                                isReplyPost={isReplyPost}
-                                showAddReaction={showAddReaction}
-                                showLongPost={showLongPost}
-                            />
-                        </View>
                     </View>
                 </View>
             </View>
@@ -479,6 +475,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
             flexDirection: 'row',
+            overflow: 'hidden',
         },
         pendingPost: {
             opacity: 0.5,
@@ -495,8 +492,21 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flexDirection: 'row',
             flex: 1,
         },
-        profilePictureContainer: {
+        consecutivePostContainer: {
             marginBottom: 10,
+            marginRight: 10,
+            marginLeft: 47,
+            marginTop: 10,
+        },
+        consecutivePostWithFlag: {
+            width: 11,
+            height: 11,
+            position: 'absolute',
+            top: -6,
+            left: -11,
+        },
+        profilePictureContainer: {
+            marginBottom: 5,
             marginRight: 10,
             marginLeft: 12,
             marginTop: 10,
@@ -504,7 +514,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         replyBar: {
             backgroundColor: theme.centerChannelColor,
             opacity: 0.1,
-            marginRight: 10,
+            marginRight: 7,
             width: 3,
             flexBasis: 3,
         },

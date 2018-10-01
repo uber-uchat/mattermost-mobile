@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
@@ -29,11 +29,13 @@ function makeMapStateToProps() {
     return function mapStateToProps(state) {
         const {currentFocusedPostId} = state.entities.posts;
         const post = getPost(state, currentFocusedPostId);
-        const channel = post ? getChannel(state, {id: post.channel_id}) : null;
+
+        let channel;
         let postIds;
 
-        if (channel && channel.id) {
-            postIds = getPostIdsAroundPost(state, currentFocusedPostId, channel.id, {
+        if (post) {
+            channel = getChannel(state, {id: post.channel_id});
+            postIds = getPostIdsAroundPost(state, currentFocusedPostId, post.channel_id, {
                 postsBeforeCount: 10,
                 postsAfterCount: 10,
             });
@@ -41,6 +43,7 @@ function makeMapStateToProps() {
 
         return {
             channelId: channel ? channel.id : '',
+            channelIsArchived: channel ? channel.delete_at !== 0 : false,
             channelName: channel ? channel.display_name : '',
             channelTeamId: channel ? channel.team_id : '',
             currentTeamId: getCurrentTeamId(state),

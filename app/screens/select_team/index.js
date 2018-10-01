@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {bindActionCreators} from 'redux';
 import {connect} from 'react-redux';
@@ -28,8 +28,8 @@ function mapStateToProps(state) {
     }
 
     return {
-        teamsRequest: state.requests.teams.getMyTeams,
-        teams: Object.values(getJoinableTeams(state)).sort(sortTeams),
+        teamsRequest: state.requests.teams.getTeams,
+        teams: Object.values(state.entities.teams.teams),
         currentChannelId: getCurrentChannelId(state),
         joinTeamRequest: state.requests.teams.joinTeam,
     };

@@ -1,10 +1,12 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {latinise} from './latinise.js';
+import {escapeRegex} from './markdown';
+
+import {Files} from 'mattermost-redux/constants';
 
 const ytRegex = /(?:http|https):\/\/(?:www\.|m\.)?(?:(?:youtube\.com\/(?:(?:v\/)|(?:(?:watch|embed\/watch)(?:\/|.*v=))|(?:embed\/)|(?:user\/[^/]+\/u\/[0-9]\/)))|(?:youtu\.be\/))([^#&?]*)/;
-const imgRegex = /.+\/(.+\.(?:jpg|gif|bmp|png|jpeg))(?:\?.*)?$/i;
 
 export function isValidUrl(url = '') {
     const regex = /^https?:\/\//i;
@@ -12,7 +14,7 @@ export function isValidUrl(url = '') {
 }
 
 export function stripTrailingSlashes(url = '') {
-    return url.trim().replace(/\/+$/, '');
+    return url.replace(/ /g, '').replace(/^\/+/, '').replace(/\/+$/, '');
 }
 
 export function removeProtocol(url = '') {
@@ -42,8 +44,20 @@ export function isYoutubeLink(link) {
 }
 
 export function isImageLink(link) {
-    const match = link.trim().match(imgRegex);
-    return Boolean(match && match[1]);
+    let linkWithoutQuery = link;
+    if (link.indexOf('?') !== -1) {
+        linkWithoutQuery = linkWithoutQuery.split('?')[0];
+    }
+
+    for (let i = 0; i < Files.IMAGE_TYPES.length; i++) {
+        const imageType = Files.IMAGE_TYPES[i];
+
+        if (linkWithoutQuery.endsWith('.' + imageType) || linkWithoutQuery.endsWith('=' + imageType)) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 // Converts the protocol of a link (eg. http, ftp) to be lower case since
@@ -74,4 +88,40 @@ export function cleanUpUrlable(input) {
     cleaned = cleaned.replace(/^-+/, '');
     cleaned = cleaned.replace(/-+$/, '');
     return cleaned;
+}
+
+export function getScheme(url) {
+    const match = (/([a-z0-9+.-]+):/i).exec(url);
+
+    return match && match[1];
+}
+
+export function matchPermalink(link, rootURL) {
+    if (!rootURL) {
+        return null;
+    }
+
+    return new RegExp('^' + escapeRegex(rootURL) + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(link);
+}
+
+export function getYouTubeVideoId(link) {
+    // https://youtube.com/watch?v=<id>
+    let match = (/youtube\.com\/watch\?\S*\bv=([a-zA-Z0-9_-]{6,11})/g).exec(link);
+    if (match) {
+        return match[1];
+    }
+
+    // https://youtube.com/embed/<id>
+    match = (/youtube\.com\/embed\/([a-zA-Z0-9_-]{6,11})/g).exec(link);
+    if (match) {
+        return match[1];
+    }
+
+    // https://youtu.be/<id>
+    match = (/youtu.be\/([a-zA-Z0-9_-]{6,11})/g).exec(link);
+    if (match) {
+        return match[1];
+    }
+
+    return '';
 }

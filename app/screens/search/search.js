@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -20,7 +20,9 @@ import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 import {RequestStatus} from 'mattermost-redux/constants';
 
 import Autocomplete from 'app/components/autocomplete';
+import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import DateHeader from 'app/components/post_list/date_header';
+import {isDateLine} from 'app/components/post_list/date_header/utils';
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
 import PostListRetry from 'app/components/post_list_retry';
@@ -29,7 +31,6 @@ import SafeAreaView from 'app/components/safe_area_view';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
 import mattermostManaged from 'app/mattermost_managed';
-import {DATE_LINE} from 'app/selectors/post_list';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
@@ -51,23 +52,28 @@ export default class Search extends PureComponent {
             loadChannelsByTeamName: PropTypes.func.isRequired,
             loadThreadIfNecessary: PropTypes.func.isRequired,
             removeSearchTerms: PropTypes.func.isRequired,
-            searchPosts: PropTypes.func.isRequired,
+            searchPostsWithParams: PropTypes.func.isRequired,
             selectFocusedPostId: PropTypes.func.isRequired,
             selectPost: PropTypes.func.isRequired,
         }).isRequired,
         currentTeamId: PropTypes.string.isRequired,
-        currentChannelId: PropTypes.string.isRequired,
+        initialValue: PropTypes.string,
         isLandscape: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
         postIds: PropTypes.array,
+        archivedPostIds: PropTypes.arrayOf(PropTypes.string),
         recent: PropTypes.array.isRequired,
         searchingStatus: PropTypes.string,
         theme: PropTypes.object.isRequired,
+        enableDateSuggestion: PropTypes.bool,
+        timezoneOffsetInSeconds: PropTypes.number.isRequired,
     };
 
     static defaultProps = {
+        initialValue: '',
         postIds: [],
         recent: [],
+        archivedPostIds: [],
     };
 
     static contextTypes = {
@@ -82,7 +88,7 @@ export default class Search extends PureComponent {
         this.state = {
             channelName: '',
             cursorPosition: 0,
-            value: '',
+            value: props.initialValue,
             managedConfig: {},
         };
     }
@@ -93,15 +99,20 @@ export default class Search extends PureComponent {
 
     componentDidMount() {
         this.setManagedConfig();
-        if (this.refs.searchBar) {
+
+        if (this.props.initialValue) {
+            this.search(this.props.initialValue);
+        } else {
             setTimeout(() => {
-                this.refs.searchBar.focus();
+                if (this.refs.searchBar) {
+                    this.refs.searchBar.focus();
+                }
             }, 150);
         }
     }
 
     componentDidUpdate(prevProps) {
-        const {searchingStatus: status, recent} = this.props;
+        const {searchingStatus: status, recent, enableDateSuggestion} = this.props;
         const {searchingStatus: prevStatus} = prevProps;
         const recentLength = recent.length;
         const shouldScroll = prevStatus !== status && (status === RequestStatus.SUCCESS || status === RequestStatus.STARTED);
@@ -111,12 +122,15 @@ export default class Search extends PureComponent {
         }
 
         if (shouldScroll) {
-            requestAnimationFrame(() => {
-                this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
-                    animated: true,
-                    offset: SECTION_HEIGHT + (2 * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
-                });
-            });
+            setTimeout(() => {
+                const modifiersCount = enableDateSuggestion ? 5 : 2;
+                if (this.refs.list) {
+                    this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
+                        animated: true,
+                        offset: SECTION_HEIGHT + (modifiersCount * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
+                    });
+                }
+            }, 100);
         }
     }
 
@@ -156,6 +170,20 @@ export default class Search extends PureComponent {
         };
 
         navigator.push(options);
+    };
+
+    handleHashtagPress = (hashtag) => {
+        if (this.showingPermalink) {
+            this.props.navigator.dismissModal();
+            this.handleClosePermalink();
+        }
+
+        const terms = '#' + hashtag;
+
+        this.handleTextChanged(terms);
+        this.search(terms, false);
+
+        Keyboard.dismiss();
     };
 
     handleClosePermalink = () => {
@@ -246,6 +274,7 @@ export default class Search extends PureComponent {
                 passProps: {
                     isPermalink,
                     onClose: this.handleClosePermalink,
+                    onHashtagPress: this.handleHashtagPress,
                     onPermalinkPress: this.handlePermalinkPress,
                 },
             };
@@ -259,15 +288,6 @@ export default class Search extends PureComponent {
         const {actions, currentTeamId} = this.props;
         actions.removeSearchTerms(currentTeamId, item.terms);
     });
-
-    renderDateHeader = (date, index) => {
-        return (
-            <DateHeader
-                date={date}
-                index={index}
-            />
-        );
-    };
 
     renderModifiers = ({item}) => {
         const {theme} = this.props;
@@ -303,6 +323,30 @@ export default class Search extends PureComponent {
         );
     };
 
+    archivedIndicator = (postID, style) => {
+        const channelIsArchived = this.props.archivedPostIds.includes(postID);
+        let archivedIndicator = null;
+        if (channelIsArchived) {
+            archivedIndicator = (
+                <View style={style.archivedIndicator}>
+                    <Text>
+                        <AwesomeIcon
+                            name='archive'
+                            style={style.archivedText}
+                        />
+                        {' '}
+                        <FormattedText
+                            style={style.archivedText}
+                            id='search_item.channelArchived'
+                            defaultMessage='Archived'
+                        />
+                    </Text>
+                </View>
+            );
+        }
+        return archivedIndicator;
+    };
+
     renderPost = ({item, index}) => {
         const {postIds, theme} = this.props;
         const {managedConfig} = this.state;
@@ -316,25 +360,31 @@ export default class Search extends PureComponent {
             );
         }
 
-        if (item.indexOf(DATE_LINE) === 0) {
-            const date = item.substring(DATE_LINE.length);
-            return this.renderDateHeader(new Date(date), index);
+        if (isDateLine(item)) {
+            return (
+                <DateHeader
+                    dateLineString={item}
+                    index={index}
+                />
+            );
         }
 
         let separator;
         const nextPost = postIds[index + 1];
-        if (nextPost && nextPost.indexOf(DATE_LINE) === -1) {
+        if (nextPost && !isDateLine(nextPost)) {
             separator = <PostSeparator theme={theme}/>;
         }
 
         return (
             <View>
                 <ChannelDisplayName postId={item}/>
+                {this.archivedIndicator(postIds[index], style)}
                 <SearchResultPost
                     postId={item}
                     previewPost={this.previewPost}
                     goToThread={this.goToThread}
                     navigator={this.props.navigator}
+                    onHashtagPress={this.handleHashtagPress}
                     onPermalinkPress={this.handlePermalinkPress}
                     managedConfig={managedConfig}
                 />
@@ -445,7 +495,8 @@ export default class Search extends PureComponent {
             },
         });
 
-        actions.searchPosts(currentTeamId, terms.trim(), isOrSearch);
+        // timezone offset in seconds
+        actions.searchPostsWithParams(currentTeamId, {terms: terms.trim(), is_or_search: isOrSearch, time_zone_offset: this.props.timezoneOffsetInSeconds}, true);
     };
 
     handleSearchButtonPress = preventDoubleTap((text) => {
@@ -493,22 +544,53 @@ export default class Search extends PureComponent {
             value,
         } = this.state;
         const style = getStyleFromTheme(theme);
+
+        const sectionsData = [{
+            value: 'from:',
+            modifier: `from:${intl.formatMessage({id: 'mobile.search.from_modifier_title', defaultMessage: 'username'})}`,
+            description: intl.formatMessage({
+                id: 'mobile.search.from_modifier_description',
+                defaultMessage: 'to find posts from specific users',
+            }),
+        }, {
+            value: 'in:',
+            modifier: `in:${intl.formatMessage({id: 'mobile.search.in_modifier_title', defaultMessage: 'channel-name'})}`,
+            description: intl.formatMessage({
+                id: 'mobile.search.in_modifier_description',
+                defaultMessage: 'to find posts in specific channels',
+            }),
+        }];
+
+        // if search by date filters supported
+        if (this.props.enableDateSuggestion) {
+            sectionsData.push({
+                value: 'on:',
+                modifier: 'on: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.on_modifier_description',
+                    defaultMessage: 'to find posts on a specific date',
+                }),
+            });
+            sectionsData.push({
+                value: 'after:',
+                modifier: 'after: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.after_modifier_description',
+                    defaultMessage: 'to find posts after a specific date',
+                }),
+            });
+            sectionsData.push({
+                value: 'before:',
+                modifier: 'before: YYYY-MM-DD',
+                description: intl.formatMessage({
+                    id: 'mobile.search.before_modifier_description',
+                    defaultMessage: 'to find posts before a specific date',
+                }),
+            });
+        }
+
         const sections = [{
-            data: [{
-                value: 'from:',
-                modifier: `from:${intl.formatMessage({id: 'mobile.search.from_modifier_title', defaultMessage: 'username'})}`,
-                description: intl.formatMessage({
-                    id: 'mobile.search.from_modifier_description',
-                    defaultMessage: 'to find posts from specific users',
-                }),
-            }, {
-                value: 'in:',
-                modifier: `in:${intl.formatMessage({id: 'mobile.search.in_modifier_title', defaultMessage: 'channel-name'})}`,
-                description: intl.formatMessage({
-                    id: 'mobile.search.in_modifier_description',
-                    defaultMessage: 'to find posts in specific channels',
-                }),
-            }],
+            data: sectionsData,
             key: 'modifiers',
             title: '',
             renderItem: this.renderModifiers,
@@ -591,7 +673,7 @@ export default class Search extends PureComponent {
                 excludeHeader={isLandscape && this.isX}
                 forceTop={44}
             >
-                <View style={style.container}>
+                <KeyboardLayout>
                     <StatusBar/>
                     <View style={style.header}>
                         <SearchBar
@@ -630,8 +712,9 @@ export default class Search extends PureComponent {
                         onChangeText={this.handleTextChanged}
                         isSearch={true}
                         value={value}
+                        enableDateSuggestion={this.props.enableDateSuggestion}
                     />
-                </View>
+                </KeyboardLayout>
             </SafeAreaView>
         );
     }
@@ -639,9 +722,6 @@ export default class Search extends PureComponent {
 
 const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
-        container: {
-            flex: 1,
-        },
         header: {
             backgroundColor: theme.sidebarHeaderBg,
             width: '100%',
@@ -753,6 +833,16 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
         },
         searching: {
             marginTop: 65,
+        },
+        archivedIndicator: {
+            alignItems: 'flex-end',
+            width: 150,
+            alignSelf: 'flex-end',
+            marginTop: -17,
+            marginRight: 10,
+        },
+        archivedText: {
+            color: changeOpacity(theme.centerChannelColor, 0.4),
         },
     };
 });

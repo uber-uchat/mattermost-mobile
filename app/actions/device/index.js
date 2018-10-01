@@ -1,27 +1,19 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
-import {Dimensions} from 'react-native';
+import {networkStatusChangedAction} from 'redux-offline';
+import {Client4} from 'mattermost-redux/client';
 
 import {DeviceTypes} from 'app/constants';
 
-export function calculateDeviceDimensions() {
-    const {height, width} = Dimensions.get('window');
-    return {
-        type: DeviceTypes.DEVICE_DIMENSIONS_CHANGED,
-        data: {
-            deviceHeight: height,
-            deviceWidth: width,
-        },
-    };
-}
-
 export function connection(isOnline) {
-    return async (dispatch, getState) => {
+    return async (dispatch) => {
+        // Client4.setOnline(false);
+        dispatch(networkStatusChangedAction(isOnline));
         dispatch({
             type: DeviceTypes.CONNECTION_CHANGED,
             data: isOnline,
-        }, getState);
+        });
     };
 }
 
@@ -29,6 +21,16 @@ export function setStatusBarHeight(height = 20) {
     return {
         type: DeviceTypes.STATUSBAR_HEIGHT_CHANGED,
         data: height,
+    };
+}
+
+export function setDeviceDimensions(height, width) {
+    return {
+        type: DeviceTypes.DEVICE_DIMENSIONS_CHANGED,
+        data: {
+            deviceHeight: height,
+            deviceWidth: width,
+        },
     };
 }
 
@@ -47,8 +49,8 @@ export function setDeviceAsTablet() {
 }
 
 export default {
-    calculateDeviceDimensions,
     connection,
+    setDeviceDimensions,
     setDeviceOrientation,
     setDeviceAsTablet,
     setStatusBarHeight,

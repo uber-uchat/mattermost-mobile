@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -12,8 +12,10 @@ import {
 import {intlShape} from 'react-intl';
 import * as Animatable from 'react-native-animatable';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
 import {General} from 'mattermost-redux/constants';
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
@@ -58,6 +60,7 @@ export default class Permalink extends PureComponent {
             setChannelLoading: PropTypes.func.isRequired,
         }).isRequired,
         channelId: PropTypes.string,
+        channelIsArchived: PropTypes.bool,
         channelName: PropTypes.string,
         channelTeamId: PropTypes.string,
         currentTeamId: PropTypes.string.isRequired,
@@ -67,6 +70,7 @@ export default class Permalink extends PureComponent {
         myMembers: PropTypes.object.isRequired,
         navigator: PropTypes.object,
         onClose: PropTypes.func,
+        onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPress: PropTypes.func,
         postIds: PropTypes.array,
@@ -103,17 +107,19 @@ export default class Permalink extends PureComponent {
     }
 
     componentWillMount() {
+        this.mounted = true;
+
         if (this.state.loading) {
             this.loadPosts(this.props);
         }
     }
 
     componentWillReceiveProps(nextProps) {
-        if (this.props.channelName !== nextProps.channelName) {
+        if (this.props.channelName !== nextProps.channelName && this.mounted) {
             this.setState({title: nextProps.channelName});
         }
 
-        if (this.props.focusedPostId !== nextProps.focusedPostId) {
+        if (this.props.focusedPostId !== nextProps.focusedPostId && this.mounted) {
             this.setState({loading: true});
             if (nextProps.postIds && nextProps.postIds.length < 10) {
                 this.loadPosts(nextProps);
@@ -121,6 +127,10 @@ export default class Permalink extends PureComponent {
                 this.setState({loading: false});
             }
         }
+    }
+
+    componentWillUnmount() {
+        this.mounted = false;
     }
 
     goToThread = preventDoubleTap((post) => {
@@ -153,6 +163,7 @@ export default class Permalink extends PureComponent {
     handleClose = () => {
         const {actions, navigator, onClose} = this.props;
         if (this.refs.view) {
+            this.mounted = false;
             this.refs.view.zoomOut().then(() => {
                 actions.selectPost('');
                 navigator.dismissModal({animationType: 'none'});
@@ -189,21 +200,27 @@ export default class Permalink extends PureComponent {
 
             actions.selectPost('');
 
+            if (channelId === currentChannelId) {
+                EventEmitter.emit('reset_channel');
+            } else {
+                navigator.resetTo({
+                    screen: 'Channel',
+                    animated: true,
+                    animationType: 'fade',
+                    navigatorStyle: {
+                        navBarHidden: true,
+                        statusBarHidden: false,
+                        statusBarHideWithNavBar: false,
+                        screenBackgroundColor: theme.centerChannelBg,
+                    },
+                });
+            }
+
+            navigator.dismissAllModals({animationType: 'slide-down'});
+
             if (onClose) {
                 onClose();
             }
-
-            navigator.resetTo({
-                screen: 'Channel',
-                animated: true,
-                animationType: 'fade',
-                navigatorStyle: {
-                    navBarHidden: true,
-                    statusBarHidden: false,
-                    statusBarHideWithNavBar: false,
-                    screenBackgroundColor: theme.centerChannelBg,
-                },
-            });
 
             if (channelTeamId && currentTeamId !== channelTeamId) {
                 handleTeamChange(channelTeamId, false);
@@ -230,7 +247,7 @@ export default class Permalink extends PureComponent {
 
         const post = await actions.getPostThread(focusedPostId, false);
         if (post.error && (!postIds || !postIds.length)) {
-            if (isPermalink && post.error.message.toLowerCase() !== 'network request failed') {
+            if (this.mounted && isPermalink && post.error.message.toLowerCase() !== 'network request failed') {
                 this.setState({
                     error: formatMessage({
                         id: 'permalink.error.access',
@@ -241,7 +258,7 @@ export default class Permalink extends PureComponent {
                         defaultMessage: 'No Results Found',
                     }),
                 });
-            } else {
+            } else if (this.mounted) {
                 this.setState({error: post.error.message, retry: true});
             }
 
@@ -249,8 +266,9 @@ export default class Permalink extends PureComponent {
         }
 
         if (!channelId) {
-            focusChannelId = post.data.posts[focusedPostId].channel_id;
-            if (!this.props.myMembers[focusChannelId]) {
+            const focusedPost = post.data && post.data.posts ? post.data.posts[focusedPostId] : null;
+            focusChannelId = focusedPost ? focusedPost.channel_id : '';
+            if (focusChannelId && !this.props.myMembers[focusChannelId]) {
                 const {data: channel} = await actions.getChannel(focusChannelId);
                 if (channel && channel.type === General.OPEN_CHANNEL) {
                     await actions.joinChannel(currentUserId, channel.team_id, channel.id);
@@ -263,7 +281,9 @@ export default class Permalink extends PureComponent {
             actions.getPostsAfter(focusChannelId, focusedPostId, 0, 10),
         ]);
 
-        this.setState({loading: false});
+        if (this.mounted) {
+            this.setState({loading: false});
+        }
     };
 
     onNavigatorEvent = (event) => {
@@ -277,8 +297,24 @@ export default class Permalink extends PureComponent {
     };
 
     retry = () => {
-        this.setState({loading: true, error: null, retry: false});
-        this.loadPosts(this.props);
+        if (this.mounted) {
+            this.setState({loading: true, error: null, retry: false});
+            this.loadPosts(this.props);
+        }
+    };
+
+    archivedIcon = (style) => {
+        let ico = null;
+        if (this.props.channelIsArchived) {
+            ico = (<Text>
+                <AwesomeIcon
+                    name='archive'
+                    style={[style.archiveIcon]}
+                />
+                {' '}
+            </Text>);
+        }
+        return ico;
     };
 
     render() {
@@ -286,6 +322,7 @@ export default class Permalink extends PureComponent {
             currentUserId,
             focusedPostId,
             navigator,
+            onHashtagPress,
             onPermalinkPress,
             postIds,
             theme,
@@ -319,6 +356,7 @@ export default class Permalink extends PureComponent {
                     isSearchResult={false}
                     shouldRenderReplyButton={false}
                     renderReplies={true}
+                    onHashtagPress={onHashtagPress}
                     onPermalinkPress={onPermalinkPress}
                     onPostPress={this.goToThread}
                     postIds={postIds}
@@ -366,9 +404,13 @@ export default class Permalink extends PureComponent {
                                     numberOfLines={1}
                                     style={style.title}
                                 >
+                                    {this.archivedIcon(style)}
                                     {title}
                                 </Text>
                             </View>
+                        </View>
+                        <View style={style.dividerContainer}>
+                            <View style={style.divider}/>
                         </View>
                         <View style={[style.postList, error ? style.bottom : null]}>
                             {postList}
@@ -407,14 +449,19 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         header: {
             alignItems: 'center',
             backgroundColor: theme.centerChannelBg,
-            borderBottomColor: changeOpacity(theme.centerChannelColor, 0.2),
-            borderBottomWidth: 1,
             borderTopLeftRadius: 6,
             borderTopRightRadius: 6,
             flexDirection: 'row',
             height: 44,
             paddingRight: 16,
             width: '100%',
+        },
+        dividerContainer: {
+            backgroundColor: theme.centerChannelBg,
+        },
+        divider: {
+            backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
+            height: 1,
         },
         close: {
             justifyContent: 'center',
@@ -463,6 +510,11 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         errorText: {
             color: changeOpacity(theme.centerChannelColor, 0.4),
             fontSize: 15,
+        },
+        archiveIcon: {
+            color: theme.centerChannelColor,
+            fontSize: 16,
+            paddingRight: 20,
         },
     };
 });

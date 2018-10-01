@@ -1,12 +1,11 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {GeneralTypes, PostTypes} from 'mattermost-redux/action_types';
 import {Client4} from 'mattermost-redux/client';
 import {General} from 'mattermost-redux/constants';
-import {markChannelAsRead} from 'mattermost-redux/actions/channels';
+import {fetchMyChannelsAndMembers, markChannelAsRead} from 'mattermost-redux/actions/channels';
 import {getClientConfig, getDataRetentionPolicy, getLicenseConfig} from 'mattermost-redux/actions/general';
-import {getPosts} from 'mattermost-redux/actions/posts';
 import {getMyTeams, getMyTeamMembers, selectTeam} from 'mattermost-redux/actions/teams';
 
 import {ViewTypes} from 'app/constants';
@@ -15,7 +14,6 @@ import {recordTime} from 'app/utils/segment';
 import {
     handleSelectChannel,
     setChannelDisplayName,
-    retryGetPostsAction,
 } from 'app/actions/views/channel';
 
 export function startDataCleanup() {
@@ -56,35 +54,46 @@ export function loadFromPushNotification(notification) {
         const state = getState();
         const {data} = notification;
         const {currentTeamId, teams, myMembers: myTeamMembers} = state.entities.teams;
-        const {currentChannelId} = state.entities.channels;
-        const channelId = data.channel_id;
+        const {currentChannelId, channels} = state.entities.channels;
 
-        // when the notification does not have a team id is because its from a DM or GM
-        const teamId = data.team_id || currentTeamId;
+        let channelId = '';
+        let teamId = currentTeamId;
+        if (data) {
+            channelId = data.channel_id;
 
-        //verify that we have the team loaded
+            // when the notification does not have a team id is because its from a DM or GM
+            teamId = data.team_id || currentTeamId;
+        }
+
+        // load any missing data
+        const loading = [];
+
         if (teamId && (!teams[teamId] || !myTeamMembers[teamId])) {
-            await Promise.all([
-                getMyTeams()(dispatch, getState),
-                getMyTeamMembers()(dispatch, getState),
-            ]);
+            loading.push(dispatch(getMyTeams()));
+            loading.push(dispatch(getMyTeamMembers()));
+        }
+
+        if (channelId && !channels[channelId]) {
+            loading.push(dispatch(fetchMyChannelsAndMembers(teamId)));
+        }
+
+        if (loading.length > 0) {
+            await Promise.all(loading);
         }
 
         // when the notification is from a team other than the current team
         if (teamId !== currentTeamId) {
-            selectTeam({id: teamId})(dispatch, getState);
+            dispatch(selectTeam({id: teamId}));
         }
 
-        // when the notification is from the same channel as the current channel
-        // we should get the posts
-        if (channelId === currentChannelId) {
-            markChannelAsRead(channelId, null, false)(dispatch, getState);
-            await retryGetPostsAction(getPosts(channelId), dispatch, getState);
-        } else {
+        // mark channel as read
+        dispatch(markChannelAsRead(channelId, channelId === currentChannelId ? null : currentChannelId, false));
+
+        if (channelId !== currentChannelId) {
             // when the notification is from a channel other than the current channel
-            markChannelAsRead(channelId, currentChannelId, false)(dispatch, getState);
+            dispatch(markChannelAsRead(channelId, currentChannelId, false));
             dispatch(setChannelDisplayName(''));
-            handleSelectChannel(channelId)(dispatch, getState);
+            dispatch(handleSelectChannel(channelId));
         }
     };
 }
@@ -93,7 +102,9 @@ export function purgeOfflineStore() {
     return {type: General.OFFLINE_STORE_PURGE};
 }
 
-export function createPost(post) {
+// A non-optimistic version of the createPost action in mattermost-redux with the file handling
+// removed since it's not needed.
+export function createPostForNotificationReply(post) {
     return (dispatch, getState) => {
         const state = getState();
         const currentUserId = state.entities.users.currentUserId;
@@ -128,6 +139,13 @@ export function recordLoadTime(screenName, category) {
         const {currentUserId} = getState().entities.users;
 
         recordTime(screenName, category, currentUserId);
+    };
+}
+
+export function setDeepLinkURL(url) {
+    return {
+        type: ViewTypes.SET_DEEP_LINK_URL,
+        url,
     };
 }
 

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
@@ -124,7 +124,6 @@ export default class SlashSuggestion extends Component {
 
     renderItem = ({item}) => (
         <SlashSuggestionItem
-            displayName={item.display_name}
             description={item.auto_complete_desc}
             hint={item.auto_complete_hint}
             onPress={this.completeSuggestion}

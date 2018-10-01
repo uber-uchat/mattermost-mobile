@@ -1,17 +1,17 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     InteractionManager,
     Keyboard,
-    TextInput,
     StyleSheet,
     View,
     TouchableWithoutFeedback,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
+import QuickTextInput from 'app/components/quick_text_input';
 import CustomPropTypes from 'app/constants/custom_prop_types';
 import {changeOpacity} from 'app/utils/theme';
 
@@ -41,6 +41,7 @@ export default class SearchBarAndroid extends PureComponent {
         inputHeight: PropTypes.number,
         inputBorderRadius: PropTypes.number,
         blurOnSubmit: PropTypes.bool,
+        showArrow: PropTypes.bool,
         value: PropTypes.string,
         containerStyle: CustomPropTypes.Style,
     };
@@ -52,6 +53,7 @@ export default class SearchBarAndroid extends PureComponent {
         blurOnSubmit: true,
         placeholder: 'Search',
         showCancelButton: true,
+        showArrow: true,
         placeholderTextColor: changeOpacity('#000', 0.5),
         containerStyle: {},
         onSearchButtonPress: () => true,
@@ -68,12 +70,18 @@ export default class SearchBarAndroid extends PureComponent {
         this.state = {
             value: props.value,
             isFocused: false,
+            refocusInput: true,
         };
     }
-    componentWillReceiveProps(nextProps) {
-        if (this.state.value !== nextProps.value) {
-            this.setState({value: nextProps.value});
+
+    static getDerivedStateFromProps(nextProps, prevState) {
+        if (nextProps.value !== prevState.value) {
+            return {
+                value: nextProps.value,
+            };
         }
+
+        return null;
     }
 
     cancel = () => {
@@ -86,10 +94,12 @@ export default class SearchBarAndroid extends PureComponent {
 
     onSearchButtonPress = () => {
         const {value} = this.props;
-
-        if (value) {
-            this.props.onSearchButtonPress(value);
-        }
+        this.setState({refocusInput: false}, () => {
+            if (value) {
+                this.props.onSearchButtonPress(value);
+            }
+            this.setState({refocusInput: true});
+        });
     };
 
     onCancelButtonPress = () => {
@@ -97,6 +107,7 @@ export default class SearchBarAndroid extends PureComponent {
         InteractionManager.runAfterInteractions(() => {
             this.setState({
                 isFocused: false,
+                value: '',
             }, () => {
                 this.props.onCancelButtonPress();
             });
@@ -150,13 +161,16 @@ export default class SearchBarAndroid extends PureComponent {
             tintColorSearch,
             containerStyle,
             value,
+            showArrow,
         } = this.props;
         const {isFocused} = this.state;
 
-        const inputNoBackground = {
-            ...inputStyle,
-        };
-        Reflect.deleteProperty(inputNoBackground, 'backgroundColor');
+        const {
+            backgroundColor: bgColor, //eslint-disable-line no-unused-vars
+            ...otherStyles
+        } = inputStyle;
+
+        const inputNoBackground = otherStyles;
 
         let inputColor = styles.searchBarInput.backgroundColor;
         if (inputStyle) {
@@ -184,7 +198,7 @@ export default class SearchBarAndroid extends PureComponent {
                         },
                     ]}
                 >
-                    {isFocused ?
+                    {isFocused && showArrow ?
                         <TouchableWithoutFeedback
                             onPress={this.onCancelButtonPress}
                             style={{paddingRight: 15}}
@@ -201,9 +215,10 @@ export default class SearchBarAndroid extends PureComponent {
                             color={tintColorSearch || placeholderTextColor}
                         />
                     }
-                    <TextInput
+                    <QuickTextInput
                         ref='input'
                         blurOnSubmit={blurOnSubmit}
+                        refocusInput={this.state.refocusInput}
                         value={this.state.value}
                         autoCapitalize={autoCapitalize}
                         autoCorrect={false}

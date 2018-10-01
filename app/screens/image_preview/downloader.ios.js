@@ -1,10 +1,10 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {Alert, Animated, CameraRoll, InteractionManager, StyleSheet, Text, TouchableOpacity, View} from 'react-native';
-import RNFetchBlob from 'react-native-fetch-blob';
+import RNFetchBlob from 'rn-fetch-blob';
 import {CircularProgress} from 'react-native-circular-progress';
 import Icon from 'react-native-vector-icons/Ionicons';
 import {intlShape} from 'react-intl';
@@ -12,7 +12,11 @@ import {intlShape} from 'react-intl';
 import {Client4} from 'mattermost-redux/client';
 
 import FormattedText from 'app/components/formatted_text';
+import mattermostBucket from 'app/mattermost_bucket';
+import {getLocalFilePathFromFile} from 'app/utils/file';
 import {emptyFunction} from 'app/utils/general';
+
+import LocalConfig from 'assets/config';
 
 const {View: AnimatedView} = Animated;
 
@@ -20,12 +24,12 @@ export default class Downloader extends PureComponent {
     static propTypes = {
         deviceHeight: PropTypes.number.isRequired,
         deviceWidth: PropTypes.number.isRequired,
+        downloadPath: PropTypes.string,
         file: PropTypes.object.isRequired,
         onDownloadCancel: PropTypes.func,
         onDownloadSuccess: PropTypes.func,
         prompt: PropTypes.bool,
         show: PropTypes.bool,
-        downloadPath: PropTypes.string,
         saveToCameraRoll: PropTypes.bool,
     };
 
@@ -275,64 +279,52 @@ export default class Downloader extends PureComponent {
     startDownload = async () => {
         const {file, downloadPath, prompt, saveToCameraRoll} = this.props;
         const {data} = file;
-        let downloadFile = true;
 
         try {
             if (this.state.didCancel) {
                 this.setState({didCancel: false});
             }
 
-            let path;
-            let res;
-            if (data && data.localPath) {
-                path = data.localPath;
-                downloadFile = false;
-                this.setState({
-                    progress: 100,
-                    started: true,
-                });
-            }
+            const certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
+            const imageUrl = Client4.getFileUrl(data.id);
+            const options = {
+                session: data.id,
+                timeout: 10000,
+                indicator: true,
+                overwrite: true,
+                certificate,
+            };
 
-            if (downloadFile) {
-                const imageUrl = Client4.getFileUrl(data.id);
-                const options = {
-                    session: data.id,
-                    timeout: 10000,
-                    indicator: true,
-                    overwrite: true,
-                };
-
-                if (downloadPath && prompt) {
-                    const isDir = await RNFetchBlob.fs.isDir(downloadPath);
-                    if (!isDir) {
-                        try {
-                            await RNFetchBlob.fs.mkdir(downloadPath);
-                        } catch (error) {
-                            this.showDownloadFailedAlert();
-                            return;
-                        }
+            if (downloadPath && prompt) {
+                const isDir = await RNFetchBlob.fs.isDir(downloadPath);
+                if (!isDir) {
+                    try {
+                        await RNFetchBlob.fs.mkdir(downloadPath);
+                    } catch (error) {
+                        this.showDownloadFailedAlert();
+                        return;
                     }
-
-                    options.path = `${downloadPath}/${data.id}-${file.caption}`;
-                } else {
-                    options.fileCache = true;
-                    options.appendExt = data.extension;
                 }
 
-                this.downloadTask = RNFetchBlob.config(options).fetch('GET', imageUrl);
-                this.downloadTask.progress((received, total) => {
-                    const progress = (received / total) * 100;
-                    if (this.mounted) {
-                        this.setState({
-                            progress,
-                            started: true,
-                        });
-                    }
-                });
-
-                res = await this.downloadTask;
-                path = res.path();
+                options.path = getLocalFilePathFromFile(downloadPath, file);
+            } else {
+                options.fileCache = true;
+                options.appendExt = data.extension;
             }
+
+            this.downloadTask = RNFetchBlob.config(options).fetch('GET', imageUrl);
+            this.downloadTask.progress((received, total) => {
+                const progress = (received / total) * 100;
+                if (this.mounted) {
+                    this.setState({
+                        progress,
+                        started: true,
+                    });
+                }
+            });
+
+            const res = await this.downloadTask;
+            let path = res.path();
 
             if (saveToCameraRoll) {
                 path = await CameraRoll.saveToCameraRoll(path, 'photo');
@@ -365,7 +357,7 @@ export default class Downloader extends PureComponent {
         } catch (error) {
             // cancellation throws so we need to catch
             if (downloadPath) {
-                RNFetchBlob.fs.unlink(`${downloadPath}/${data.id}-${file.caption}`);
+                RNFetchBlob.fs.unlink(getLocalFilePathFromFile(downloadPath, file));
             }
             if (error.message !== 'cancelled' && this.mounted) {
                 this.showDownloadFailedAlert();

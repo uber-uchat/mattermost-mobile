@@ -1,7 +1,6 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
-/* eslint-disable global-require*/
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
@@ -11,8 +10,8 @@ import {
 } from 'react-native';
 
 import DeviceInfo from 'react-native-device-info';
-import {Navigation, NativeEventsReceiver} from 'react-native-navigation';
 
+import {setSystemEmojis} from 'mattermost-redux/actions/emojis';
 import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
@@ -24,10 +23,13 @@ import {loadFromPushNotification} from 'app/actions/views/root';
 import {ViewTypes} from 'app/constants';
 import PushNotifications from 'app/push_notifications';
 import {stripTrailingSlashes} from 'app/utils/url';
-import {makeStyleSheetFromTheme} from 'app/utils/theme';
+import {wrapWithContextProvider} from 'app/utils/wrap_context_provider';
 
+import ChannelLoader from 'app/components/channel_loader';
 import EmptyToolbar from 'app/components/start/empty_toolbar';
 import Loading from 'app/components/loading';
+import SafeAreaView from 'app/components/safe_area_view';
+import StatusBar from 'app/components/status_bar';
 
 const lazyLoadSelectServer = () => {
     return require('app/screens/select_server').default;
@@ -55,13 +57,14 @@ const lazyLoadReplyPushNotifications = () => {
  */
 export default class Entry extends PureComponent {
     static propTypes = {
-        config: PropTypes.object,
         theme: PropTypes.object,
         navigator: PropTypes.object,
         isLandscape: PropTypes.bool,
-        hydrationComplete: PropTypes.bool,
-        initializeModules: PropTypes.func.isRequired,
+        enableTimezone: PropTypes.bool,
+        deviceTimezone: PropTypes.string,
+        initializeModules: PropTypes.func,
         actions: PropTypes.shape({
+            autoUpdateTimezone: PropTypes.func.isRequired,
             setDeviceToken: PropTypes.func.isRequired,
         }).isRequired,
     };
@@ -105,6 +108,13 @@ export default class Entry extends PureComponent {
     };
 
     listenForHydration = () => {
+        const {
+            actions: {
+                autoUpdateTimezone,
+            },
+            enableTimezone,
+            deviceTimezone,
+        } = this.props;
         const {getState} = store;
         const state = getState();
 
@@ -115,9 +125,14 @@ export default class Entry extends PureComponent {
         if (state.views.root.hydrationComplete) {
             this.unsubscribeFromStore();
 
+            if (enableTimezone) {
+                autoUpdateTimezone(deviceTimezone);
+            }
+
             this.setAppCredentials();
             this.setStartupThemes();
             this.handleNotification();
+            this.loadSystemEmojis();
 
             if (Platform.OS === 'android') {
                 this.launchForAndroid();
@@ -152,6 +167,8 @@ export default class Entry extends PureComponent {
         if (credentials.token && credentials.url) {
             Client4.setToken(credentials.token);
             Client4.setUrl(stripTrailingSlashes(credentials.url));
+        } else if (app.waitForRehydration) {
+            app.waitForRehydration = false;
         }
 
         if (currentUserId) {
@@ -210,32 +227,35 @@ export default class Entry extends PureComponent {
         }
     };
 
+    loadSystemEmojis = () => {
+        const EmojiIndicesByAlias = require('app/utils/emojis').EmojiIndicesByAlias;
+        setSystemEmojis(EmojiIndicesByAlias);
+    };
+
     renderLogin = () => {
         const SelectServer = lazyLoadSelectServer();
-        return (
-            <SelectServer
-                navigator={this.props.navigator}
-                allowOtherServers={app.allowOtherServers}
-            />
-        );
+        const props = {
+            allowOtherServers: app.allowOtherServers,
+            navigator: this.props.navigator,
+        };
+
+        return wrapWithContextProvider(SelectServer)(props);
     };
 
     renderChannel = () => {
         const ChannelScreen = lazyLoadChannel();
+        const props = {
+            navigator: this.props.navigator,
+        };
 
-        return (
-            <ChannelScreen
-                navigator={this.props.navigator}
-            />
-        );
+        return wrapWithContextProvider(ChannelScreen, false)(props);
     };
 
     render() {
         const {
-            theme,
+            navigator,
             isLandscape,
         } = this.props;
-        const styles = getStyleFromTheme(theme);
 
         if (this.state.launchLogin) {
             return this.renderLogin();
@@ -246,6 +266,7 @@ export default class Entry extends PureComponent {
         }
 
         let toolbar = null;
+        let loading = null;
         const backgroundColor = app.appBackground ? app.appBackground : '#ffff';
         if (app.token && app.toolbarBackground) {
             const toolbarTheme = {
@@ -254,26 +275,34 @@ export default class Entry extends PureComponent {
             };
 
             toolbar = (
-                <EmptyToolbar
-                    theme={toolbarTheme}
-                    isLandscape={isLandscape}
+                <View>
+                    <StatusBar headerColor={app.toolbarBackground}/>
+                    <EmptyToolbar
+                        theme={toolbarTheme}
+                        isLandscape={isLandscape}
+                    />
+                </View>
+            );
+
+            loading = (
+                <ChannelLoader
+                    backgroundColor={backgroundColor}
+                    channelIsLoading={true}
                 />
             );
+        } else {
+            loading = <Loading/>;
         }
 
         return (
-            <View style={[styles.container, {backgroundColor}]}>
+            <SafeAreaView
+                navBarBackgroundColor={app.toolbarBackground}
+                backgroundColor={backgroundColor}
+                navigator={navigator}
+            >
                 {toolbar}
-                <Loading/>
-            </View>
+                {loading}
+            </SafeAreaView>
         );
     }
 }
-
-const getStyleFromTheme = makeStyleSheetFromTheme(() => {
-    return {
-        container: {
-            flex: 1,
-        },
-    };
-});

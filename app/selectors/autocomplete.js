@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {createSelector} from 'reselect';
 
@@ -222,5 +222,40 @@ export const filterPrivateChannels = createSelector(
         }
 
         return channels.map((c) => c.id);
+    }
+);
+
+export const makeGetMatchTermForDateMention = () => {
+    let lastMatchTerm = null;
+    let lastValue;
+    return (value) => {
+        if (value !== lastValue) {
+            const regex = Autocomplete.DATE_MENTION_SEARCH_REGEX;
+            const match = value.match(regex);
+            lastValue = value;
+            if (match) {
+                lastMatchTerm = match[1];
+            } else {
+                lastMatchTerm = null;
+            }
+        }
+        return lastMatchTerm;
+    };
+};
+
+export const getDeletedPublicChannelsIds = createSelector(
+    getMyChannels,
+    getOtherChannels,
+    (myChannels, otherChannels) => {
+        const channels = myChannels.filter((c) => {
+            return (c.type === General.OPEN_CHANNEL);
+        }).concat(otherChannels);
+
+        return new Set(channels.reduce((acc, c) => {
+            if (c.delete_at !== 0) {
+                acc.push(c.id);
+            }
+            return acc;
+        }, []));
     }
 );

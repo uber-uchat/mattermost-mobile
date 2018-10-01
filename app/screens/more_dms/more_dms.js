@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -7,6 +7,7 @@ import {injectIntl, intlShape} from 'react-intl';
 import {
     InteractionManager,
     Platform,
+    StyleSheet,
     View,
 } from 'react-native';
 
@@ -18,12 +19,13 @@ import {displayUsername, filterProfilesMatchingTerm} from 'mattermost-redux/util
 import CustomFlatList from 'app/components/custom_flat_list';
 import CustomSectionList from 'app/components/custom_section_list';
 import UserListRow from 'app/components/custom_list/user_list_row';
+import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import Loading from 'app/components/loading';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
 import {alertErrorWithFallback} from 'app/utils/general';
 import {loadingText} from 'app/utils/member_list';
-import {changeOpacity, makeStyleSheetFromTheme, setNavigatorStyles} from 'app/utils/theme';
+import {changeOpacity, setNavigatorStyles} from 'app/utils/theme';
 
 import SelectedUsers from './selected_users';
 
@@ -95,10 +97,17 @@ class MoreDirectMessages extends PureComponent {
             nextProps.getRequest.status === RequestStatus.SUCCESS) {
             const profiles = this.sliceProfiles(nextProps.profiles);
             this.setState({profiles, showNoResults: true});
-        } else if (this.state.searching &&
-            nextProps.searchRequest.status === RequestStatus.SUCCESS) {
+        } else if (
+            this.state.searching &&
+            nextProps.searchRequest.status === RequestStatus.SUCCESS
+        ) {
+            let profiles = nextProps.profiles;
+            if (this.state.selectedCount > 0) {
+                profiles = this.removeCurrentUserFromProfiles(profiles);
+            }
+
             const exactMatches = [];
-            let results = filterProfilesMatchingTerm(nextProps.profiles, this.state.term).filter((p) => {
+            const results = filterProfilesMatchingTerm(profiles, this.state.term).filter((p) => {
                 if (p.username === this.state.term || p.username.startsWith(this.state.term)) {
                     exactMatches.push(p);
                     return false;
@@ -106,10 +115,6 @@ class MoreDirectMessages extends PureComponent {
 
                 return true;
             });
-
-            if (this.state.selectedCount > 0) {
-                results = this.removeCurrentUserFromProfiles(results);
-            }
 
             this.setState({profiles: [...exactMatches, ...results], showNoResults: true});
         }
@@ -182,11 +187,11 @@ class MoreDirectMessages extends PureComponent {
                 this.searchProfiles(term.toLowerCase());
             }, General.SEARCH_TIMEOUT_MILLISECONDS);
         } else {
-            this.cancelSearch();
+            this.clearSearch();
         }
     };
 
-    cancelSearch = () => {
+    clearSearch = () => {
         const {profiles} = this.props;
 
         let newProfiles;
@@ -209,7 +214,7 @@ class MoreDirectMessages extends PureComponent {
             return this.props.actions.getProfiles(page, General.PROFILE_CHUNK_SIZE);
         }
 
-        return this.props.actions.getProfilesInTeam(page, General.PROFILE_CHUNK_SIZE);
+        return this.props.actions.getProfilesInTeam(this.props.currentTeamId, page, General.PROFILE_CHUNK_SIZE);
     };
 
     searchProfiles = (term) => {
@@ -251,8 +256,6 @@ class MoreDirectMessages extends PureComponent {
         } else {
             this.setState((prevState) => {
                 const {
-                    profiles,
-                    selectedCount,
                     selectedIds,
                 } = prevState;
 
@@ -264,24 +267,17 @@ class MoreDirectMessages extends PureComponent {
                 }
 
                 const newSelectedIds = Object.assign({}, selectedIds);
-
-                let newProfiles = profiles;
-                if (wasSelected) {
-                    Reflect.deleteProperty(newSelectedIds, id);
-                    if (selectedCount === 1) {
-                        newProfiles = this.sliceProfiles(this.props.profiles);
-                    }
-                } else {
+                if (!wasSelected) {
                     newSelectedIds[id] = true;
-                    newProfiles = this.removeCurrentUserFromProfiles(profiles);
                 }
 
                 return {
-                    profiles: newProfiles,
                     selectedIds: newSelectedIds,
                     selectedCount: Object.keys(newSelectedIds).length,
                 };
             });
+
+            this.clearSearch();
         }
     };
 
@@ -382,11 +378,12 @@ class MoreDirectMessages extends PureComponent {
     makeDirectChannel = async (id) => {
         const {
             actions,
+            allProfiles,
             intl,
             teammateNameDisplay,
         } = this.props;
 
-        const user = this.state.profiles.find(p => p.id === id);
+        const user = allProfiles[id];
 
         const displayName = displayUsername(user, teammateNameDisplay);
         actions.setChannelDisplayName(displayName);
@@ -450,7 +447,6 @@ class MoreDirectMessages extends PureComponent {
         const isLoading = (
             getRequest.status === RequestStatus.STARTED) || (getRequest.status === RequestStatus.NOT_STARTED) ||
             (searchRequest.status === RequestStatus.STARTED);
-        const style = getStyleFromTheme(theme);
 
         if (loadingChannel) {
             return (
@@ -506,7 +502,7 @@ class MoreDirectMessages extends PureComponent {
         }
 
         return (
-            <View style={style.container}>
+            <KeyboardLayout>
                 <StatusBar/>
                 <View style={style.searchContainer}>
                     <SearchBar
@@ -522,7 +518,7 @@ class MoreDirectMessages extends PureComponent {
                         titleCancelColor={theme.centerChannelColor}
                         onChangeText={this.onSearch}
                         onSearchButtonPress={this.onSearch}
-                        onCancelButtonPress={this.cancelSearch}
+                        onCancelButtonPress={this.clearSearch}
                         autoCapitalize='none'
                         value={term}
                     />
@@ -536,21 +532,15 @@ class MoreDirectMessages extends PureComponent {
                     />
                 </View>
                 {listComponent}
-            </View>
+            </KeyboardLayout>
         );
     }
 }
 
-const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
-    return {
-        container: {
-            flex: 1,
-            backgroundColor: theme.centerChannelBg,
-        },
-        searchContainer: {
-            marginVertical: 5,
-        },
-    };
+const style = StyleSheet.create({
+    searchContainer: {
+        marginVertical: 5,
+    },
 });
 
 export default injectIntl(MoreDirectMessages);

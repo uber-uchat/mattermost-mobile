@@ -1,22 +1,31 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
+    Dimensions,
     Image,
     Linking,
+    Platform,
     Text,
+    TouchableWithoutFeedback,
     View,
 } from 'react-native';
 
-import FormattedText from 'app/components/formatted_text';
 import Markdown from 'app/components/markdown';
+import ProgressiveImage from 'app/components/progressive_image';
+import ShowMoreButton from 'app/components/show_more_button';
+
 import CustomPropTypes from 'app/constants/custom_prop_types';
+import ImageCacheManager from 'app/utils/image_cache_manager';
+import {previewImageAtIndex, calculateDimensions} from 'app/utils/images';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 import InteractiveAction from './interactive_action';
 
+const VIEWPORT_IMAGE_CONTAINER_OFFSET = 10;
+const VIEWPORT_IMAGE_OFFSET = 32;
 const STATUS_COLORS = {
     good: '#00c100',
     warning: '#dede01',
@@ -39,7 +48,25 @@ export default class MessageAttachment extends PureComponent {
     constructor(props) {
         super(props);
 
-        this.state = this.getInitState();
+        this.state = {
+            collapsed: true,
+            imageUri: null,
+            isLongText: false,
+        };
+    }
+
+    componentWillMount() {
+        if (this.props.attachment.image_url) {
+            ImageCacheManager.cache(null, this.props.attachment.image_url, this.setImageUrl);
+        }
+    }
+
+    componentDidMount() {
+        this.mounted = true;
+    }
+
+    componentWillUnmount() {
+        this.mounted = false;
     }
 
     getActionView = (style) => {
@@ -73,29 +100,16 @@ export default class MessageAttachment extends PureComponent {
         );
     };
 
-    getCollapsedText = () => {
-        let text = this.props.attachment.text || '';
-        if ((text.match(/\n/g) || []).length >= 5) {
-            text = text.split('\n').splice(0, 5).join('\n');
-        } else if (text.length > 400) {
-            text = text.substr(0, 400);
+    measurePost = (event) => {
+        const {height} = event.nativeEvent.layout;
+        const {height: deviceHeight} = Dimensions.get('window');
+
+        if (height >= (deviceHeight * 0.6)) {
+            this.setState({
+                isLongText: true,
+                maxHeight: (deviceHeight * 0.4),
+            });
         }
-
-        return text;
-    };
-
-    getInitState = () => {
-        const shouldCollapse = this.shouldCollapse();
-        const uncollapsedText = this.props.attachment.text;
-        const collapsedText = shouldCollapse ? this.getCollapsedText() : uncollapsedText;
-
-        return {
-            shouldCollapse,
-            collapsedText,
-            uncollapsedText,
-            text: shouldCollapse ? collapsedText : uncollapsedText,
-            collapsed: shouldCollapse,
-        };
     };
 
     getFieldsTable = (style) => {
@@ -189,23 +203,72 @@ export default class MessageAttachment extends PureComponent {
         );
     };
 
+    handleLayout = (event) => {
+        if (!this.maxImageWidth) {
+            const {height, width} = event.nativeEvent.layout;
+            const viewPortWidth = width > height ? height : width;
+            this.maxImageWidth = viewPortWidth - VIEWPORT_IMAGE_OFFSET;
+        }
+    };
+
+    handlePreviewImage = () => {
+        const {attachment, navigator} = this.props;
+        const {
+            imageUri: uri,
+            originalHeight,
+            originalWidth,
+        } = this.state;
+        const link = attachment.image_url;
+        let filename = link.substring(link.lastIndexOf('/') + 1, link.indexOf('?') === -1 ? link.length : link.indexOf('?'));
+        const extension = filename.split('.').pop();
+
+        if (extension === filename) {
+            const ext = filename.indexOf('.') === -1 ? '.png' : filename.substring(filename.lastIndexOf('.'));
+            filename = `${filename}${ext}`;
+        }
+
+        const files = [{
+            caption: filename,
+            dimensions: {
+                height: originalHeight,
+                width: originalWidth,
+            },
+            source: {uri},
+            data: {
+                localPath: uri,
+            },
+        }];
+        previewImageAtIndex(navigator, [this.refs.item], 0, files);
+    };
+
     openLink = (link) => {
         if (Linking.canOpenURL(link)) {
             Linking.openURL(link);
         }
     };
 
-    shouldCollapse = () => {
-        const text = this.props.attachment.text || '';
-        return (text.match(/\n/g) || []).length >= 5 || text.length > 400;
+    setImageUrl = (imageURL) => {
+        let imageUri = imageURL;
+
+        if (Platform.OS === 'android') {
+            imageUri = `file://${imageURL}`;
+        }
+
+        Image.getSize(imageUri, (width, height) => {
+            const dimensions = calculateDimensions(height, width, this.maxImageWidth);
+            if (this.mounted) {
+                this.setState({
+                    ...dimensions,
+                    originalWidth: width,
+                    originalHeight: height,
+                    imageUri,
+                });
+            }
+        }, () => null);
     };
 
     toggleCollapseState = () => {
-        const state = this.state;
-        const text = state.collapsed ? state.uncollapsedText : state.collapsedText;
-        const collapsed = !state.collapsed;
-
-        this.setState({collapsed, text});
+        this.setState((prevState) => ({collapsed: !prevState.collapsed}));
     };
 
     render() { // eslint-disable-line complexity
@@ -218,6 +281,15 @@ export default class MessageAttachment extends PureComponent {
             onPermalinkPress,
             theme,
         } = this.props;
+
+        const {
+            height,
+            imageUri,
+            width,
+            collapsed,
+            isLongText,
+            maxHeight,
+        } = this.state;
 
         const style = getStyleSheet(theme);
 
@@ -314,41 +386,31 @@ export default class MessageAttachment extends PureComponent {
 
         let text;
         if (attachment.text) {
-            let moreLess;
-            if (this.state.shouldCollapse) {
-                if (this.state.collapsed) {
-                    moreLess = (
-                        <FormattedText
-                            id='post_attachment.more'
-                            defaultMessage='Show more...'
-                            onPress={this.toggleCollapseState}
-                            style={style.moreLess}
-                        />
-                    );
-                } else {
-                    moreLess = (
-                        <FormattedText
-                            id='post_attachment.collapse'
-                            defaultMessage='Show less...'
-                            onPress={this.toggleCollapseState}
-                            style={style.moreLess}
-                        />
-                    );
-                }
-            }
-
             text = (
-                <View style={topStyle}>
-                    <Markdown
-                        baseTextStyle={baseTextStyle}
-                        textStyles={textStyles}
-                        blockStyles={blockStyles}
-                        value={this.state.text}
-                        navigator={navigator}
-                        onLongPress={this.props.onLongPress}
-                        onPermalinkPress={onPermalinkPress}
+                <View
+                    onLayout={this.measurePost}
+                    style={topStyle}
+                >
+                    <View
+                        style={[(isLongText && collapsed && {maxHeight, overflow: 'hidden'})]}
+                        removeClippedSubviews={isLongText && collapsed && Platform.OS !== 'android'}
+                    >
+                        <Markdown
+                            baseTextStyle={baseTextStyle}
+                            textStyles={textStyles}
+                            blockStyles={blockStyles}
+                            value={attachment.text}
+                            navigator={navigator}
+                            onLongPress={this.props.onLongPress}
+                            onPermalinkPress={onPermalinkPress}
+                        />
+                    </View>
+                    {isLongText &&
+                    <ShowMoreButton
+                        onPress={this.toggleCollapseState}
+                        showMore={collapsed}
                     />
-                    {moreLess}
+                    }
                 </View>
             );
         }
@@ -357,13 +419,23 @@ export default class MessageAttachment extends PureComponent {
         const actions = this.getActionView(style);
 
         let image;
-        if (attachment.image_url) {
+        if (imageUri) {
             image = (
-                <View style={style.imageContainer}>
-                    <Image
-                        source={{uri: attachment.image_url}}
-                        style={style.image}
-                    />
+                <View
+                    ref='item'
+                    style={[style.imageContainer, {width: this.maxImageWidth + VIEWPORT_IMAGE_CONTAINER_OFFSET}]}
+                >
+                    <TouchableWithoutFeedback
+                        onPress={this.handlePreviewImage}
+                        style={{height, width}}
+                    >
+                        <ProgressiveImage
+                            ref='image'
+                            style={{height, width}}
+                            imageUri={imageUri}
+                            resizeMode='contain'
+                        />
+                    </TouchableWithoutFeedback>
                 </View>
             );
         }
@@ -371,7 +443,10 @@ export default class MessageAttachment extends PureComponent {
         return (
             <View>
                 {preText}
-                <View style={[style.container, style.border, borderStyle]}>
+                <View
+                    onLayout={this.handleLayout}
+                    style={[style.container, style.border, borderStyle]}
+                >
                     <View style={{flex: 1, flexDirection: 'row'}}>
                         {author}
                     </View>
@@ -437,10 +512,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             height: 45,
             width: 45,
         },
-        moreLess: {
-            color: theme.linkColor,
-            fontSize: 12,
-        },
         headingContainer: {
             alignSelf: 'stretch',
             flexDirection: 'row',
@@ -459,10 +530,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             borderWidth: 1,
             borderRadius: 2,
             marginTop: 5,
-        },
-        image: {
-            flex: 1,
-            height: 50,
+            padding: 5,
         },
         actionsContainer: {
             flex: 1,

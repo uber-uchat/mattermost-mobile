@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import {View} from 'react-native';
@@ -16,6 +16,7 @@ export default class MessageAttachments extends PureComponent {
         blockStyles: PropTypes.object,
         postId: PropTypes.string.isRequired,
         navigator: PropTypes.object.isRequired,
+        onHashtagPress: PropTypes.func,
         onLongPress: PropTypes.func.isRequired,
         onPermalinkPress: PropTypes.func,
         theme: PropTypes.object,
@@ -28,6 +29,7 @@ export default class MessageAttachments extends PureComponent {
             baseTextStyle,
             blockStyles,
             navigator,
+            onHashtagPress,
             onLongPress,
             onPermalinkPress,
             postId,
@@ -44,6 +46,7 @@ export default class MessageAttachments extends PureComponent {
                     blockStyles={blockStyles}
                     key={'att_' + i}
                     navigator={navigator}
+                    onHashtagPress={onHashtagPress}
                     onLongPress={onLongPress}
                     onPermalinkPress={onPermalinkPress}
                     postId={postId}

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -16,6 +16,7 @@ import AtMention from './at_mention';
 import ChannelMention from './channel_mention';
 import EmojiSuggestion from './emoji_suggestion';
 import SlashSuggestion from './slash_suggestion';
+import DateSuggestion from './date_suggestion';
 
 export default class Autocomplete extends PureComponent {
     static propTypes = {
@@ -26,11 +27,13 @@ export default class Autocomplete extends PureComponent {
         isSearch: PropTypes.bool,
         theme: PropTypes.object.isRequired,
         value: PropTypes.string,
+        enableDateSuggestion: PropTypes.bool.isRequired,
     };
 
     static defaultProps = {
         isSearch: false,
         cursorPosition: 0,
+        enableDateSuggestion: false,
     };
 
     state = {
@@ -38,6 +41,7 @@ export default class Autocomplete extends PureComponent {
         channelMentionCount: 0,
         emojiCount: 0,
         commandCount: 0,
+        dateCount: 0,
         keyboardOffset: 0,
     };
 
@@ -57,6 +61,10 @@ export default class Autocomplete extends PureComponent {
         this.setState({commandCount});
     };
 
+    handleIsDateFilterChange = (dateCount) => {
+        this.setState({dateCount});
+    };
+
     componentWillMount() {
         this.keyboardDidShowListener = Keyboard.addListener('keyboardDidShow', this.keyboardDidShow);
         this.keyboardDidHideListener = Keyboard.addListener('keyboardDidHide', this.keyboardDidHide);
@@ -70,11 +78,11 @@ export default class Autocomplete extends PureComponent {
     keyboardDidShow = (e) => {
         const {height} = e.endCoordinates;
         this.setState({keyboardOffset: height});
-    }
+    };
 
     keyboardDidHide = () => {
         this.setState({keyboardOffset: 0});
-    }
+    };
 
     listHeight() {
         let offset = Platform.select({ios: 65, android: 75});
@@ -97,8 +105,8 @@ export default class Autocomplete extends PureComponent {
         }
 
         // We always need to render something, but we only draw the borders when we have results to show
-        const {atMentionCount, channelMentionCount, emojiCount, commandCount} = this.state;
-        if (atMentionCount + channelMentionCount + emojiCount + commandCount > 0) {
+        const {atMentionCount, channelMentionCount, emojiCount, commandCount, dateCount} = this.state;
+        if (atMentionCount + channelMentionCount + emojiCount + commandCount + dateCount > 0) {
             if (this.props.isSearch) {
                 wrapperStyle.push(style.bordersSearch);
             } else {
@@ -106,6 +114,7 @@ export default class Autocomplete extends PureComponent {
             }
         }
         const listHeight = this.listHeight();
+
         return (
             <View style={wrapperStyle}>
                 <View style={containerStyle}>
@@ -127,6 +136,12 @@ export default class Autocomplete extends PureComponent {
                         onResultCountChange={this.handleCommandCountChange}
                         {...this.props}
                     />
+                    {(this.props.isSearch && this.props.enableDateSuggestion) &&
+                    <DateSuggestion
+                        onResultCountChange={this.handleIsDateFilterChange}
+                        {...this.props}
+                    />
+                    }
                 </View>
             </View>
         );

@@ -1,16 +1,17 @@
-// Copyright (c) 2018-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import RNToolTip from 'react-native-tooltip';
 
-import {setToolTipVisible} from 'app/utils/tooltip';
+import {setToolTipVisible, getToolTipVisible} from 'app/utils/tooltip';
 
 export default class ToolTip extends PureComponent {
     static propTypes = {
         onHide: PropTypes.func,
         onShow: PropTypes.func,
+        actions: PropTypes.array.isRequired,
     };
 
     handleHide = () => {
@@ -38,6 +39,13 @@ export default class ToolTip extends PureComponent {
             this.refs.toolTip.showMenu();
         }
     };
+
+    componentDidUpdate(prevProps) {
+        if (prevProps.actions.length !== this.props.actions.length && getToolTipVisible()) {
+            this.refs.toolTip.hideMenu();
+            setTimeout(() => this.refs.toolTip.showMenu(), 1);
+        }
+    }
 
     render() {
         return (

@@ -1,5 +1,5 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -52,6 +52,7 @@ export default class LongPost extends PureComponent {
         managedConfig: PropTypes.object,
         navigator: PropTypes.object,
         onAddReaction: PropTypes.func,
+        onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         postId: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
@@ -143,7 +144,6 @@ export default class LongPost extends PureComponent {
                         hideOptionsContext={emptyFunction}
                         isFailed={false}
                         onLongPress={emptyFunction}
-                        onPress={this.handlePress}
                         postId={postId}
                         toggleSelected={emptyFunction}
                         navigator={navigator}
@@ -179,6 +179,7 @@ export default class LongPost extends PureComponent {
             hasReactions,
             managedConfig,
             navigator,
+            onHashtagPress,
             onPermalinkPress,
             postId,
             theme,
@@ -240,6 +241,7 @@ export default class LongPost extends PureComponent {
                                 onPress={this.handlePress}
                                 isSearchResult={false}
                                 showLongPost={true}
+                                onHashtagPress={onHashtagPress}
                                 onPermalinkPress={onPermalinkPress}
                                 navigator={navigator}
                                 managedConfig={managedConfig}

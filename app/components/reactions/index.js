@@ -1,5 +1,5 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {connect} from 'react-redux';
 import {bindActionCreators} from 'redux';
@@ -21,20 +21,25 @@ function makeMapStateToProps() {
     const getReactionsForPostSelector = makeGetReactionsForPost();
     return function mapStateToProps(state, ownProps) {
         const post = getPost(state, ownProps.postId);
-        const channel = getChannel(state, post.channel_id) || {};
+        const channelId = post ? post.channel_id : '';
+        const channel = getChannel(state, channelId) || {};
         const teamId = channel.team_id;
+        const channelIsArchived = channel.delete_at !== 0;
 
         let canAddReaction = true;
         let canRemoveReaction = true;
-        if (hasNewPermissions(state)) {
+        if (channelIsArchived) {
+            canAddReaction = false;
+            canRemoveReaction = false;
+        } else if (hasNewPermissions(state)) {
             canAddReaction = haveIChannelPermission(state, {
                 team: teamId,
-                channel: post.channel_id,
+                channel: channelId,
                 permission: Permissions.ADD_REACTION,
             });
             canRemoveReaction = haveIChannelPermission(state, {
                 team: teamId,
-                channel: post.channel_id,
+                channel: channelId,
                 permission: Permissions.REMOVE_REACTION,
             });
         }

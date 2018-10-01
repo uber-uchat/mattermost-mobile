@@ -1,21 +1,14 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
+    Image,
     Text,
     View,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/FontAwesome';
-
-import {
-    ArchiveIcon,
-    AwayAvatar,
-    DndAvatar,
-    OfflineAvatar,
-    OnlineAvatar,
-} from 'app/components/status_icons';
 
 import {General} from 'mattermost-redux/constants';
 
@@ -32,6 +25,7 @@ export default class ChannelIcon extends React.PureComponent {
         teammateDeletedAt: PropTypes.number,
         theme: PropTypes.object.isRequired,
         type: PropTypes.string.isRequired,
+        isArchived: PropTypes.bool.isRequired,
     };
 
     static defaultProps = {
@@ -52,6 +46,7 @@ export default class ChannelIcon extends React.PureComponent {
             teammateDeletedAt,
             theme,
             type,
+            isArchived,
         } = this.props;
         const style = getStyleSheet(theme);
 
@@ -83,8 +78,14 @@ export default class ChannelIcon extends React.PureComponent {
         }
 
         let icon;
-
-        if (type === General.OPEN_CHANNEL) {
+        if (isArchived) {
+            icon = (
+                <Icon
+                    name='archive'
+                    style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                />
+            );
+        } else if (type === General.OPEN_CHANNEL) {
             icon = (
                 <Icon
                     name='globe'
@@ -108,47 +109,42 @@ export default class ChannelIcon extends React.PureComponent {
             );
         } else if (type === General.DM_CHANNEL && teammateDeletedAt) {
             icon = (
-                <ArchiveIcon
-                    width={size}
-                    height={size}
-                    color={offlineColor}
+                <Image
+                    source={require('assets/images/status/archive_avatar.png')}
+                    style={{width: size, height: size, tintColor: offlineColor}}
                 />
             );
         } else if (type === General.DM_CHANNEL) {
             switch (status) {
             case General.AWAY:
                 icon = (
-                    <AwayAvatar
-                        width={size}
-                        height={size}
-                        color={theme.awayIndicator}
+                    <Image
+                        source={require('assets/images/status/away_avatar.png')}
+                        style={{width: size, height: size, tintColor: theme.awayIndicator}}
                     />
                 );
                 break;
             case General.DND:
                 icon = (
-                    <DndAvatar
-                        width={size}
-                        height={size}
-                        color={theme.dndIndicator}
+                    <Image
+                        source={require('assets/images/status/dnd_avatar.png')}
+                        style={{width: size, height: size, tintColor: theme.dndIndicator}}
                     />
                 );
                 break;
             case General.ONLINE:
                 icon = (
-                    <OnlineAvatar
-                        width={size}
-                        height={size}
-                        color={theme.onlineIndicator}
+                    <Image
+                        source={require('assets/images/status/online_avatar.png')}
+                        style={{width: size, height: size, tintColor: theme.onlineIndicator}}
                     />
                 );
                 break;
             default:
                 icon = (
-                    <OfflineAvatar
-                        width={size}
-                        height={size}
-                        color={offlineColor}
+                    <Image
+                        source={require('assets/images/status/offline_avatar.png')}
+                        style={{width: size, height: size, tintColor: offlineColor}}
                     />
                 );
                 break;

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {PureComponent} from 'react';
 import {Platform} from 'react-native';
@@ -25,16 +25,18 @@ export default class NotificationSettingsMobileBase extends PureComponent {
 
         const {currentUser} = props;
         const notifyProps = getNotificationProps(currentUser);
+        const notifyPreferences = this.getNotificationPreferences(props);
 
         this.state = {
             ...notifyProps,
-            ...this.getNotificationPreferences(props),
+            ...notifyPreferences,
+            newPush: notifyProps.push,
+            newPushStatus: notifyProps.push_status,
+            newSound: notifyPreferences.sound,
             showMobilePushModal: false,
             showMobilePushStatusModal: false,
             showMobileSoundsModal: false,
         };
-        this.push = this.state.push;
-        this.pushStatus = this.state.push_status;
         props.navigator.setOnNavigatorEvent(this.onNavigatorEvent);
     }
 
@@ -100,7 +102,6 @@ export default class NotificationSettingsMobileBase extends PureComponent {
             channel,
             comments,
             desktop,
-            desktop_duration: desktopDuration,
             email,
             first_name: firstName,
             mention_keys: mentionKeys,
@@ -112,7 +113,6 @@ export default class NotificationSettingsMobileBase extends PureComponent {
             channel,
             comments,
             desktop,
-            desktop_duration: desktopDuration,
             email,
             first_name: firstName,
             mention_keys: mentionKeys,

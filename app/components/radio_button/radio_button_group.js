@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -17,34 +17,30 @@ export default class RadioButtonGroup extends PureComponent {
         options: []
     };
 
-    state = {};
-
     constructor(props) {
         super(props);
 
-        this.selected = null;
-        if (this.props.options.length) {
-            this.props.options.forEach((option) => {
-                const {
-                    value,
-                    checked,
-                } = option;
+        this.state = {
+            selected: this.getSelectedValue(props.options),
+        };
+    }
 
-                if (!this.state.selected && checked) {
-                    this.selected = value;
-                }
-            });
+    componentWillReceiveProps(nextProps) {
+        if (this.props.options !== nextProps.options) {
+            this.setState({selected: this.getSelectedValue(nextProps.options)});
+        }
+    }
+
+    getSelectedValue = (options = []) => {
+        let selected;
+        for (const option in options) {
+            if (option.checked) {
+                selected = option.value;
+                break;
+            }
         }
 
-        this.state = {selected: this.selected};
-    }
-
-    get value() {
-        return this.state.selected;
-    }
-
-    set value(value) {
-        this.onChange(value);
+        return selected;
     }
 
     onChange = (value) => {
@@ -81,7 +77,7 @@ export default class RadioButtonGroup extends PureComponent {
                         label={label}
                         disabled={disabled}
                         onCheck={this.onChange}
-                        checked={this.state.selected && value === this.state.selected}
+                        checked={option.checked}
                     />
                 );
             });

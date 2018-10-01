@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -143,6 +143,7 @@ export default class ClientUpgradeListener extends PureComponent {
     };
 
     handleLearnMore = () => {
+        const {theme} = this.props;
         const {intl} = this.context;
         this.props.navigator.dismissModal({animationType: 'none'});
 
@@ -153,6 +154,10 @@ export default class ClientUpgradeListener extends PureComponent {
                 navBarHidden: false,
                 statusBarHidden: false,
                 statusBarHideWithNavBar: false,
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg,
             },
             navigatorButtons: {
                 leftButtons: [{

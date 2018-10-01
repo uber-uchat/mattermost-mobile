@@ -1,157 +1,133 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     Platform,
     View,
-    Animated,
-    Easing,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import Placeholder from 'rn-placeholder';
 
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
+
+import CustomPropTypes from 'app/constants/custom_prop_types';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
-
-const GRADIENT_START_END = 0;
-const GRADIENT_MIDDLE = 0.8;
-
-const START_VALUE = 0;
-const MIDDLE_VALUE = 50;
-const END_VALUE = 100;
-const DURATION = 2000;
 
 export default class ChannelLoader extends PureComponent {
     static propTypes = {
+        actions: PropTypes.shape({
+            handleSelectChannel: PropTypes.func.isRequired,
+            markChannelAsViewed: PropTypes.func.isRequired,
+            markChannelAsRead: PropTypes.func.isRequired,
+            setChannelLoading: PropTypes.func.isRequired,
+        }).isRequired,
+        backgroundColor: PropTypes.string,
         channelIsLoading: PropTypes.bool.isRequired,
-        deviceWidth: PropTypes.number.isRequired,
+        maxRows: PropTypes.number,
+        style: CustomPropTypes.Style,
         theme: PropTypes.object.isRequired,
     };
 
-    constructor() {
-        super();
-        this.animation = new Animated.Value(0);
+    static defaultProps = {
+        maxRows: 6,
+    };
+
+    state = {
+        switch: false,
+    };
+
+    static getDerivedStateFromProps(nextProps, prevState) {
+        if (!nextProps.channelIsLoading && prevState.switch) {
+            return {
+                switch: false,
+                channel: null,
+                currentChannelId: null,
+            };
+        }
+
+        return null;
     }
 
     componentDidMount() {
-        if (this.props.channelIsLoading) {
-            this.start();
-        }
+        EventEmitter.on('switch_channel', this.handleChannelSwitch);
     }
 
     componentWillUnmount() {
-        this.animation.stopAnimation();
+        EventEmitter.off('switch_channel', this.handleChannelSwitch);
     }
 
-    componentWillReceiveProps(nextProps) {
-        if (nextProps.channelIsLoading !== this.props.channelIsLoading) {
-            if (nextProps.channelIsLoading) {
-                this.start();
-            } else {
-                this.animation.stopAnimation();
-            }
+    componentDidUpdate() {
+        if (this.state.switch) {
+            const {
+                handleSelectChannel,
+                markChannelAsRead,
+                markChannelAsViewed,
+                setChannelLoading,
+            } = this.props.actions;
+
+            const {channel, currentChannelId} = this.state;
+
+            setTimeout(() => {
+                handleSelectChannel(channel.id);
+
+                // mark the channel as viewed after all the frame has flushed
+                markChannelAsRead(channel.id, currentChannelId);
+                if (channel.id !== currentChannelId) {
+                    markChannelAsViewed(currentChannelId);
+                }
+
+                setChannelLoading(false);
+            }, 250);
         }
     }
 
-    start() {
-        this.animation.setValue(START_VALUE);
-        Animated.sequence([
-            Animated.timing(this.animation, {
-                toValue: END_VALUE,
-                duration: DURATION,
-                easing: Easing.linear,
-            }),
-        ]).start((animation) => {
-            if (animation.finished) {
-                this.start();
-            }
-        });
-    }
-
-    buildSections({key, style, top, bg}) {
-        const left = this.animation.interpolate({
-            inputRange: [START_VALUE, END_VALUE],
-            outputRange: ['-10%', '50%'],
-        });
-
-        const opacity = this.animation.interpolate({
-            inputRange: [START_VALUE, MIDDLE_VALUE, END_VALUE],
-            outputRange: [GRADIENT_START_END, GRADIENT_MIDDLE, GRADIENT_START_END],
-        });
-
-        const bodyPosLeft = this.animation.interpolate({
-            inputRange: [START_VALUE, END_VALUE],
-            outputRange: ['-20%', '80%'],
-        });
-
-        const AnimatedGradient = Animated.createAnimatedComponent(LinearGradient);
-
+    buildSections({key, style, bg, color}) {
         return (
             <View
                 key={key}
-                style={[style.section, (top && {marginTop: Platform.OS === 'android' ? 0 : -15, paddingTop: 10})]}
+                style={[style.section, {backgroundColor: bg}]}
             >
-                <View style={style.avatar}/>
-                <View style={style.sectionMessage}>
-                    <View>
-                        <View style={[style.messageText]}/>
-                        <AnimatedGradient
-                            start={{x: 0.0, y: 1.0}}
-                            end={{x: 1.0, y: 1.0}}
-                            colors={[
-                                changeOpacity(bg, GRADIENT_START_END),
-                                changeOpacity(bg, GRADIENT_MIDDLE),
-                                changeOpacity(bg, GRADIENT_START_END),
-                            ]}
-                            locations={[0, 0.5, 1]}
-                            style={[style.gradientText, {left, opacity}]}
-                        />
-                    </View>
-                    <View>
-                        <View style={[style.messageText, {width: '100%'}]}/>
-                        <AnimatedGradient
-                            start={{x: 0.0, y: 1.0}}
-                            end={{x: 1.0, y: 1.0}}
-                            colors={[
-                                changeOpacity(bg, GRADIENT_START_END),
-                                changeOpacity(bg, GRADIENT_MIDDLE),
-                                changeOpacity(bg, GRADIENT_START_END),
-                            ]}
-                            locations={[0, 0.5, 1]}
-                            style={[style.gradientText, {left: bodyPosLeft, opacity}]}
-                        />
-                    </View>
-                    <View>
-                        <View style={[style.messageText, {width: '100%'}]}/>
-                        <AnimatedGradient
-                            start={{x: 0.0, y: 1.0}}
-                            end={{x: 1.0, y: 1.0}}
-                            colors={[
-                                changeOpacity(bg, GRADIENT_START_END),
-                                changeOpacity(bg, GRADIENT_MIDDLE),
-                                changeOpacity(bg, GRADIENT_START_END),
-                            ]}
-                            locations={[0, 0.5, 1]}
-                            style={[style.gradientText, {left: bodyPosLeft, opacity}]}
-                        />
-                    </View>
-                </View>
+                <Placeholder.ImageContent
+                    size={32}
+                    animate='fade'
+                    lineNumber={3}
+                    lineSpacing={5}
+                    firstLineWidth='80%'
+                    hasRadius={true}
+                    textSize={14}
+                    color={changeOpacity(color, 0.2)}
+                />
             </View>
         );
     }
 
+    handleChannelSwitch = (channel, currentChannelId) => {
+        if (channel.id === currentChannelId) {
+            this.props.actions.setChannelLoading(false);
+        } else {
+            this.setState({switch: true, channel, currentChannelId});
+        }
+    };
+
     render() {
-        const {channelIsLoading, deviceWidth, theme} = this.props;
+        const {channelIsLoading, maxRows, style: styleProp, theme} = this.props;
 
         if (!channelIsLoading) {
             return null;
         }
 
         const style = getStyleSheet(theme);
+        const bg = this.props.backgroundColor || theme.centerChannelBg;
 
         return (
-            <View style={[style.container, {width: deviceWidth}]}>
-                {Array(20).fill().map((item, index) => this.buildSections({key: index, style, top: index === 0, bg: theme.centerChannelBg}))}
+            <View style={[style.container, styleProp, {backgroundColor: bg}]}>
+                {Array(maxRows).fill().map((item, index) => this.buildSections({
+                    key: index,
+                    style,
+                    bg,
+                    color: theme.centerChannelColor,
+                }))}
             </View>
         );
     }
@@ -160,47 +136,23 @@ export default class ChannelLoader extends PureComponent {
 const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
-            backgroundColor: theme.centerChannelBg,
             flex: 1,
-            position: 'absolute',
             ...Platform.select({
                 android: {
                     top: 0,
                 },
                 ios: {
-                    top: 15,
+                    paddingTop: 15,
                 },
             }),
-        },
-        avatar: {
-            backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
-            borderRadius: 16,
-            height: 32,
-            width: 32,
-        },
-        gradientText: {
-            backgroundColor: changeOpacity(theme.centerChannelBg, 0.2),
-            height: 10,
-            marginBottom: 10,
-            position: 'absolute',
-            width: '40%',
         },
         section: {
             backgroundColor: theme.centerChannelBg,
             flexDirection: 'row',
+            flex: 1,
             paddingLeft: 12,
             paddingRight: 20,
             marginVertical: 10,
-        },
-        sectionMessage: {
-            marginLeft: 12,
-            flex: 1,
-        },
-        messageText: {
-            width: '80%',
-            backgroundColor: changeOpacity(theme.centerChannelColor, 0.2),
-            height: 10,
-            marginBottom: 10,
         },
     };
 });

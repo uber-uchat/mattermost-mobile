@@ -1,14 +1,10 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import DeviceInfo from 'react-native-device-info';
 
-import {UserTypes} from 'mattermost-redux/action_types';
-
 import {ViewTypes} from 'app/constants';
 import initialState from 'app/initial_state';
-import mattermostBucket from 'app/mattermost_bucket';
-import Config from 'assets/config';
 
 import {
     captureException,
@@ -88,6 +84,11 @@ function resetStateForNewVersion(action) {
         preferences = payload.entities.preferences;
     }
 
+    let roles = initialState.entities.roles;
+    if (payload.entities.roles) {
+        roles = payload.entities.roles;
+    }
+
     let search = initialState.entities.search;
     if (payload.entities.search && payload.entities.search.recent) {
         search = {
@@ -108,6 +109,20 @@ function resetStateForNewVersion(action) {
     let lastTeamId = initialState.views.team.lastTeamId;
     if (payload.views.team && payload.views.team.lastTeamId) {
         lastTeamId = payload.views.team.lastTeamId;
+    }
+
+    const currentChannelId = lastChannelForTeam[lastTeamId] && lastChannelForTeam[lastTeamId].length ? lastChannelForTeam[lastTeamId][0] : '';
+    let channels = initialState.entities.channels;
+    if (payload.entities.channels && currentChannelId) {
+        channels = {
+            currentChannelId,
+            channels: {
+                [currentChannelId]: payload.entities.channels.channels[currentChannelId],
+            },
+            myMembers: {
+                [currentChannelId]: payload.entities.channels.myMembers[currentChannelId],
+            },
+        };
     }
 
     let threadDrafts = initialState.views.thread.drafts;
@@ -131,11 +146,13 @@ function resetStateForNewVersion(action) {
             version: DeviceInfo.getVersion(),
         },
         entities: {
+            channels,
             general,
             teams,
             users,
             preferences,
             search,
+            roles,
         },
         views: {
             channel: {
@@ -327,6 +344,7 @@ function cleanupState(action, keepCurrent = false) {
             },
             teams: resetPayload.entities.teams,
             users: payload.entities.users,
+            roles: resetPayload.entities.roles,
         },
         views: {
             announcement: payload.views.announcement,
@@ -341,24 +359,9 @@ function cleanupState(action, keepCurrent = false) {
     nextState.errors = payload.errors;
 
     return {
-        type: 'persist/REHYDRATE',
+        type: action.type,
         payload: nextState,
         error: action.error,
-    };
-}
-
-export function shareExtensionData() {
-    return (next) => (action) => {
-        // allow other middleware to do their things
-        const nextAction = next(action);
-
-        switch (action.type) {
-        case UserTypes.LOGOUT_SUCCESS:
-            mattermostBucket.removePreference('emm', Config.AppGroupId);
-            mattermostBucket.removeFile('entities', Config.AppGroupId);
-            break;
-        }
-        return nextAction;
     };
 }
 

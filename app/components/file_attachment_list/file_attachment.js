@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -20,19 +20,17 @@ import FileAttachmentImage from './file_attachment_image';
 
 export default class FileAttachment extends PureComponent {
     static propTypes = {
+        canDownloadFiles: PropTypes.bool.isRequired,
         deviceWidth: PropTypes.number.isRequired,
         file: PropTypes.object.isRequired,
         index: PropTypes.number.isRequired,
         onCaptureRef: PropTypes.func,
-        onCapturePreviewRef: PropTypes.func,
-        onInfoPress: PropTypes.func,
         onPreviewPress: PropTypes.func,
         theme: PropTypes.object.isRequired,
         navigator: PropTypes.object,
     };
 
     static defaultProps = {
-        onInfoPress: () => true,
         onPreviewPress: () => true,
     };
 
@@ -44,16 +42,12 @@ export default class FileAttachment extends PureComponent {
         }
     };
 
-    handleCapturePreviewRef = (ref) => {
-        const {onCapturePreviewRef, index} = this.props;
-
-        if (onCapturePreviewRef) {
-            onCapturePreviewRef(ref, index);
-        }
-    };
-
     handlePreviewPress = () => {
-        this.props.onPreviewPress(this.props.index);
+        if (this.documentElement) {
+            this.documentElement.handlePreviewPress();
+        } else {
+            this.props.onPreviewPress(this.props.index);
+        }
     };
 
     renderFileInfo() {
@@ -87,11 +81,15 @@ export default class FileAttachment extends PureComponent {
         );
     }
 
+    setDocumentRef = (ref) => {
+        this.documentElement = ref;
+    };
+
     render() {
         const {
+            canDownloadFiles,
             deviceWidth,
             file,
-            onInfoPress,
             theme,
             navigator,
         } = this.props;
@@ -105,7 +103,6 @@ export default class FileAttachment extends PureComponent {
                     <FileAttachmentImage
                         file={data || {}}
                         onCaptureRef={this.handleCaptureRef}
-                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>
@@ -113,6 +110,8 @@ export default class FileAttachment extends PureComponent {
         } else if (isDocument(data)) {
             fileAttachmentComponent = (
                 <FileAttachmentDocument
+                    ref={this.setDocumentRef}
+                    canDownloadFiles={canDownloadFiles}
                     file={file}
                     navigator={navigator}
                     theme={theme}
@@ -124,7 +123,6 @@ export default class FileAttachment extends PureComponent {
                     <FileAttachmentIcon
                         file={data}
                         onCaptureRef={this.handleCaptureRef}
-                        onCapturePreviewRef={this.handleCapturePreviewRef}
                         theme={theme}
                     />
                 </TouchableOpacity>
@@ -137,7 +135,7 @@ export default class FileAttachment extends PureComponent {
             <View style={[style.fileWrapper, {width}]}>
                 {fileAttachmentComponent}
                 <TouchableOpacity
-                    onPress={onInfoPress}
+                    onPress={this.handlePreviewPress}
                     style={style.fileInfoContainer}
                 >
                     {this.renderFileInfo()}

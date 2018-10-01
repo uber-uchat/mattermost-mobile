@@ -1,9 +1,10 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import PropTypes from 'prop-types';
 import React from 'react';
 import {
+    BackHandler,
     Platform,
     ScrollView,
     StyleSheet,
@@ -22,11 +23,24 @@ export default class Code extends React.PureComponent {
         content: PropTypes.string.isRequired,
     };
 
+    componentDidMount() {
+        BackHandler.addEventListener('hardwareBackPress', this.handleAndroidBack);
+    }
+
     componentWillReceiveProps(nextProps) {
         if (this.props.theme !== nextProps.theme) {
             setNavigatorStyles(this.props.navigator, nextProps.theme);
         }
     }
+
+    componentWillUnmount() {
+        BackHandler.removeEventListener('hardwareBackPress', this.handleAndroidBack);
+    }
+
+    handleAndroidBack = () => {
+        this.props.navigator.pop();
+        return true;
+    };
 
     countLines = (content) => {
         return content.split('\n').length;

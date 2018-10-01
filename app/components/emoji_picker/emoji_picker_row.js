@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {Component} from 'react';
 import PropTypes from 'prop-types';
@@ -64,7 +64,7 @@ export default class EmojiPickerRow extends Component {
                 />
             </TouchableOpacity>
         );
-    }
+    };
 
     render() {
         const {emojiGutter, items} = this.props;
@@ -86,6 +86,7 @@ const styles = StyleSheet.create({
     emoji: {
         alignItems: 'center',
         justifyContent: 'center',
+        overflow: 'hidden',
     },
     emojiLeft: {
         marginLeft: 0,

@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -14,11 +14,12 @@ import {
 import Loading from 'app/components/loading';
 import CustomList from 'app/components/custom_list';
 import UserListRow from 'app/components/custom_list/user_list_row';
+import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
 import {alertErrorIfInvalidPermissions} from 'app/utils/general';
 import {createMembersSections, loadingText, markSelectedProfiles} from 'app/utils/member_list';
-import {changeOpacity, makeStyleSheetFromTheme, setNavigatorStyles} from 'app/utils/theme';
+import {changeOpacity, setNavigatorStyles} from 'app/utils/theme';
 
 import {General, RequestStatus} from 'mattermost-redux/constants';
 import {filterProfilesMatchingTerm} from 'mattermost-redux/utils/user_utils';
@@ -63,6 +64,7 @@ class ChannelAddMembers extends PureComponent {
             selectedMembers: {},
             showNoResults: false,
             term: '',
+            isLoading: true,
         };
         this.addButton.title = props.intl.formatMessage({id: 'integrations.add', defaultMessage: 'Add'});
 
@@ -122,6 +124,12 @@ class ChannelAddMembers extends PureComponent {
                 this.setState({adding: false, canSelect: true});
                 break;
             }
+        }
+
+        if ((loadMoreRequestStatus !== nextProps.loadMoreRequestStatus) || (this.props.searchRequestStatus !== nextProps.searchRequestStatus)) {
+            const isLoading = (nextProps.loadMoreRequestStatus === RequestStatus.STARTED) ||
+                (nextProps.searchRequestStatus === RequestStatus.STARTED);
+            this.setState({isLoading});
         }
     }
 
@@ -222,20 +230,17 @@ class ChannelAddMembers extends PureComponent {
     };
 
     render() {
-        const {intl, loadMoreRequestStatus, searchRequestStatus, preferences, theme} = this.props;
+        const {intl, preferences, theme} = this.props;
         const {adding, profiles, searching, term} = this.state;
         const {formatMessage} = intl;
-        const isLoading = (loadMoreRequestStatus === RequestStatus.STARTED) ||
-            (searchRequestStatus === RequestStatus.STARTED);
-        const style = getStyleFromTheme(theme);
         const more = searching ? () => true : this.loadMoreMembers;
 
         if (adding) {
             return (
-                <View style={style.container}>
+                <KeyboardLayout>
                     <StatusBar/>
                     <Loading/>
-                </View>
+                </KeyboardLayout>
             );
         }
 
@@ -251,7 +256,7 @@ class ChannelAddMembers extends PureComponent {
         };
 
         return (
-            <View style={style.container}>
+            <KeyboardLayout>
                 <StatusBar/>
                 <View
                     style={{marginVertical: 5}}
@@ -281,25 +286,17 @@ class ChannelAddMembers extends PureComponent {
                     onListEndReached={more}
                     preferences={preferences}
                     listScrollRenderAheadDistance={50}
-                    loading={isLoading}
+                    loading={this.state.isLoading}
                     loadingText={loadingText}
                     selectable={this.state.canSelect}
                     onRowSelect={this.handleRowSelect}
                     renderRow={UserListRow}
                     createSections={createMembersSections}
+                    showNoResults={this.state.showNoResults}
                 />
-            </View>
+            </KeyboardLayout>
         );
     }
 }
-
-const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
-    return {
-        container: {
-            flex: 1,
-            backgroundColor: theme.centerChannelBg,
-        },
-    };
-});
 
 export default injectIntl(ChannelAddMembers);

@@ -1,15 +1,15 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
     View,
     Text,
-    TextInput,
 } from 'react-native';
 
 import FormattedText from 'app/components/formatted_text';
+import QuickTextInput from 'app/components/quick_text_input';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 export default class AccountSettingsItem extends PureComponent {
@@ -21,6 +21,7 @@ export default class AccountSettingsItem extends PureComponent {
             defaultMessage: PropTypes.string.isRequired,
         }),
         helpText: PropTypes.string,
+        maxLength: PropTypes.number,
         optional: PropTypes.bool,
         theme: PropTypes.object.isRequired,
         updateValue: PropTypes.func.isRequired,
@@ -65,17 +66,20 @@ export default class AccountSettingsItem extends PureComponent {
                     )}
                 </View>
                 <View style={style.inputContainer}>
-                    <TextInput
-                        ref={this.channelNameRef}
-                        value={value}
-                        onChangeText={this.onChangeText}
-                        style={[style.input, disabled ? style.disabled : null]}
-                        autoCapitalize='none'
-                        autoCorrect={false}
-                        editable={!disabled}
-                        underlineColorAndroid='transparent'
-                        disableFullscreenUI={true}
-                    />
+                    <View style={disabled ? style.disabled : null}>
+                        <QuickTextInput
+                            ref={this.channelNameRef}
+                            value={value}
+                            onChangeText={this.onChangeText}
+                            style={style.input}
+                            autoCapitalize='none'
+                            autoCorrect={false}
+                            maxLength={this.props.maxLength}
+                            editable={!disabled}
+                            underlineColorAndroid='transparent'
+                            disableFullscreenUI={true}
+                        />
+                    </View>
                     {disabled &&
                     <Text style={style.helpText}>
                         {helpText}

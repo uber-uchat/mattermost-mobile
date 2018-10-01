@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -53,7 +53,7 @@ export default class ExtensionChannels extends PureComponent {
 
         channels.forEach((channel) => {
             const include = term ? channel.display_name.toLowerCase().includes(term.toLowerCase()) : true;
-            if (channel.display_name && include) {
+            if (channel.display_name && include && channel.delete_at === 0) {
                 switch (channel.type) {
                 case General.OPEN_CHANNEL:
                     publicChannels.push(channel);

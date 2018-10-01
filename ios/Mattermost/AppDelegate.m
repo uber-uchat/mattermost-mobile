@@ -11,12 +11,12 @@
 #import <AVFoundation/AVFoundation.h>
 #import <React/RCTBundleURLProvider.h>
 #import <React/RCTRootView.h>
+#import <React/RCTLinkingManager.h>
 #if __has_include(<React/RNSentry.h>)
 #import <React/RNSentry.h> // This is used for versions of react >= 0.40
 #else
 #import "RNSentry.h" // This is used for versions of react < 0.40
 #endif
-#import "Orientation.h"
 #import "RCCManager.h"
 #import "RNNotifications.h"
 #import "SessionManager.h"
@@ -25,6 +25,23 @@
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
+  // Clear keychain on first run in case of reinstallation
+  if (![[NSUserDefaults standardUserDefaults] objectForKey:@"FirstRun"]) {
+
+    NSString *service = [[NSBundle mainBundle] bundleIdentifier];
+    NSDictionary *query = @{
+                            (__bridge NSString *)kSecClass: (__bridge id)(kSecClassGenericPassword),
+                            (__bridge NSString *)kSecAttrService: service,
+                            (__bridge NSString *)kSecReturnAttributes: (__bridge id)kCFBooleanTrue,
+                            (__bridge NSString *)kSecReturnData: (__bridge id)kCFBooleanFalse
+                            };
+
+    SecItemDelete((__bridge CFDictionaryRef) query);
+
+    [[NSUserDefaults standardUserDefaults] setValue:@YES forKey:@"FirstRun"];
+    [[NSUserDefaults standardUserDefaults] synchronize];
+  }
+
   NSURL *jsCodeLocation;
 
   jsCodeLocation = [[RCTBundleURLProvider sharedSettings] jsBundleURLForBundleRoot:@"index" fallbackResource:nil];
@@ -35,11 +52,6 @@
   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error: nil];
 
   return YES;
-}
-
-// Required for orientation
-- (UIInterfaceOrientationMask)application:(UIApplication *)application supportedInterfaceOrientationsForWindow:(UIWindow *)window {
-  return [Orientation getOrientation];
 }
 
 // Required to register for notifications
@@ -82,6 +94,24 @@
 -(void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(nonnull NSString *)identifier completionHandler:(nonnull void (^)(void))completionHandler {
   [SessionManager sharedSession].savedCompletionHandler = completionHandler;
   [[SessionManager sharedSession] createSessionForRequestRequest:identifier];
+}
+
+// Required for deeplinking
+
+- (BOOL)application:(UIApplication *)application openURL:(NSURL *)url
+  sourceApplication:(NSString *)sourceApplication annotation:(id)annotation
+{
+  return [RCTLinkingManager application:application openURL:url
+                      sourceApplication:sourceApplication annotation:annotation];
+}
+
+// Only if your app is using [Universal Links](https://developer.apple.com/library/prerelease/ios/documentation/General/Conceptual/AppSearch/UniversalLinks.html).
+- (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity
+ restorationHandler:(void (^)(NSArray * _Nullable))restorationHandler
+{
+  return [RCTLinkingManager application:application
+                   continueUserActivity:userActivity
+                     restorationHandler:restorationHandler];
 }
 
 @end

@@ -1,8 +1,9 @@
-// Copyright (c) 2016-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
-import {uploadProfileImage, updateMe} from 'mattermost-redux/actions/users';
-import {buildFileUploadData} from 'app/utils/file';
+import {updateMe} from 'mattermost-redux/actions/users';
+
+import {ViewTypes} from 'app/constants';
 
 export function updateUser(user, success, error) {
     return async (dispatch, getState) => {
@@ -17,9 +18,14 @@ export function updateUser(user, success, error) {
     };
 }
 
-export function handleUploadProfileImage(image, userId) {
-    return async (dispatch, getState) => {
-        const imageData = buildFileUploadData(image);
-        return await uploadProfileImage(userId, imageData)(dispatch, getState);
+export function setProfileImageUri(imageUri = '') {
+    return {
+        type: ViewTypes.SET_PROFILE_IMAGE_URI,
+        imageUri,
     };
 }
+
+export default {
+    updateUser,
+    setProfileImageUri,
+};

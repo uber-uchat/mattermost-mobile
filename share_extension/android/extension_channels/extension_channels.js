@@ -1,5 +1,5 @@
-// Copyright (c) 2018-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
@@ -58,6 +58,10 @@ export default class ExtensionTeam extends PureComponent {
             privateChannels: privateFiletered,
             publicChannels: publicFiltered,
         } = this.props;
+
+        directFiltered = directFiltered.filter((c) => c.delete_at === 0);
+        privateFiletered = privateFiletered.filter((c) => c.delete_at === 0);
+        publicFiltered = publicFiltered.filter((c) => c.delete_at === 0);
 
         if (term) {
             directFiltered = directFiltered.filter((c) => c.display_name.toLowerCase().includes(term.toLowerCase()));
@@ -129,21 +133,23 @@ export default class ExtensionTeam extends PureComponent {
         }
 
         return (
-            <SectionList
-                sections={sections}
-                ListHeaderComponent={this.renderSearchBar(styles)}
-                ItemSeparatorComponent={this.renderItemSeparator}
-                renderItem={this.renderItem}
-                renderSectionHeader={this.renderSectionHeader}
-                keyExtractor={this.keyExtractor}
-                keyboardShouldPersistTaps='always'
-                keyboardDismissMode='on-drag'
-                initialNumToRender={10}
-                maxToRenderPerBatch={10}
-                stickySectionHeadersEnabled={true}
-                scrollEventThrottle={100}
-                windowSize={5}
-            />
+            <View>
+                {this.renderSearchBar(styles)}
+                <SectionList
+                    sections={sections}
+                    ItemSeparatorComponent={this.renderItemSeparator}
+                    renderItem={this.renderItem}
+                    renderSectionHeader={this.renderSectionHeader}
+                    keyExtractor={this.keyExtractor}
+                    keyboardShouldPersistTaps='always'
+                    keyboardDismissMode='on-drag'
+                    initialNumToRender={10}
+                    maxToRenderPerBatch={10}
+                    stickySectionHeadersEnabled={true}
+                    scrollEventThrottle={100}
+                    windowSize={5}
+                />
+            </View>
         );
     };
 

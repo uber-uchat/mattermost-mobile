@@ -1,11 +1,14 @@
-// Copyright (c) 2018-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 // Based on the work done by https://github.com/wcandillon/react-native-expo-image-cache/
 
-import RNFetchBlob from 'react-native-fetch-blob';
+import RNFetchBlob from 'rn-fetch-blob';
 
 import {DeviceTypes} from 'app/constants';
+import mattermostBucket from 'app/mattermost_bucket';
+
+import LocalConfig from 'assets/config';
 
 const {IMAGES_PATH} = DeviceTypes;
 
@@ -24,31 +27,33 @@ export default class ImageCacheManager {
             listener(path);
         } else {
             addListener(uri, listener);
-            if (uri.startsWith('file://')) {
+            if (uri.startsWith('http')) {
+                try {
+                    const certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
+                    const options = {
+                        session: uri,
+                        timeout: 10000,
+                        indicator: true,
+                        overwrite: true,
+                        path,
+                        certificate,
+                    };
+
+                    this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri);
+                    if (this.downloadTask.respInfo.respType === 'text') {
+                        throw new Error();
+                    }
+
+                    notifyAll(uri, path);
+                } catch (e) {
+                    RNFetchBlob.fs.unlink(path);
+                    notifyAll(uri, uri);
+                }
+            } else {
                 // In case the uri we are trying to cache is already a local file just notify and return
                 notifyAll(uri, uri);
-                return;
             }
 
-            try {
-                const options = {
-                    session: uri,
-                    timeout: 10000,
-                    indicator: true,
-                    overwrite: true,
-                    path,
-                };
-
-                this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri);
-                if (this.downloadTask.respInfo.respType === 'text') {
-                    throw new Error();
-                }
-
-                notifyAll(uri, path);
-            } catch (e) {
-                RNFetchBlob.fs.unlink(path);
-                notifyAll(uri, uri);
-            }
             unsubscribe(uri);
         }
     };
@@ -96,7 +101,7 @@ const hashCode = (str) => {
     let hash = 0;
     let i;
     let chr;
-    if (str.length === 0) {
+    if (!str || str.length === 0) {
         return hash;
     }
 

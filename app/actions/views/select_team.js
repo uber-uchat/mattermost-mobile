@@ -1,5 +1,5 @@
-// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
-// See License.txt for license information.
+// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
+// See LICENSE.txt for license information.
 
 import {batchActions} from 'redux-batched-actions';
 
@@ -7,10 +7,12 @@ import {markChannelAsRead, markChannelAsViewed} from 'mattermost-redux/actions/c
 import {ChannelTypes, TeamTypes} from 'mattermost-redux/action_types';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
+import {RequestStatus} from 'mattermost-redux/constants';
 
 import {NavigationTypes} from 'app/constants';
 
 import {setChannelDisplayName} from './channel';
+import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
 export function handleTeamChange(teamId, selectChannel = true) {
     return async (dispatch, getState) => {
@@ -38,9 +40,21 @@ export function handleTeamChange(teamId, selectChannel = true) {
 
 export function selectDefaultTeam() {
     return async (dispatch, getState) => {
-        const state = getState();
+        let state = getState();
 
-        const {ExperimentalPrimaryTeam} = state.entities.general.config;
+        const {teams: currentTeams} = state.entities.teams;
+
+        if (!Object.keys(currentTeams).length) {
+            await new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve();
+                }, 500);
+            });
+
+            state = getState();
+        }
+
+        const {ExperimentalPrimaryTeam} = getConfig(state);
         const {teams: allTeams, myMembers} = state.entities.teams;
         const teams = Object.keys(myMembers).map((key) => allTeams[key]);
 
@@ -55,6 +69,8 @@ export function selectDefaultTeam() {
 
         if (defaultTeam) {
             handleTeamChange(defaultTeam.id)(dispatch, getState);
+        } else if (state.requests.teams.getTeams.status === RequestStatus.FAILURE || state.requests.teams.getMyTeams.status === RequestStatus.FAILURE) {
+            EventEmitter.emit(NavigationTypes.NAVIGATION_ERROR_TEAMS);
         } else {
             EventEmitter.emit(NavigationTypes.NAVIGATION_NO_TEAMS);
         }
