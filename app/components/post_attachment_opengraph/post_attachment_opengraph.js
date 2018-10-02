@@ -19,7 +19,7 @@ import {getNearestPoint} from 'app/utils/opengraph';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 const MAX_IMAGE_HEIGHT = 150;
-const VIEWPORT_IMAGE_OFFSET = 88;
+const VIEWPORT_IMAGE_OFFSET = 93;
 const VIEWPORT_IMAGE_REPLY_OFFSET = 13;
 
 export default class PostAttachmentOpenGraph extends PureComponent {
@@ -169,17 +169,34 @@ export default class PostAttachmentOpenGraph extends PureComponent {
         previewImageAtIndex(this.props.navigator, [this.refs.item], 0, files);
     };
 
-    render() {
-        const {isReplyPost, openGraphData, theme} = this.props;
-        const {hasImage, height, imageUrl, width} = this.state;
-
-        if (!openGraphData) {
+    renderDescription = () => {
+        const {openGraphData} = this.props;
+        if (!openGraphData.description) {
             return null;
         }
 
-        const style = getStyleSheet(theme);
+        const style = getStyleSheet(this.props.theme);
 
-        let description = null;
+        return (
+            <View style={style.flex}>
+                <Text
+                    style={style.siteDescription}
+                    numberOfLines={5}
+                    ellipsizeMode='tail'
+                >
+                    {openGraphData.description}
+                </Text>
+            </View>
+        );
+    }
+
+    renderImage = () => {
+        if (!this.state.hasImage) {
+            return null;
+        }
+
+        const {height, imageUrl, width} = this.state;
+
         let source;
         if (imageUrl) {
             source = {
@@ -187,22 +204,39 @@ export default class PostAttachmentOpenGraph extends PureComponent {
             };
         }
 
-        if (openGraphData.description) {
-            description = (
-                <View style={style.flex}>
-                    <Text
-                        style={style.siteDescription}
-                        numberOfLines={5}
-                        ellipsizeMode='tail'
-                    >
-                        {openGraphData.description}
-                    </Text>
-                </View>
-            );
-        }
+        const style = getStyleSheet(this.props.theme);
 
         return (
-            <View style={style.container}>
+            <View
+                ref='item'
+                style={style.imageContainer}
+            >
+                <TouchableWithoutFeedback
+                    onPress={this.handlePreviewImage}
+                    style={{width, height}}
+                >
+                    <Image
+                        style={[style.image, {width, height}]}
+                        source={source}
+                        resizeMode='contain'
+                    />
+                </TouchableWithoutFeedback>
+            </View>
+        );
+    }
+
+    render() {
+        const {isReplyPost, openGraphData, theme} = this.props;
+
+        if (!openGraphData) {
+            return null;
+        }
+
+        const style = getStyleSheet(theme);
+
+        let siteTitle;
+        if (openGraphData.site_name) {
+            siteTitle = (
                 <View style={style.flex}>
                     <Text
                         style={style.siteTitle}
@@ -212,6 +246,12 @@ export default class PostAttachmentOpenGraph extends PureComponent {
                         {openGraphData.site_name}
                     </Text>
                 </View>
+            );
+        }
+
+        return (
+            <View style={style.container}>
+                {siteTitle}
                 <View style={style.wrapper}>
                     <TouchableOpacity
                         style={style.flex}
@@ -226,25 +266,8 @@ export default class PostAttachmentOpenGraph extends PureComponent {
                         </Text>
                     </TouchableOpacity>
                 </View>
-                {description}
-                {hasImage &&
-                <View
-                    ref='item'
-                    style={style.imageContainer}
-                >
-                    <TouchableWithoutFeedback
-                        onPress={this.handlePreviewImage}
-                        style={{width, height}}
-                    >
-                        <Image
-                            ref='image'
-                            style={[style.image, {width, height}]}
-                            source={source}
-                            resizeMode='contain'
-                        />
-                    </TouchableWithoutFeedback>
-                </View>
-                }
+                {this.renderDescription()}
+                {this.renderImage()}
             </View>
         );
     }
@@ -256,6 +279,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flex: 1,
             borderColor: changeOpacity(theme.centerChannelColor, 0.2),
             borderWidth: 1,
+            borderRadius: 3,
             marginTop: 10,
             padding: 10,
         },
@@ -283,6 +307,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         imageContainer: {
             alignItems: 'center',
+            borderColor: changeOpacity(theme.centerChannelColor, 0.2),
+            borderWidth: 1,
+            borderRadius: 3,
+            marginTop: 5,
         },
         image: {
             borderRadius: 3,

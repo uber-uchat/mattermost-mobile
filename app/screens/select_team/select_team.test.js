@@ -3,25 +3,11 @@
 import React from 'react';
 import {shallow} from 'enzyme';
 
+import Preferences from 'mattermost-redux/constants/preferences';
+
 import {RequestStatus} from 'mattermost-redux/constants';
 
 import SelectTeam from './select_team.js';
-
-jest.mock('rn-fetch-blob', () => ({
-    fs: {
-        dirs: {
-            DocumentDir: () => jest.fn(),
-            CacheDir: () => jest.fn(),
-        },
-    },
-}));
-
-jest.mock('rn-fetch-blob/fs', () => ({
-    dirs: {
-        DocumentDir: () => jest.fn(),
-        CacheDir: () => jest.fn(),
-    },
-}));
 
 jest.mock('app/utils/theme', () => {
     const original = require.requireActual('app/utils/theme');
@@ -56,7 +42,7 @@ describe('SelectTeam', () => {
         },
         userWithoutTeams: false,
         teams: [],
-        theme: {},
+        theme: Preferences.THEMES.default,
         teamsRequest: {
             status: RequestStatus.FAILURE,
         },
@@ -70,7 +56,7 @@ describe('SelectTeam', () => {
         await getTeams();
         expect(wrapper.state('loading')).toEqual(false);
         wrapper.update();
-        expect(wrapper).toMatchSnapshot();
+        expect(wrapper.getElement()).toMatchSnapshot();
     });
 
     test('should match snapshot for teams', async () => {
@@ -91,6 +77,6 @@ describe('SelectTeam', () => {
         );
         await getTeams();
         wrapper.update();
-        expect(wrapper).toMatchSnapshot();
+        expect(wrapper.getElement()).toMatchSnapshot();
     });
 });

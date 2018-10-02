@@ -29,7 +29,14 @@ import {getUserIdFromChannelName, isChannelMuted, showDeleteOption, showManageme
 import {isAdmin as checkIsAdmin, isChannelAdmin as checkIsChannelAdmin, isSystemAdmin as checkIsSystemAdmin} from 'mattermost-redux/utils/user_utils';
 import {getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
 
-import {closeDMChannel, closeGMChannel, leaveChannel, loadChannelsByTeamName} from 'app/actions/views/channel';
+import {
+    closeDMChannel,
+    closeGMChannel,
+    leaveChannel,
+    loadChannelsByTeamName,
+    selectPenultimateChannel,
+    handleSelectChannel,
+} from 'app/actions/views/channel';
 
 import ChannelInfo from './channel_info';
 
@@ -60,20 +67,12 @@ function mapStateToProps(state) {
     const isSystemAdmin = checkIsSystemAdmin(roles);
 
     const channelIsReadOnly = isCurrentChannelReadOnly(state);
-    const canEditChannel =
-        !channelIsReadOnly &&
-        showManagementOptions(state, config, license, currentChannel, isAdmin, isSystemAdmin, isChannelAdmin);
+    const canEditChannel = !channelIsReadOnly && showManagementOptions(state, config, license, currentChannel, isAdmin, isSystemAdmin, isChannelAdmin);
+    const viewArchivedChannels = config.ExperimentalViewArchivedChannels === 'true';
 
     return {
-        canDeleteChannel: showDeleteOption(
-            state,
-            config,
-            license,
-            currentChannel,
-            isAdmin,
-            isSystemAdmin,
-            isChannelAdmin
-        ),
+        canDeleteChannel: showDeleteOption(state, config, license, currentChannel, isAdmin, isSystemAdmin, isChannelAdmin),
+        viewArchivedChannels,
         canEditChannel,
         currentChannel,
         currentChannelCreatorName,
@@ -103,6 +102,8 @@ function mapDispatchToProps(dispatch) {
             getCustomEmojisInText,
             selectFocusedPostId,
             updateChannelNotifyProps,
+            selectPenultimateChannel,
+            handleSelectChannel,
         }, dispatch),
     };
 }
