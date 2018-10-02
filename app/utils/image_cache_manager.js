@@ -4,6 +4,7 @@
 // Based on the work done by https://github.com/wcandillon/react-native-expo-image-cache/
 
 import RNFetchBlob from 'rn-fetch-blob';
+import {Client4} from 'mattermost-redux/client';
 
 import {DeviceTypes} from 'app/constants';
 import mattermostBucket from 'app/mattermost_bucket';
@@ -21,6 +22,7 @@ export default class ImageCacheManager {
         }
 
         const {path, exists} = await getCacheFile(filename, uri);
+
         if (isDownloading(uri)) {
             addListener(uri, listener);
         } else if (exists) {
@@ -39,7 +41,10 @@ export default class ImageCacheManager {
                         certificate,
                     };
 
-                    this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri);
+                    this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri, {
+                        Authorization: `Bearer ${Client4.getToken()}`,
+                    });
+
                     if (this.downloadTask.respInfo.respType === 'text') {
                         throw new Error();
                     }
