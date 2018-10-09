@@ -560,6 +560,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         errorText: {
             fontSize: 14,
+            marginHorizontal: 15,
         },
         separator: {
             height: 15,
@@ -570,4 +571,3 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
     };
 });
-
