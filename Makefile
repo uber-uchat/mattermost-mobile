@@ -1,4 +1,4 @@
-.PHONY: pre-run clean
+.PHONY: pre-run pre-build clean
 .PHONY: check-style
 .PHONY: start stop
 .PHONY: run run-ios run-android
@@ -19,6 +19,15 @@ node_modules: package.json
 
 	@echo Getting Javascript dependencies
 	@npm install
+
+npm-ci: package.json
+	@if ! [ $(shell which npm 2> /dev/null) ]; then \
+		echo "npm is not installed https://npmjs.com"; \
+		exit 1; \
+	fi
+
+	@echo Getting Javascript dependencies
+	@npm ci
 
 .podinstall:
 ifeq ($(OS), Darwin)
@@ -43,6 +52,8 @@ dist/assets: $(BASE_ASSETS) $(OVERRIDE_ASSETS)
 	@node scripts/make-dist-assets.js
 
 pre-run: | node_modules .podinstall dist/assets ## Installs dependencies and assets
+
+pre-build: | npm-ci .podinstall dist/assets ## Install dependencies and assets before building
 
 check-style: node_modules ## Runs eslint
 	@echo Checking for style guide compliance
@@ -169,7 +180,7 @@ run-android: | check-device-android pre-run prepare-android-build ## Runs the ap
 		fi; \
     fi
 
-build: | stop pre-run check-style ## Builds the app for Android & iOS
+build: | stop pre-build check-style ## Builds the app for Android & iOS
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -179,7 +190,7 @@ build: | stop pre-run check-style ## Builds the app for Android & iOS
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
 
-build-ios: | stop pre-run check-style ## Builds the iOS app
+build-ios: | stop pre-build check-style ## Builds the iOS app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -188,7 +199,7 @@ build-ios: | stop pre-run check-style ## Builds the iOS app
 	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane ios build
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-build-android: | stop pre-run check-style prepare-android-build ## Build the Android app
+build-android: | stop pre-buid check-style prepare-android-build ## Build the Android app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -197,7 +208,7 @@ build-android: | stop pre-run check-style prepare-android-build ## Build the And
 	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane android build
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-unsigned-ios: stop pre-run check-style ## Build an unsigned version of the iOS app
+unsigned-ios: stop pre-build check-style ## Build an unsigned version of the iOS app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -211,7 +222,7 @@ unsigned-ios: stop pre-run check-style ## Build an unsigned version of the iOS a
 	@rm -rf build-ios/
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-unsigned-android: stop pre-run check-style prepare-android-build ## Build an unsigned version of the Android app
+unsigned-android: stop pre-build check-style prepare-android-build ## Build an unsigned version of the Android app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -224,7 +235,7 @@ unsigned-android: stop pre-run check-style prepare-android-build ## Build an uns
 test: | pre-run check-style ## Runs tests
 	@npm test
 
-build-pr: | can-build-pr stop pre-run check-style ## Build a PR from the mattermost-mobile repo
+build-pr: | can-build-pr stop pre-build check-style ## Build a PR from the mattermost-mobile repo
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
