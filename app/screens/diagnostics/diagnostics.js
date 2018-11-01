@@ -6,11 +6,13 @@ import {
     Button,
     FlatList,
     Text,
+    TouchableOpacity,
     View,
 } from 'react-native';
 import Diagnostics from 'uchat-mobile-diagnostics';
+import FontAwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
-import {makeStyleSheetFromTheme} from 'app/utils/theme';
+import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 class DiagnosticsScreen extends PureComponent {
   static propTypes = {
@@ -22,6 +24,8 @@ class DiagnosticsScreen extends PureComponent {
 
   state = {
       averageStartTime: 0,
+      fastestStartTime: 0,
+      slowestStartTime: 0,
       startTimeItems: [],
   };
 
@@ -33,22 +37,57 @@ class DiagnosticsScreen extends PureComponent {
       await Diagnostics.clearStartUpTimes();
   }
 
-  convertToStatus = (connected) => connected ? 'Online' : 'Offline';
+  convertToStatus = (connected) => {
+      const {theme} = this.props;
+      const style = getStyleSheet(theme);
+
+      const name = connected ? 'thumbs-o-up' : 'thumbs-o-down';
+      const color = connected ? 'green' : 'red';
+
+      return (
+          <FontAwesomeIcon
+              name={name}
+              color={color}
+              style={style.statusIcon}
+              size={40}
+          />
+      );
+  };
 
   gatherStartTimes = async () => {
       const startTimes = await Diagnostics.getStartUpTimes();
-      const items = Object.values(startTimes);
+
+      if (!startTimes) {
+          return;
+      }
+
+      const items = Object.keys(startTimes).map((k) => ({
+          date: k,
+          time: startTimes[k],
+      }));
+
+      let fastest = items[0].time;
+      let slowest = 0;
+
       const averageTime = items.reduce((acc, i) => {
-          return acc + i;
+          if (i.time < fastest) {
+              fastest = i.time;
+          } else if (i.time > slowest) {
+              slowest = i.time;
+          }
+
+          return acc + i.time;
       }, 0) / items.length;
 
       this.setState({
           averageStartTime: averageTime / 1000,
+          fastestStartTime: fastest / 1000,
+          slowestStartTime: slowest / 1000,
           startTimeItems: items,
       });
   }
 
-  keyExtractor = ({item}) => item;
+  keyExtractor = (item) => item.date;
 
   renderItem = ({item}) => {
       const {theme} = this.props;
@@ -57,7 +96,10 @@ class DiagnosticsScreen extends PureComponent {
       return (
           <View style={style.listRow}>
               <Text style={style.listRowText}>
-                  {item / 1000}
+                  {new Date(Number(item.date)).toLocaleString()}
+              </Text>
+              <Text style={style.listRowText}>
+                  {`${item.time / 1000}s`}
               </Text>
           </View>
       );
@@ -72,6 +114,8 @@ class DiagnosticsScreen extends PureComponent {
       } = this.props;
       const {
           averageStartTime,
+          fastestStartTime,
+          slowestStartTime,
           startTimeItems,
       } = this.state;
 
@@ -79,58 +123,70 @@ class DiagnosticsScreen extends PureComponent {
 
       return (
           <View style={style.wrapper}>
-              <View style={style.row}>
-                  <View style={style.rowItem}>
-                      <Text style={style.rowItemTitle}>
-                          {'Client:'}
-                      </Text>
-                      <Text style={style.rowItemText}>
-                          {this.convertToStatus(clientConnected)}
-                      </Text>
+              <View style={style.section}>
+                  <View style={style.sectionTitleContainer}>
+                      <Text style={style.sectionTitle}>{'Connectivity'}</Text>
+                      <View style={style.sectionLine}/>
                   </View>
-                  <View style={style.rowItem}>
-                      <Text style={style.rowItemTitle}>
-                          {'Network:'}
-                      </Text>
-                      <Text style={style.rowItemText}>
+                  <View style={style.connectivity}>
+                      <View style={style.connectivityItem}>
+                          <Text style={style.connectivityItemTitle}>
+                              {'Device'}
+                          </Text>
                           {this.convertToStatus(networkConnected)}
-                      </Text>
-                  </View>
-                  <View style={style.rowItem}>
-                      <Text style={style.rowItemTitle}>
-                          {'Websocket:'}
-                      </Text>
-                      <Text style={style.rowItemText}>
+                      </View>
+                      <View style={style.connectivityItem}>
+                          <Text style={style.connectivityItemTitle}>
+                              {'Websocket'}
+                          </Text>
                           {this.convertToStatus(websocketConnected)}
-                      </Text>
+                      </View>
+                      <View style={style.connectivityItem}>
+                          <Text style={style.connectivityItemTitle}>
+                              {'Client'}
+                          </Text>
+                          {this.convertToStatus(clientConnected)}
+                      </View>
                   </View>
               </View>
-              <View style={style.row}>
-                  <View>
-                      <Text style={style.rowItemTitle}>
-                          {'Startups:'}
-                      </Text>
-                      <Text style={style.rowItemText}>
-                          {startTimeItems.length}
-                      </Text>
+              <View style={style.section}>
+                  <View style={style.sectionTitleContainer}>
+                      <Text style={style.sectionTitle}>{'Startup'}</Text>
+                      <View style={style.sectionLine}/>
                   </View>
-                  <View>
-                      <Text style={style.rowItemTitle}>
-                          {'Average Time:'}
-                      </Text>
-                      <Text style={style.rowItemText}>
-                          {`${averageStartTime.toFixed(2)}s`}
-                      </Text>
+                  <View style={style.sectionContent}>
+                      <View style={style.totalCountContainer}>
+                          <Text style={style.totalCount}>{startTimeItems.length}</Text>
+                          <Text style={style.totalCountLabel}>{'Startups'}</Text>
+                      </View>
+                      <View style={style.startupInfoContainer}>
+                          <Text style={style.startupInfoItem}>
+                              {`Average startup time is ${averageStartTime.toFixed(2)}s`}
+                          </Text>
+                          <Text style={style.startupInfoItem}>
+                              {`Fastest startup time was ${fastestStartTime.toFixed(2)}s`}
+                          </Text>
+                          <Text style={style.startupInfoItem}>
+                              {`Slowest startup time was ${slowestStartTime.toFixed(2)}s`}
+                          </Text>
+                          <TouchableOpacity
+                              style={style.startupInfoItemButton}
+                              onPress={this.clearStartTimes}
+                          >
+                              <Text style={style.startupInfoItemButtonText}>
+                                  {'Clear startup metrics'}
+                              </Text>
+                          </TouchableOpacity>
+                      </View>
                   </View>
               </View>
-              <View style={style.row}>
-                  <Button
-                      title='Clear Start Times'
-                      onPress={this.clearStartTimes}
-                  />
-              </View>
-              <View style={style.bottom}>
+              <View style={[style.section, style.sectionBottom]}>
+                  <View style={style.sectionTitleContainer}>
+                      <Text style={style.sectionTitle}>{'Times'}</Text>
+                      <View style={style.sectionLine}/>
+                  </View>
                   <FlatList
+                      style={style.list}
                       data={startTimeItems}
                       keyExtractor={this.keyExtractor}
                       renderItem={this.renderItem}
@@ -142,31 +198,107 @@ class DiagnosticsScreen extends PureComponent {
 }
 
 const getStyleSheet = makeStyleSheetFromTheme((theme) => ({
-    bottom: {
-        flex: 1,
+    center: {
+        alignItems: 'center',
+    },
+    connectivity: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+    },
+    connectivityItem: {
+        alignItems: 'center',
+    },
+    connectivityItemTitle: {
+        color: theme.centerChannelColor,
+        fontSize: 18,
+        fontWeight: '600',
+    },
+    list: {
+        flexGrow: 1,
     },
     listRow: {
         marginBottom: 5,
         borderBottomWidth: 1,
-        borderBottomColor: theme.centerChannelColor,
+        borderBottomColor: changeOpacity(theme.centerChannelColor, 0.10),
         height: 50,
-        justifyContent: 'center',
+        alignItems: 'center',
+        flexDirection: 'row',
+        justifyContent: 'space-between',
     },
     listRowText: {
         fontSize: 16,
         marginLeft: 10,
     },
-    row: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        margin: 25,
+    section: {
+        marginBottom: 15,
     },
-    rowItem: {
+    sectionBottom: {
+        flex: 1,
+    },
+    sectionContent: {
+        flexDirection: 'row',
+    },
+    sectionTitle: {
+        color: theme.centerChannelColor,
+        marginRight: 10,
+        fontSize: 24,
+        fontWeight: '600',
+    },
+    sectionTitleContainer: {
         alignItems: 'center',
+        flexDirection: 'row',
+        marginBottom: 10,
+    },
+    sectionLine: {
+        backgroundColor: theme.centerChannelColor,
+        height: 2,
+        flex: 1,
+    },
+    startupInfoContainer: {
+        flexGrow: 1,
+        justifyContent: 'center',
+    },
+    startupInfoItem: {
+        color: theme.centerChannelColor,
+        fontSize: 14,
+        marginBottom: 5,
+        fontWeight: '600',
+    },
+    startupInfoItemButton: {
+        flexGrow: 1,
+        borderWidth: 2,
+        borderColor: theme.linkColor,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: 8,
+        marginTop: 5,
+    },
+    startupInfoItemButtonText: {
+        color: theme.linkColor,
+        marginBottom: 0,
+        fontSize: 14,
+        fontWeight: '700',
+    },
+    statusIcon: {
+        marginTop: 15,
+    },
+    totalCount: {
+        fontSize: 65,
+        color: theme.centerChannelColor,
+    },
+    totalCountLabel: {
+        fontSize: 18,
+        color: theme.centerChannelColor,
+    },
+    totalCountContainer: {
+        marginRight: 23,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     wrapper: {
         flex: 1,
         backgroundColor: theme.centerChannelBg,
+        margin: 25,
     },
 }));
 
