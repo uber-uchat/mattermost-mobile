@@ -96,7 +96,7 @@ export default class SelectServer extends PureComponent {
         this.certificateListener = DeviceEventEmitter.addListener('RNFetchBlobCertificate', this.selectCertificate);
         this.props.navigator.setOnNavigatorEvent(this.handleNavigatorEvent);
 
-        Diagnostics.recordedStartTime();
+        Diagnostics.recordStartTime();
     }
 
     componentWillUpdate(nextProps, nextState) {

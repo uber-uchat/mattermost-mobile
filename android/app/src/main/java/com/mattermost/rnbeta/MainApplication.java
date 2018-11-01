@@ -36,6 +36,7 @@ import com.wix.reactnativenotifications.core.notification.IPushNotification;
 import com.wix.reactnativenotifications.core.AppLaunchHelper;
 import com.wix.reactnativenotifications.core.AppLifecycleFacade;
 import com.wix.reactnativenotifications.core.JsIOHelper;
+import com.uchat.mobilediagnostics.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -56,6 +57,7 @@ public class MainApplication extends NavigationApplication implements INotificat
     // Add the packages you require here.
     // No need to add RnnPackage and MainReactPackage
     return Arrays.<ReactPackage>asList(
+            new uChatMobileDiagnosticsPackage(),
             new ImagePickerPackage(),
             new RNBottomSheetPackage(),
             new RNDeviceInfo(),

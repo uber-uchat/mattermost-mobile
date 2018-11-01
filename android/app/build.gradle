@@ -187,7 +187,7 @@ configurations.all {
 }
 
 dependencies {
-    compile project(':uchat-mobile-diagnostics')
+    implementation project(':uchat-mobile-diagnostics')
     implementation fileTree(dir: "libs", include: ["*.jar"])
     implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
     implementation 'com.android.support:design:27.1.1'
