@@ -33,6 +33,10 @@ class AdvancedSettings extends PureComponent {
         theme: PropTypes.object,
     };
 
+    static contextTypes = {
+        intl: intlShape.isRequired,
+    };
+
     state = {
         cacheSize: null,
         cacheSizedFetched: false,
@@ -92,6 +96,24 @@ class AdvancedSettings extends PureComponent {
         const size = await getFileCacheSize();
         this.setState({cacheSize: size, cacheSizedFetched: true});
     };
+
+    gotoDiagnostics = () => {
+        const {navigator, theme} = this.props;
+        const {intl} = this.context;
+
+        navigator.push({
+            screen: 'Diagnostics',
+            title: intl.formatMessage({id: 'mobile.advanced_settings.diagnostics', defaultMessage: 'Diagnostics'}),
+            animated: true,
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg,
+            },
+        });
+    }
 
     renderCacheFileSize = () => {
         const {theme} = this.props;
@@ -187,6 +209,16 @@ class AdvancedSettings extends PureComponent {
                     />
                     <View style={style.divider}/>
                     {this.renderSentryDebugOptions()}
+                    <SettingsItem
+                        defaultMessage='Diagnostics'
+                        iconName='md-analytics'
+                        iconType='ion'
+                        onPress={this.gotoDiagnostics}
+                        separator={false}
+                        showArrow={false}
+                        theme={theme}
+                    />
+                    <View style={style.divider}/>
                 </ScrollView>
             </View>
         );

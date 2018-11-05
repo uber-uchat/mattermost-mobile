@@ -90,3 +90,8 @@ ios/Pods/
 
 #editor-settings
 .vscode
+android/.project
+android/.settings/
+android/app/.classpath
+android/app/.project
+android/app/.settings/

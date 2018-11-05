@@ -69,6 +69,7 @@
     "semver": "5.5.1",
     "shallow-equals": "1.0.0",
     "tinycolor2": "1.4.1",
+    "uchat-mobile-diagnostics": "github:uber-uchat/uchat-mobile-diagnostics",
     "url-parse": "1.4.3"
   },
   "devDependencies": {

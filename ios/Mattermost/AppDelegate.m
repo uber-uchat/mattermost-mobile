@@ -20,6 +20,7 @@
 #import "RCCManager.h"
 #import "RNNotifications.h"
 #import "SessionManager.h"
+#import "uChatMobileDiagnostics.h"
 
 @implementation AppDelegate
 
@@ -41,6 +42,8 @@
     [[NSUserDefaults standardUserDefaults] setValue:@YES forKey:@"FirstRun"];
     [[NSUserDefaults standardUserDefaults] synchronize];
   }
+  
+  [uChatMobileDiagnostics setStartTime];
 
   NSURL *jsCodeLocation;
 

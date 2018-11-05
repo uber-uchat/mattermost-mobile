@@ -12,6 +12,8 @@ import {
     StyleSheet,
     View,
 } from 'react-native';
+import DeviceInfo from 'react-native-device-info';
+import Diagnostics from 'uchat-mobile-diagnostics';
 
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
@@ -99,6 +101,7 @@ export default class Channel extends PureComponent {
         }
 
         EventEmitter.emit('renderDrawer');
+        Diagnostics.recordStartTime();
     }
 
     componentWillReceiveProps(nextProps) {

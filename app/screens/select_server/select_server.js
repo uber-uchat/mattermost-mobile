@@ -20,6 +20,7 @@ import {
 } from 'react-native';
 import Button from 'react-native-button';
 import RNFetchBlob from 'rn-fetch-blob';
+import Diagnostics from 'uchat-mobile-diagnostics';
 
 import {Client4} from 'mattermost-redux/client';
 
@@ -94,6 +95,8 @@ export default class SelectServer extends PureComponent {
 
         this.certificateListener = DeviceEventEmitter.addListener('RNFetchBlobCertificate', this.selectCertificate);
         this.props.navigator.setOnNavigatorEvent(this.handleNavigatorEvent);
+
+        Diagnostics.recordedStartTime();
     }
 
     componentWillUpdate(nextProps, nextState) {
