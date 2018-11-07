@@ -15,6 +15,8 @@ import {getCurrentUserId, getUser} from 'mattermost-redux/selectors/entities/use
 import {isChannelMuted} from 'mattermost-redux/utils/channel_utils';
 import {displayUsername} from 'mattermost-redux/utils/user_utils';
 
+import {getDraftForChannel} from 'app/selectors/views';
+
 import ChannelItem from './channel_item';
 
 function makeMapStateToProps() {
@@ -22,20 +24,18 @@ function makeMapStateToProps() {
 
     return (state, ownProps) => {
         const channel = ownProps.channel || getChannel(state, {id: ownProps.channelId});
-        const member = getMyChannelMember(state, ownProps.channelId);
+        const member = getMyChannelMember(state, channel.id);
         const currentUserId = getCurrentUserId(state);
+        const channelDraft = getDraftForChannel(state, channel.id);
 
-        let isMyUser = false;
-        let teammateDeletedAt = 0;
         let displayName = channel.display_name;
-        if (channel.type === General.DM_CHANNEL && channel.teammate_id) {
-            isMyUser = channel.teammate_id === currentUserId;
-            const teammate = getUser(state, channel.teammate_id);
-            if (teammate && teammate.delete_at) {
-                teammateDeletedAt = teammate.delete_at;
+
+        if (channel.type === General.DM_CHANNEL) {
+            if (!ownProps.isSearchResult) {
+                const teammate = getUser(state, channel.teammate_id);
+                const teammateNameDisplay = getTeammateNameDisplaySetting(state);
+                displayName = displayUsername(teammate, teammateNameDisplay, false);
             }
-            const teammateNameDisplay = getTeammateNameDisplaySetting(state);
-            displayName = displayUsername(teammate, teammateNameDisplay, false);
         }
 
         const currentChannelId = getCurrentChannelId(state);
@@ -62,21 +62,17 @@ function makeMapStateToProps() {
             showUnreadForMsgs = member.notify_props.mark_unread !== General.MENTION;
         }
         return {
-            isActive,
+            channel,
             currentChannelId,
             displayName,
-            fake: channel.fake,
             isChannelMuted: isChannelMuted(member),
-            isMyUser,
+            currentUserId,
+            hasDraft: Boolean(channelDraft.draft.trim() || channelDraft.files.length),
             mentions: member ? member.mention_count : 0,
             shouldHideChannel,
             showUnreadForMsgs,
-            status: channel.status,
-            teammateDeletedAt,
             theme: getTheme(state),
-            type: channel.type,
             unreadMsgs,
-            isArchived: channel.delete_at > 0,
         };
     };
 }

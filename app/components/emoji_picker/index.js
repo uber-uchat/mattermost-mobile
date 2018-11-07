@@ -9,63 +9,63 @@ import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {getCustomEmojisByName} from 'mattermost-redux/selectors/entities/emojis';
 import {getConfig} from 'mattermost-redux/selectors/entities/general';
 import {getCustomEmojis, searchCustomEmojis} from 'mattermost-redux/actions/emojis';
-import {Client4} from 'mattermost-redux/client';
 
 import {incrementEmojiPickerPage} from 'app/actions/views/emoji';
 import {getDimensions, isLandscape} from 'app/selectors/device';
 import {CategoryNames, Emojis, EmojiIndicesByAlias, EmojiIndicesByCategory} from 'app/utils/emojis';
+import {t} from 'app/utils/i18n';
 
 import EmojiPicker from './emoji_picker';
 import Fuse from 'fuse.js';
 
 const categoryToI18n = {
     activity: {
-        id: 'mobile.emoji_picker.activity',
+        id: t('mobile.emoji_picker.activity'),
         defaultMessage: 'ACTIVITY',
         icon: 'futbol-o',
     },
     custom: {
-        id: 'mobile.emoji_picker.custom',
+        id: t('mobile.emoji_picker.custom'),
         defaultMessage: 'CUSTOM',
         icon: 'at',
     },
     flags: {
-        id: 'mobile.emoji_picker.flags',
+        id: t('mobile.emoji_picker.flags'),
         defaultMessage: 'FLAGS',
         icon: 'flag-o',
     },
     foods: {
-        id: 'mobile.emoji_picker.foods',
+        id: t('mobile.emoji_picker.foods'),
         defaultMessage: 'FOODS',
         icon: 'cutlery',
     },
     nature: {
-        id: 'mobile.emoji_picker.nature',
+        id: t('mobile.emoji_picker.nature'),
         defaultMessage: 'NATURE',
         icon: 'leaf',
     },
     objects: {
-        id: 'mobile.emoji_picker.objects',
+        id: t('mobile.emoji_picker.objects'),
         defaultMessage: 'OBJECTS',
         icon: 'lightbulb-o',
     },
     people: {
-        id: 'mobile.emoji_picker.people',
+        id: t('mobile.emoji_picker.people'),
         defaultMessage: 'PEOPLE',
         icon: 'smile-o',
     },
     places: {
-        id: 'mobile.emoji_picker.places',
+        id: t('mobile.emoji_picker.places'),
         defaultMessage: 'PLACES',
         icon: 'plane',
     },
     recent: {
-        id: 'mobile.emoji_picker.recent',
+        id: t('mobile.emoji_picker.recent'),
         defaultMessage: 'RECENTLY USED',
         icon: 'clock-o',
     },
     symbols: {
-        id: 'mobile.emoji_picker.symbols',
+        id: t('mobile.emoji_picker.symbols'),
         defaultMessage: 'SYMBOLS',
         icon: 'heart-o',
     },
@@ -160,7 +160,7 @@ function mapStateToProps(state) {
         theme: getTheme(state),
         customEmojisEnabled: getConfig(state).EnableCustomEmoji === 'true',
         customEmojiPage: state.views.emoji.emojiPickerCustomPage,
-        serverVersion: state.entities.general.serverVersion || Client4.getServerVersion(),
+        serverVersion: state.entities.general.serverVersion,
     };
 }
 

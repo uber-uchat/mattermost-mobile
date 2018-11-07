@@ -9,9 +9,9 @@ import {
     AppState,
     Dimensions,
     Platform,
+    StyleSheet,
     View,
 } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
 
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
@@ -23,10 +23,9 @@ import KeyboardLayout from 'app/components/layout/keyboard_layout';
 import OfflineIndicator from 'app/components/offline_indicator';
 import SafeAreaView from 'app/components/safe_area_view';
 import StatusBar from 'app/components/status_bar';
-import {ViewTypes} from 'app/constants';
+import {DeviceTypes, ViewTypes} from 'app/constants';
 import mattermostBucket from 'app/mattermost_bucket';
 import {preventDoubleTap} from 'app/utils/tap';
-import {makeStyleSheetFromTheme} from 'app/utils/theme';
 import PostTextbox from 'app/components/post_textbox';
 import networkConnectionListener from 'app/utils/network';
 import tracker from 'app/utils/time_tracker';
@@ -74,8 +73,6 @@ export default class Channel extends PureComponent {
 
     constructor(props) {
         super(props);
-
-        this.isX = DeviceInfo.getModel() === 'iPhone X';
 
         if (LocalConfig.EnableMobileClientUpgrade && !ClientUpgradeListener) {
             ClientUpgradeListener = require('app/components/client_upgrade_listener').default;
@@ -163,15 +160,15 @@ export default class Channel extends PureComponent {
                 top = ANDROID_TOP_LANDSCAPE;
             } else {
                 top = ANDROID_TOP_PORTRAIT;
-                height = (height - 84);
+                height -= 84;
             }
             break;
         case 'ios':
             if (isLandscape) {
                 top = IOS_TOP_LANDSCAPE;
             } else {
-                height = this.isX ? (height - IOSX_TOP_PORTRAIT) : (height - IOS_TOP_PORTRAIT);
-                top = this.isX ? IOSX_TOP_PORTRAIT : IOS_TOP_PORTRAIT;
+                height = DeviceTypes.IS_IPHONE_X ? (height - IOSX_TOP_PORTRAIT) : (height - IOS_TOP_PORTRAIT);
+                top = DeviceTypes.IS_IPHONE_X ? IOSX_TOP_PORTRAIT : IOS_TOP_PORTRAIT;
             }
             break;
         }
@@ -321,8 +318,6 @@ export default class Channel extends PureComponent {
             theme,
         } = this.props;
 
-        const style = getStyleFromTheme(theme);
-
         if (!currentChannelId) {
             if (channelsRequestFailed) {
                 const PostListRetry = require('app/components/post_list_retry').default;
@@ -337,7 +332,7 @@ export default class Channel extends PureComponent {
             const Loading = require('app/components/channel_loader').default;
             return (
                 <SafeAreaView navigator={navigator}>
-                    <View style={style.loading}>
+                    <View style={style.flex}>
                         <EmptyToolbar
                             theme={theme}
                             isLandscape={this.props.isLandscape}
@@ -371,7 +366,7 @@ export default class Channel extends PureComponent {
                             onPress={this.goToChannelInfo}
                         />
                         <KeyboardLayout>
-                            <View style={style.postList}>
+                            <View style={style.flex}>
                                 <ChannelPostList navigator={navigator}/>
                             </View>
                             <PostTextbox
@@ -391,19 +386,13 @@ export default class Channel extends PureComponent {
     }
 }
 
-const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
-    return {
-        postList: {
-            flex: 1,
-        },
-        loading: {
-            backgroundColor: theme.centerChannelBg,
-            flex: 1,
-        },
-        channelLoader: {
-            position: 'absolute',
-            width: '100%',
-            flex: 1,
-        },
-    };
+const style = StyleSheet.create({
+    flex: {
+        flex: 1,
+    },
+    channelLoader: {
+        position: 'absolute',
+        width: '100%',
+        flex: 1,
+    },
 });

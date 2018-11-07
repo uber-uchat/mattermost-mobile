@@ -132,6 +132,7 @@ export default class PostBody extends PureComponent {
             isPostEphemeral,
             isSystemMessage,
             managedConfig,
+            message,
             onCopyText,
             onPostDelete,
             onPostEdit,
@@ -149,7 +150,7 @@ export default class PostBody extends PureComponent {
                 });
             }
 
-            if (managedConfig.copyAndPasteProtection !== 'true') {
+            if (managedConfig.copyAndPasteProtection !== 'true' && message) {
                 actions.push({
                     text: formatMessage({id: 'mobile.post_info.copy_post', defaultMessage: 'Copy Post'}),
                     onPress: onCopyText,
@@ -329,7 +330,14 @@ export default class PostBody extends PureComponent {
     };
 
     renderReactions = () => {
-        const {hasReactions, isSearchResult, postId, onAddReaction, showLongPost} = this.props;
+        const {
+            hasReactions,
+            isSearchResult,
+            navigator,
+            onAddReaction,
+            postId,
+            showLongPost,
+        } = this.props;
 
         if (!hasReactions || isSearchResult || showLongPost) {
             return null;
@@ -343,6 +351,7 @@ export default class PostBody extends PureComponent {
             <Reactions
                 postId={postId}
                 onAddReaction={onAddReaction}
+                navigator={navigator}
             />
         );
     };

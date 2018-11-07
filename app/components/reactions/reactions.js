@@ -23,6 +23,7 @@ export default class Reactions extends PureComponent {
             removeReaction: PropTypes.func.isRequired,
         }).isRequired,
         highlightedReactions: PropTypes.array.isRequired,
+        navigator: PropTypes.object.isRequired,
         onAddReaction: PropTypes.func.isRequired,
         position: PropTypes.oneOf(['right', 'left']),
         postId: PropTypes.string.isRequired,
@@ -30,7 +31,7 @@ export default class Reactions extends PureComponent {
         theme: PropTypes.object.isRequired,
         canAddReaction: PropTypes.bool,
         canRemoveReaction: PropTypes.bool.isRequired,
-    }
+    };
 
     static defaultProps = {
         position: 'right',
@@ -50,8 +51,28 @@ export default class Reactions extends PureComponent {
         }
     };
 
+    showReactionList = () => {
+        const {navigator, postId} = this.props;
+
+        const options = {
+            screen: 'ReactionList',
+            animationType: 'none',
+            backButtonTitle: '',
+            navigatorStyle: {
+                navBarHidden: true,
+                screenBackgroundColor: 'transparent',
+                modalPresentationStyle: 'overCurrentContext',
+            },
+            passProps: {
+                postId,
+            },
+        };
+
+        navigator.showModal(options);
+    }
+
     renderReactions = () => {
-        const {highlightedReactions, reactions, theme} = this.props;
+        const {highlightedReactions, navigator, reactions, theme, postId} = this.props;
 
         return Array.from(reactions.keys()).map((r) => {
             return (
@@ -60,7 +81,10 @@ export default class Reactions extends PureComponent {
                     count={reactions.get(r).length}
                     emojiName={r}
                     highlight={highlightedReactions.includes(r)}
+                    navigator={navigator}
                     onPress={this.handleReactionPress}
+                    onLongPress={this.showReactionList}
+                    postId={postId}
                     theme={theme}
                 />
             );

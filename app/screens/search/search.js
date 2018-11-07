@@ -13,11 +13,12 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
 import IonIcon from 'react-native-vector-icons/Ionicons';
 import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
 import {RequestStatus} from 'mattermost-redux/constants';
+
+import {debounce} from 'mattermost-redux/actions/helpers';
 
 import Autocomplete from 'app/components/autocomplete';
 import KeyboardLayout from 'app/components/layout/keyboard_layout';
@@ -30,6 +31,7 @@ import PostSeparator from 'app/components/post_separator';
 import SafeAreaView from 'app/components/safe_area_view';
 import SearchBar from 'app/components/search_bar';
 import StatusBar from 'app/components/status_bar';
+import {DeviceTypes, ListTypes} from 'app/constants';
 import mattermostManaged from 'app/mattermost_managed';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
@@ -41,6 +43,7 @@ const SECTION_HEIGHT = 20;
 const RECENT_LABEL_HEIGHT = 42;
 const RECENT_SEPARATOR_HEIGHT = 3;
 const MODIFIER_LABEL_HEIGHT = 58;
+const SCROLL_UP_MULTIPLIER = 6;
 const SEARCHING = 'searching';
 const NO_RESULTS = 'no results';
 
@@ -53,6 +56,7 @@ export default class Search extends PureComponent {
             loadThreadIfNecessary: PropTypes.func.isRequired,
             removeSearchTerms: PropTypes.func.isRequired,
             searchPostsWithParams: PropTypes.func.isRequired,
+            getMorePostsForSearch: PropTypes.func.isRequired,
             selectFocusedPostId: PropTypes.func.isRequired,
             selectPost: PropTypes.func.isRequired,
         }).isRequired,
@@ -64,9 +68,11 @@ export default class Search extends PureComponent {
         archivedPostIds: PropTypes.arrayOf(PropTypes.string),
         recent: PropTypes.array.isRequired,
         searchingStatus: PropTypes.string,
+        isSearchGettingMore: PropTypes.bool.isRequired,
         theme: PropTypes.object.isRequired,
         enableDateSuggestion: PropTypes.bool,
         timezoneOffsetInSeconds: PropTypes.number.isRequired,
+        viewArchivedChannels: PropTypes.bool,
     };
 
     static defaultProps = {
@@ -84,7 +90,8 @@ export default class Search extends PureComponent {
         super(props);
 
         props.navigator.setOnNavigatorEvent(this.onNavigatorEvent);
-        this.isX = DeviceInfo.getModel() === 'iPhone X';
+
+        this.contentOffsetY = 0;
         this.state = {
             channelName: '',
             cursorPosition: 0,
@@ -102,20 +109,20 @@ export default class Search extends PureComponent {
 
         if (this.props.initialValue) {
             this.search(this.props.initialValue);
-        } else {
-            setTimeout(() => {
-                if (this.refs.searchBar) {
-                    this.refs.searchBar.focus();
-                }
-            }, 150);
         }
+
+        setTimeout(() => {
+            if (this.refs.searchBar) {
+                this.refs.searchBar.focus();
+            }
+        }, 150);
     }
 
     componentDidUpdate(prevProps) {
         const {searchingStatus: status, recent, enableDateSuggestion} = this.props;
-        const {searchingStatus: prevStatus} = prevProps;
-        const recentLength = recent.length;
-        const shouldScroll = prevStatus !== status && (status === RequestStatus.SUCCESS || status === RequestStatus.STARTED);
+        const shouldScroll = status === RequestStatus.SUCCESS &&
+            !this.props.isSearchGettingMore &&
+            !prevProps.isSearchGettingMore;
 
         if (this.props.isLandscape !== prevProps.isLandscape) {
             this.refs.searchBar.blur();
@@ -123,11 +130,14 @@ export default class Search extends PureComponent {
 
         if (shouldScroll) {
             setTimeout(() => {
+                const recentLabelsHeight = (recent.length + (Platform.OS === 'ios' ? 1 : 0)) * RECENT_LABEL_HEIGHT;
+                const recentSeparatorsHeight = (recent.length + (Platform.OS === 'ios' ? 0 : 2)) * RECENT_SEPARATOR_HEIGHT;
                 const modifiersCount = enableDateSuggestion ? 5 : 2;
                 if (this.refs.list) {
                     this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
                         animated: true,
-                        offset: SECTION_HEIGHT + (modifiersCount * MODIFIER_LABEL_HEIGHT) + (recentLength * RECENT_LABEL_HEIGHT) + ((recentLength + 1) * RECENT_SEPARATOR_HEIGHT),
+                        offset: SECTION_HEIGHT + (modifiersCount * MODIFIER_LABEL_HEIGHT) +
+                            recentLabelsHeight + recentSeparatorsHeight,
                     });
                 }
             }, 100);
@@ -137,6 +147,30 @@ export default class Search extends PureComponent {
     componentWillUnmount() {
         mattermostManaged.removeEventListener(this.listenerId);
     }
+
+    archivedIndicator = (postID, style) => {
+        const channelIsArchived = this.props.archivedPostIds.includes(postID);
+        let archivedIndicator = null;
+        if (channelIsArchived) {
+            archivedIndicator = (
+                <View style={style.archivedIndicator}>
+                    <Text>
+                        <AwesomeIcon
+                            name='archive'
+                            style={style.archivedText}
+                        />
+                        {' '}
+                        <FormattedText
+                            style={style.archivedText}
+                            id='search_item.channelArchived'
+                            defaultMessage='Archived'
+                        />
+                    </Text>
+                </View>
+            );
+        }
+        return archivedIndicator;
+    };
 
     cancelSearch = preventDoubleTap(() => {
         const {navigator} = this.props;
@@ -192,9 +226,32 @@ export default class Search extends PureComponent {
         this.showingPermalink = false;
     };
 
+    handleLayout = (event) => {
+        const {height} = event.nativeEvent.layout;
+        this.setState({searchListHeight: height});
+    };
+
     handlePermalinkPress = (postId, teamName) => {
         this.props.actions.loadChannelsByTeamName(teamName);
         this.showPermalinkView(postId, true);
+    };
+
+    handleScroll = (event) => {
+        const pageOffsetY = event.nativeEvent.contentOffset.y;
+        if (pageOffsetY > 0) {
+            const contentHeight = event.nativeEvent.contentSize.height;
+            const direction = (this.contentOffsetY < pageOffsetY) ?
+                ListTypes.VISIBILITY_SCROLL_UP :
+                ListTypes.VISIBILITY_SCROLL_DOWN;
+
+            this.contentOffsetY = pageOffsetY;
+            if (
+                direction === ListTypes.VISIBILITY_SCROLL_UP &&
+                (contentHeight - pageOffsetY) < (this.state.searchListHeight * SCROLL_UP_MULTIPLIER)
+            ) {
+                this.getMoreSearchResults();
+            }
+        }
     };
 
     handleSelectionChange = (event) => {
@@ -204,12 +261,16 @@ export default class Search extends PureComponent {
         });
     };
 
+    handleSearchButtonPress = preventDoubleTap((text) => {
+        this.search(text);
+    });
+
     handleTextChanged = (value, selectionChanged) => {
-        const {actions, searchingStatus} = this.props;
+        const {actions, searchingStatus, isSearchGettingMore} = this.props;
         this.setState({value});
         actions.handleSearchDraftChanged(value);
 
-        if (!value && searchingStatus === RequestStatus.SUCCESS) {
+        if (!value && searchingStatus === RequestStatus.SUCCESS && !isSearchGettingMore) {
             actions.clearSearch();
             this.scrollToTop();
         }
@@ -239,6 +300,12 @@ export default class Search extends PureComponent {
         return item.id || item;
     };
 
+    getMoreSearchResults = debounce(() => {
+        if (this.state.value && this.props.postIds.length) {
+            this.props.actions.getMorePostsForSearch();
+        }
+    }, 100);
+
     onNavigatorEvent = (event) => {
         if (event.id === 'backPress') {
             if (this.state.preview) {
@@ -255,39 +322,23 @@ export default class Search extends PureComponent {
         this.showPermalinkView(post.id, false);
     };
 
-    showPermalinkView = (postId, isPermalink) => {
-        const {actions, navigator} = this.props;
-
-        actions.selectFocusedPostId(postId);
-
-        if (!this.showingPermalink) {
-            const options = {
-                screen: 'Permalink',
-                animationType: 'none',
-                backButtonTitle: '',
-                overrideBackPress: true,
-                navigatorStyle: {
-                    navBarHidden: true,
-                    screenBackgroundColor: changeOpacity('#000', 0.2),
-                    modalPresentationStyle: 'overCurrentContext',
-                },
-                passProps: {
-                    isPermalink,
-                    onClose: this.handleClosePermalink,
-                    onHashtagPress: this.handleHashtagPress,
-                    onPermalinkPress: this.handlePermalinkPress,
-                },
-            };
-
-            this.showingPermalink = true;
-            navigator.showModal(options);
-        }
-    };
-
     removeSearchTerms = preventDoubleTap((item) => {
         const {actions, currentTeamId} = this.props;
         actions.removeSearchTerms(currentTeamId, item.terms);
     });
+
+    renderFooter = () => {
+        if (this.props.isSearchGettingMore) {
+            const style = getStyleFromTheme(this.props.theme);
+            return (
+                <View style={style.loadingMore}>
+                    <Loading/>
+                </View>
+            );
+        }
+
+        return null;
+    };
 
     renderModifiers = ({item}) => {
         const {theme} = this.props;
@@ -323,30 +374,6 @@ export default class Search extends PureComponent {
         );
     };
 
-    archivedIndicator = (postID, style) => {
-        const channelIsArchived = this.props.archivedPostIds.includes(postID);
-        let archivedIndicator = null;
-        if (channelIsArchived) {
-            archivedIndicator = (
-                <View style={style.archivedIndicator}>
-                    <Text>
-                        <AwesomeIcon
-                            name='archive'
-                            style={style.archivedText}
-                        />
-                        {' '}
-                        <FormattedText
-                            style={style.archivedText}
-                            id='search_item.channelArchived'
-                            defaultMessage='Archived'
-                        />
-                    </Text>
-                </View>
-            );
-        }
-        return archivedIndicator;
-    };
-
     renderPost = ({item, index}) => {
         const {postIds, theme} = this.props;
         const {managedConfig} = this.state;
@@ -376,7 +403,7 @@ export default class Search extends PureComponent {
         }
 
         return (
-            <View>
+            <View style={style.postResult}>
                 <ChannelDisplayName postId={item}/>
                 {this.archivedIndicator(postIds[index], style)}
                 <SearchResultPost
@@ -472,6 +499,35 @@ export default class Search extends PureComponent {
         });
     };
 
+    showPermalinkView = (postId, isPermalink) => {
+        const {actions, navigator} = this.props;
+
+        actions.selectFocusedPostId(postId);
+
+        if (!this.showingPermalink) {
+            const options = {
+                screen: 'Permalink',
+                animationType: 'none',
+                backButtonTitle: '',
+                overrideBackPress: true,
+                navigatorStyle: {
+                    navBarHidden: true,
+                    screenBackgroundColor: changeOpacity('#000', 0.2),
+                    modalPresentationStyle: 'overCurrentContext',
+                },
+                passProps: {
+                    isPermalink,
+                    onClose: this.handleClosePermalink,
+                    onHashtagPress: this.handleHashtagPress,
+                    onPermalinkPress: this.handlePermalinkPress,
+                },
+            };
+
+            this.showingPermalink = true;
+            navigator.showModal(options);
+        }
+    };
+
     scrollToTop = () => {
         if (this.refs.list) {
             this.refs.list._wrapperListRef.getListRef().scrollToOffset({ //eslint-disable-line no-underscore-dangle
@@ -482,7 +538,7 @@ export default class Search extends PureComponent {
     };
 
     search = (terms, isOrSearch) => {
-        const {actions, currentTeamId} = this.props;
+        const {actions, currentTeamId, viewArchivedChannels} = this.props;
 
         this.handleTextChanged(`${terms.trim()} `);
 
@@ -496,12 +552,16 @@ export default class Search extends PureComponent {
         });
 
         // timezone offset in seconds
-        actions.searchPostsWithParams(currentTeamId, {terms: terms.trim(), is_or_search: isOrSearch, time_zone_offset: this.props.timezoneOffsetInSeconds}, true);
+        const params = {
+            terms: terms.trim(),
+            is_or_search: isOrSearch,
+            time_zone_offset: this.props.timezoneOffsetInSeconds,
+            page: 0,
+            per_page: 20,
+            include_deleted_channels: viewArchivedChannels,
+        };
+        actions.searchPostsWithParams(currentTeamId, params, true);
     };
-
-    handleSearchButtonPress = preventDoubleTap((text) => {
-        this.search(text);
-    });
 
     setModifierValue = preventDoubleTap((modifier) => {
         const {value} = this.state;
@@ -536,6 +596,7 @@ export default class Search extends PureComponent {
             recent,
             searchingStatus,
             theme,
+            isSearchGettingMore,
         } = this.props;
 
         const {intl} = this.context;
@@ -612,14 +673,18 @@ export default class Search extends PureComponent {
         let results;
         switch (searchingStatus) {
         case RequestStatus.STARTED:
-            results = [{
-                id: SEARCHING,
-                component: (
-                    <View style={style.searching}>
-                        <Loading/>
-                    </View>
-                ),
-            }];
+            if (isSearchGettingMore) {
+                results = postIds;
+            } else {
+                results = [{
+                    id: SEARCHING,
+                    component: (
+                        <View style={style.searching}>
+                            <Loading/>
+                        </View>
+                    ),
+                }];
+            }
             break;
         case RequestStatus.SUCCESS:
             if (postIds.length) {
@@ -670,7 +735,7 @@ export default class Search extends PureComponent {
 
         return (
             <SafeAreaView
-                excludeHeader={isLandscape && this.isX}
+                excludeHeader={isLandscape && DeviceTypes.IS_IPHONE_X}
                 forceTop={44}
             >
                 <KeyboardLayout>
@@ -706,6 +771,10 @@ export default class Search extends PureComponent {
                         keyboardShouldPersistTaps='always'
                         keyboardDismissMode='interactive'
                         stickySectionHeadersEnabled={Platform.OS === 'ios'}
+                        onLayout={this.handleLayout}
+                        onScroll={this.handleScroll}
+                        scrollEventThrottle={60}
+                        ListFooterComponent={this.renderFooter}
                     />
                     <Autocomplete
                         cursorPosition={cursorPosition}
@@ -843,6 +912,12 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
         },
         archivedText: {
             color: changeOpacity(theme.centerChannelColor, 0.4),
+        },
+        postResult: {
+            overflow: 'hidden',
+        },
+        loadingMore: {
+            height: 60,
         },
     };
 });

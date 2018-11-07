@@ -210,7 +210,10 @@ export default class PostBodyAdditionalContent extends PureComponent {
                             resizeMode='cover'
                             onError={this.handleLinkLoadError}
                         >
-                            <TouchableOpacity onPress={this.playYouTubeVideo}>
+                            <TouchableOpacity
+                                style={styles.playButton}
+                                onPress={this.playYouTubeVideo}
+                            >
                                 <Image
                                     source={require('assets/images/icons/youtube-play-icon.png')}
                                     onPress={this.playYouTubeVideo}
@@ -251,13 +254,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
         const viewPortWidth = deviceSize - VIEWPORT_IMAGE_OFFSET - (isReplyPost ? VIEWPORT_IMAGE_REPLY_OFFSET : 0);
 
         if (link && path) {
-            let prefix = '';
-            if (Platform.OS === 'android') {
-                prefix = 'file://';
-            }
-
-            const uri = `${prefix}${path}`;
-            Image.getSize(uri, (width, height) => {
+            Image.getSize(path, (width, height) => {
                 if (!this.mounted) {
                     return;
                 }
@@ -279,7 +276,7 @@ export default class PostBodyAdditionalContent extends PureComponent {
                     originalHeight: height,
                     originalWidth: width,
                     linkLoaded: true,
-                    uri,
+                    uri: path,
                 });
             }, () => this.setState({linkLoadError: true}));
         }
@@ -467,5 +464,10 @@ const styles = StyleSheet.create({
         borderRadius: 3,
         justifyContent: 'center',
         marginVertical: 1,
+    },
+    playButton: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
 });

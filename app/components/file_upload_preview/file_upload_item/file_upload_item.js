@@ -118,6 +118,7 @@ export default class FileUploadItem extends PureComponent {
 
         const headers = {
             Authorization: `Bearer ${Client4.getToken()}`,
+            'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'multipart/form-data',
         };
 
@@ -174,6 +175,7 @@ export default class FileUploadItem extends PureComponent {
             filePreviewComponent = (
                 <FileAttachmentImage
                     file={file}
+                    imageSize='fullsize'
                     imageHeight={100}
                     imageWidth={100}
                     wrapperHeight={100}
@@ -273,6 +275,7 @@ const styles = StyleSheet.create({
     progressCirclePercentage: {
         alignItems: 'center',
         flex: 1,
+        justifyContent: 'center',
     },
     progressContent: {
         alignItems: 'center',
@@ -280,7 +283,6 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         left: 0,
         position: 'absolute',
-        top: 40,
         width: '100%',
     },
     progressText: {

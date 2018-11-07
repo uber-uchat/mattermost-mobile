@@ -8,18 +8,22 @@ import {intlShape} from 'react-intl';
 import Button from 'react-native-button';
 import {General, RequestStatus} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
+import {getFormattedFileSize} from 'mattermost-redux/utils/file_utils';
 
 import AttachmentButton from 'app/components/attachment_button';
 import Autocomplete from 'app/components/autocomplete';
 import FileUploadPreview from 'app/components/file_upload_preview';
-import QuickTextInput from 'app/components/quick_text_input';
 import {INITIAL_HEIGHT, INSERT_TO_COMMENT, INSERT_TO_DRAFT, IS_REACTION_REGEX, MAX_CONTENT_HEIGHT, MAX_FILE_COUNT} from 'app/constants/post_textbox';
 import {confirmOutOfOfficeDisabled} from 'app/utils/status';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 import FormattedMarkdownText from 'app/components/formatted_markdown_text';
 import FormattedText from 'app/components/formatted_text';
 
 import Typing from './components/typing';
+
+const AUTOCOMPLETE_MARGIN = 20;
+const AUTOCOMPLETE_MAX_HEIGHT = 200;
 
 let PaperPlane = null;
 
@@ -38,16 +42,17 @@ export default class PostTextbox extends PureComponent {
             userTyping: PropTypes.func.isRequired,
             handleCommentDraftSelectionChanged: PropTypes.func.isRequired,
             setStatus: PropTypes.func.isRequired,
-            setChannelDisplayName: PropTypes.func.isRequired,
-            setChannelLoading: PropTypes.func.isRequired,
+            selectPenultimateChannel: PropTypes.func.isRequired,
         }).isRequired,
         canUploadFiles: PropTypes.bool.isRequired,
         channelId: PropTypes.string.isRequired,
+        channelTeamId: PropTypes.string.isRequired,
         channelIsLoading: PropTypes.bool,
         channelIsReadOnly: PropTypes.bool.isRequired,
         currentUserId: PropTypes.string.isRequired,
         deactivatedChannel: PropTypes.bool.isRequired,
         files: PropTypes.array,
+        maxFileSize: PropTypes.number.isRequired,
         maxMessageLength: PropTypes.number.isRequired,
         navigator: PropTypes.object,
         rootId: PropTypes.string,
@@ -56,7 +61,6 @@ export default class PostTextbox extends PureComponent {
         value: PropTypes.string.isRequired,
         userIsOutOfOffice: PropTypes.bool.isRequired,
         channelIsArchived: PropTypes.bool,
-        defaultChannel: PropTypes.object,
         onCloseChannel: PropTypes.func,
     };
 
@@ -77,6 +81,8 @@ export default class PostTextbox extends PureComponent {
             contentHeight: INITIAL_HEIGHT,
             cursorPosition: 0,
             keyboardType: 'default',
+            fileSizeWarning: null,
+            top: 0,
             value: props.value,
             showFileMaxWarning: false,
         };
@@ -105,10 +111,6 @@ export default class PostTextbox extends PureComponent {
             BackHandler.removeEventListener('hardwareBackPress', this.handleAndroidBack);
         }
     }
-
-    attachAutocomplete = (c) => {
-        this.autocomplete = c;
-    };
 
     blur = () => {
         if (this.refs.input) {
@@ -459,12 +461,26 @@ export default class PostTextbox extends PureComponent {
         });
     };
 
+    onShowFileSizeWarning = (filename) => {
+        const {formatMessage} = this.context.intl;
+        const fileSizeWarning = formatMessage({
+            id: 'file_upload.fileAbove',
+            defaultMessage: 'File above {max}MB cannot be uploaded: {filename}',
+        }, {
+            max: getFormattedFileSize({size: this.props.maxFileSize}),
+            filename,
+        });
+
+        this.setState({fileSizeWarning}, () => {
+            setTimeout(() => {
+                this.setState({fileSizeWarning: null});
+            }, 3000);
+        });
+    };
+
     onCloseChannelPress = () => {
-        const {defaultChannel, channelId, onCloseChannel} = this.props;
-        const {setChannelDisplayName, setChannelLoading} = this.props.actions;
-        setChannelLoading(true);
-        setChannelDisplayName(defaultChannel.display_name);
-        EventEmitter.emit('switch_channel', defaultChannel, channelId);
+        const {onCloseChannel, channelTeamId} = this.props;
+        this.props.actions.selectPenultimateChannel(channelTeamId);
         if (onCloseChannel) {
             onCloseChannel();
         }
@@ -491,6 +507,12 @@ export default class PostTextbox extends PureComponent {
         </View>);
     };
 
+    handleLayout = (e) => {
+        this.setState({
+            top: e.nativeEvent.layout.y,
+        });
+    };
+
     render() {
         const {intl} = this.context;
         const {
@@ -500,6 +522,7 @@ export default class PostTextbox extends PureComponent {
             channelIsReadOnly,
             deactivatedChannel,
             files,
+            maxFileSize,
             navigator,
             rootId,
             theme,
@@ -518,18 +541,25 @@ export default class PostTextbox extends PureComponent {
             );
         }
 
-        const {contentHeight, cursorPosition, showFileMaxWarning, value} = this.state;
+        const {
+            contentHeight,
+            cursorPosition,
+            fileSizeWarning,
+            showFileMaxWarning,
+            top,
+            value,
+        } = this.state;
 
         const textInputHeight = Math.min(contentHeight, MAX_CONTENT_HEIGHT);
         const textValue = channelIsLoading ? '' : value;
 
         let placeholder;
         if (channelIsReadOnly) {
-            placeholder = {id: 'mobile.create_post.read_only', defaultMessage: 'This channel is read-only.'};
+            placeholder = {id: t('mobile.create_post.read_only'), defaultMessage: 'This channel is read-only.'};
         } else if (rootId) {
-            placeholder = {id: 'create_comment.addComment', defaultMessage: 'Add a comment...'};
+            placeholder = {id: t('create_comment.addComment'), defaultMessage: 'Add a comment...'};
         } else {
-            placeholder = {id: 'create_post.write', defaultMessage: 'Write a message...'};
+            placeholder = {id: t('create_post.write'), defaultMessage: 'Write a message...'};
         }
 
         let attachmentButton = null;
@@ -541,8 +571,10 @@ export default class PostTextbox extends PureComponent {
                     theme={theme}
                     navigator={navigator}
                     fileCount={files.length}
+                    maxFileSize={maxFileSize}
                     maxFileCount={MAX_FILE_COUNT}
                     onShowFileMaxWarning={this.onShowFileMaxWarning}
+                    onShowFileSizeWarning={this.onShowFileSizeWarning}
                     uploadFiles={this.handleUploadFiles}
                 />
             );
@@ -550,51 +582,54 @@ export default class PostTextbox extends PureComponent {
             inputContainerStyle.push(style.inputContainerWithoutFileUpload);
         }
 
-        const InputComponent = Platform.OS === 'android' ? TextInput : QuickTextInput;
-
         return (
-            <View>
+            <React.Fragment>
                 <Typing/>
                 <FileUploadPreview
                     channelId={channelId}
                     files={files}
-                    inputHeight={textInputHeight}
+                    fileSizeWarning={fileSizeWarning}
                     rootId={rootId}
                     showFileMaxWarning={showFileMaxWarning}
                 />
                 <Autocomplete
-                    ref={this.attachAutocomplete}
                     cursorPosition={cursorPosition}
+                    maxHeight={Math.min(top - AUTOCOMPLETE_MARGIN, AUTOCOMPLETE_MAX_HEIGHT)}
                     onChangeText={this.handleTextChange}
                     value={this.state.value}
                     rootId={rootId}
                 />
-                {!channelIsArchived && <View style={style.inputWrapper}>
-                    {!channelIsReadOnly && attachmentButton}
-                    <View style={[inputContainerStyle, (channelIsReadOnly && {marginLeft: 10})]}>
-                        <InputComponent
-                            ref='input'
-                            value={textValue}
-                            onChangeText={this.handleTextChange}
-                            onSelectionChange={this.handlePostDraftSelectionChanged}
-                            placeholder={intl.formatMessage(placeholder)}
-                            placeholderTextColor={changeOpacity('#000', 0.5)}
-                            multiline={true}
-                            numberOfLines={5}
-                            blurOnSubmit={false}
-                            underlineColorAndroid='transparent'
-                            style={[style.input, Platform.OS === 'android' ? {height: textInputHeight} : {maxHeight: MAX_CONTENT_HEIGHT}]}
-                            onContentSizeChange={this.handleContentSizeChange}
-                            keyboardType={this.state.keyboardType}
-                            onEndEditing={this.handleEndEditing}
-                            disableFullscreenUI={true}
-                            editable={!channelIsReadOnly}
-                        />
-                        {this.renderSendButton()}
+                {!channelIsArchived && (
+                    <View
+                        style={style.inputWrapper}
+                        onLayout={this.handleLayout}
+                    >
+                        {!channelIsReadOnly && attachmentButton}
+                        <View style={[inputContainerStyle, (channelIsReadOnly && {marginLeft: 10})]}>
+                            <TextInput
+                                ref='input'
+                                value={textValue}
+                                onChangeText={this.handleTextChange}
+                                onSelectionChange={this.handlePostDraftSelectionChanged}
+                                placeholder={intl.formatMessage(placeholder)}
+                                placeholderTextColor={changeOpacity('#000', 0.5)}
+                                multiline={true}
+                                numberOfLines={5}
+                                blurOnSubmit={false}
+                                underlineColorAndroid='transparent'
+                                style={[style.input, Platform.OS === 'android' ? {height: textInputHeight} : {maxHeight: MAX_CONTENT_HEIGHT}]}
+                                onContentSizeChange={this.handleContentSizeChange}
+                                keyboardType={this.state.keyboardType}
+                                onEndEditing={this.handleEndEditing}
+                                disableFullscreenUI={true}
+                                editable={!channelIsReadOnly}
+                            />
+                            {this.renderSendButton()}
+                        </View>
                     </View>
-                </View>}
+                )}
                 {channelIsArchived && this.archivedView(theme, style)}
-            </View>
+            </React.Fragment>
         );
     }
 }

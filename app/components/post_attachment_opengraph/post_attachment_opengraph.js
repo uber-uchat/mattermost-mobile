@@ -6,7 +6,6 @@ import PropTypes from 'prop-types';
 import {
     Image,
     Linking,
-    Platform,
     Text,
     TouchableOpacity,
     TouchableWithoutFeedback,
@@ -19,7 +18,7 @@ import {getNearestPoint} from 'app/utils/opengraph';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
 const MAX_IMAGE_HEIGHT = 150;
-const VIEWPORT_IMAGE_OFFSET = 88;
+const VIEWPORT_IMAGE_OFFSET = 93;
 const VIEWPORT_IMAGE_REPLY_OFFSET = 13;
 
 export default class PostAttachmentOpenGraph extends PureComponent {
@@ -112,14 +111,7 @@ export default class PostAttachmentOpenGraph extends PureComponent {
     };
 
     getImageSize = (imageUrl) => {
-        let prefix = '';
-        if (Platform.OS === 'android') {
-            prefix = 'file://';
-        }
-
-        const uri = `${prefix}${imageUrl}`;
-
-        Image.getSize(uri, (width, height) => {
+        Image.getSize(imageUrl, (width, height) => {
             const dimensions = calculateDimensions(height, width, this.getViewPostWidth());
 
             if (this.mounted) {
@@ -127,7 +119,7 @@ export default class PostAttachmentOpenGraph extends PureComponent {
                     ...dimensions,
                     originalHeight: height,
                     originalWidth: width,
-                    imageUrl: uri,
+                    imageUrl,
                 });
             }
         }, () => null);
@@ -169,17 +161,34 @@ export default class PostAttachmentOpenGraph extends PureComponent {
         previewImageAtIndex(this.props.navigator, [this.refs.item], 0, files);
     };
 
-    render() {
-        const {isReplyPost, openGraphData, theme} = this.props;
-        const {hasImage, height, imageUrl, width} = this.state;
-
-        if (!openGraphData) {
+    renderDescription = () => {
+        const {openGraphData} = this.props;
+        if (!openGraphData.description) {
             return null;
         }
 
-        const style = getStyleSheet(theme);
+        const style = getStyleSheet(this.props.theme);
 
-        let description = null;
+        return (
+            <View style={style.flex}>
+                <Text
+                    style={style.siteDescription}
+                    numberOfLines={5}
+                    ellipsizeMode='tail'
+                >
+                    {openGraphData.description}
+                </Text>
+            </View>
+        );
+    }
+
+    renderImage = () => {
+        if (!this.state.hasImage) {
+            return null;
+        }
+
+        const {height, imageUrl, width} = this.state;
+
         let source;
         if (imageUrl) {
             source = {
@@ -187,22 +196,44 @@ export default class PostAttachmentOpenGraph extends PureComponent {
             };
         }
 
-        if (openGraphData.description) {
-            description = (
-                <View style={style.flex}>
-                    <Text
-                        style={style.siteDescription}
-                        numberOfLines={5}
-                        ellipsizeMode='tail'
-                    >
-                        {openGraphData.description}
-                    </Text>
-                </View>
-            );
-        }
+        const style = getStyleSheet(this.props.theme);
 
         return (
-            <View style={style.container}>
+            <View
+                ref='item'
+                style={style.imageContainer}
+            >
+                <TouchableWithoutFeedback
+                    onPress={this.handlePreviewImage}
+                    style={{width, height}}
+                >
+                    <Image
+                        style={[style.image, {width, height}]}
+                        source={source}
+                        resizeMode='contain'
+                    />
+                </TouchableWithoutFeedback>
+            </View>
+        );
+    }
+
+    render() {
+        const {
+            isReplyPost,
+            link,
+            openGraphData,
+            theme,
+        } = this.props;
+
+        if (!openGraphData) {
+            return null;
+        }
+
+        const style = getStyleSheet(theme);
+
+        let siteName;
+        if (openGraphData.site_name) {
+            siteName = (
                 <View style={style.flex}>
                     <Text
                         style={style.siteTitle}
@@ -212,6 +243,13 @@ export default class PostAttachmentOpenGraph extends PureComponent {
                         {openGraphData.site_name}
                     </Text>
                 </View>
+            );
+        }
+
+        const title = openGraphData.title || openGraphData.url || link;
+        let siteTitle;
+        if (title) {
+            siteTitle = (
                 <View style={style.wrapper}>
                     <TouchableOpacity
                         style={style.flex}
@@ -222,29 +260,19 @@ export default class PostAttachmentOpenGraph extends PureComponent {
                             numberOfLines={3}
                             ellipsizeMode='tail'
                         >
-                            {openGraphData.title || openGraphData.url}
+                            {title}
                         </Text>
                     </TouchableOpacity>
                 </View>
-                {description}
-                {hasImage &&
-                <View
-                    ref='item'
-                    style={style.imageContainer}
-                >
-                    <TouchableWithoutFeedback
-                        onPress={this.handlePreviewImage}
-                        style={{width, height}}
-                    >
-                        <Image
-                            ref='image'
-                            style={[style.image, {width, height}]}
-                            source={source}
-                            resizeMode='contain'
-                        />
-                    </TouchableWithoutFeedback>
-                </View>
-                }
+            );
+        }
+
+        return (
+            <View style={style.container}>
+                {siteName}
+                {siteTitle}
+                {this.renderDescription()}
+                {this.renderImage()}
             </View>
         );
     }
@@ -256,6 +284,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             flex: 1,
             borderColor: changeOpacity(theme.centerChannelColor, 0.2),
             borderWidth: 1,
+            borderRadius: 3,
             marginTop: 10,
             padding: 10,
         },
@@ -283,6 +312,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         imageContainer: {
             alignItems: 'center',
+            borderColor: changeOpacity(theme.centerChannelColor, 0.2),
+            borderWidth: 1,
+            borderRadius: 3,
+            marginTop: 5,
         },
         image: {
             borderRadius: 3,

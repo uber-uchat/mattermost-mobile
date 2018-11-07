@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import {
     ScrollView,
     StyleSheet,
+    Text,
     View,
 } from 'react-native';
 
@@ -17,11 +18,10 @@ export default class FileUploadPreview extends PureComponent {
     static propTypes = {
         channelId: PropTypes.string.isRequired,
         channelIsLoading: PropTypes.bool,
-        createPostRequestStatus: PropTypes.string.isRequired,
         deviceHeight: PropTypes.number.isRequired,
         files: PropTypes.array.isRequired,
         filesUploadingForCurrentChannel: PropTypes.bool.isRequired,
-        inputHeight: PropTypes.number.isRequired,
+        fileSizeWarning: PropTypes.string,
         rootId: PropTypes.string,
         showFileMaxWarning: PropTypes.bool.isRequired,
         theme: PropTypes.object.isRequired,
@@ -44,12 +44,17 @@ export default class FileUploadPreview extends PureComponent {
     render() {
         const {
             showFileMaxWarning,
+            fileSizeWarning,
             channelIsLoading,
             filesUploadingForCurrentChannel,
             deviceHeight,
             files,
         } = this.props;
-        if (channelIsLoading || (!files.length && !filesUploadingForCurrentChannel)) {
+
+        if (
+            !fileSizeWarning && !showFileMaxWarning &&
+            (channelIsLoading || (!files.length && !filesUploadingForCurrentChannel))
+        ) {
             return null;
         }
 
@@ -70,7 +75,11 @@ export default class FileUploadPreview extends PureComponent {
                             defaultMessage='Uploads limited to 5 files maximum.'
                         />
                     )}
-
+                    {Boolean(fileSizeWarning) &&
+                        <Text style={style.warning}>
+                            {fileSizeWarning}
+                        </Text>
+                    }
                 </View>
             </View>
         );

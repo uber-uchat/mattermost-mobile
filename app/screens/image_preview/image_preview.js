@@ -9,7 +9,6 @@ import {
     Image,
     Platform,
     SafeAreaView,
-    ScrollView,
     StatusBar,
     StyleSheet,
     Text,
@@ -27,11 +26,11 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import FileAttachmentDocument from 'app/components/file_attachment_list/file_attachment_document';
 import FileAttachmentIcon from 'app/components/file_attachment_list/file_attachment_icon';
-import ProgressiveImage from 'app/components/progressive_image';
 import {DeviceTypes, NavigationTypes, PermissionTypes} from 'app/constants';
 import {getLocalFilePathFromFile, isDocument, isVideo} from 'app/utils/file';
 import {emptyFunction} from 'app/utils/general';
 import {calculateDimensions} from 'app/utils/images';
+import {t} from 'app/utils/i18n';
 
 import Downloader from './downloader';
 import VideoPreview from './video_preview';
@@ -103,7 +102,7 @@ export default class ImagePreview extends PureComponent {
         const {getItemMeasures, navigator} = this.props;
         const {index} = this.state;
 
-        this.setState({animating: true, gallery: false, hide: false});
+        this.setState({animating: true});
         navigator.setStyle({
             screenBackgroundColor: 'transparent',
         });
@@ -121,10 +120,6 @@ export default class ImagePreview extends PureComponent {
 
     handleChangeImage = (index) => {
         this.setState({index});
-    };
-
-    handleGalleryLayout = () => {
-        this.setState({hide: true});
     };
 
     handleSwipedVertical = (evt, gestureState) => {
@@ -177,46 +172,8 @@ export default class ImagePreview extends PureComponent {
         };
     };
 
-    getSwipeableStyle = () => {
-        const {deviceHeight, deviceWidth, files} = this.props;
-        const {origin, target, index} = this.state;
-        const inputRange = [0, 1];
-
-        let toHeight = deviceHeight;
-        let toWidth = deviceWidth;
-        if (files[index].dimensions) {
-            const {height, width} = files[index].dimensions;
-            if (width < deviceWidth) {
-                toWidth = width;
-            }
-
-            if (height < deviceWidth) {
-                toHeight = height;
-            }
-        }
-
-        return {
-            left: this.openAnim.interpolate({
-                inputRange,
-                outputRange: [origin.x, target.x],
-            }),
-            top: this.openAnim.interpolate({
-                inputRange,
-                outputRange: [origin.y, target.y],
-            }),
-            width: this.openAnim.interpolate({
-                inputRange,
-                outputRange: [origin.width, toWidth],
-            }),
-            height: this.openAnim.interpolate({
-                inputRange,
-                outputRange: [origin.height, toHeight],
-            }),
-        };
-    };
-
     renderAttachmentDocument = (file) => {
-        const {theme, navigator} = this.props;
+        const {canDownloadFiles, theme, navigator} = this.props;
 
         return (
             <View style={[style.flex, style.center]}>
@@ -224,6 +181,7 @@ export default class ImagePreview extends PureComponent {
                     ref={(ref) => {
                         this.documents[this.state.index] = ref;
                     }}
+                    canDownloadFiles={canDownloadFiles}
                     file={file}
                     theme={theme}
                     navigator={navigator}
@@ -271,7 +229,7 @@ export default class ImagePreview extends PureComponent {
                 } else if (file.source || isVideo(file.data)) {
                     icon = (
                         <Icon
-                            name='ios-download-outline'
+                            name='ios-download'
                             size={26}
                             color='#fff'
                         />
@@ -292,7 +250,7 @@ export default class ImagePreview extends PureComponent {
         return null;
     };
 
-    renderDownloader() {
+    renderDownloader = () => {
         const {deviceHeight, deviceWidth} = this.props;
         const file = this.getCurrentFile();
 
@@ -308,9 +266,9 @@ export default class ImagePreview extends PureComponent {
                 onDownloadSuccess={this.hideDownloader}
             />
         );
-    }
+    };
 
-    renderFooter() {
+    renderFooter = () => {
         const {files} = this.props;
         const {index} = this.state;
         const footer = this.getHeaderFooterStyle();
@@ -329,16 +287,15 @@ export default class ImagePreview extends PureComponent {
                 </LinearGradient>
             </Animated.View>
         );
-    }
+    };
 
-    renderGallery() {
+    renderGallery = () => {
         return (
             <Gallery
                 errorComponent={this.renderOtherItems}
                 imageComponent={this.renderImageComponent}
                 images={this.props.files}
                 initialPage={this.state.index}
-                onLayout={this.handleGalleryLayout}
                 onPageSelected={this.handleChangeImage}
                 onSingleTapConfirmed={this.handleTapped}
                 onSwipedVertical={this.handleSwipedVertical}
@@ -346,9 +303,9 @@ export default class ImagePreview extends PureComponent {
                 style={style.flex}
             />
         );
-    }
+    };
 
-    renderHeader() {
+    renderHeader = () => {
         const {files} = this.props;
         const {index} = this.state;
         const header = this.getHeaderFooterStyle();
@@ -375,7 +332,7 @@ export default class ImagePreview extends PureComponent {
                 </View>
             </AnimatedView>
         );
-    }
+    };
 
     renderImageComponent = (imageProps, imageDimensions) => {
         if (imageDimensions) {
@@ -396,7 +353,7 @@ export default class ImagePreview extends PureComponent {
         }
 
         return null;
-    }
+    };
 
     renderOtherItems = (index) => {
         const {files} = this.props;
@@ -413,28 +370,6 @@ export default class ImagePreview extends PureComponent {
         }
 
         return <View/>;
-    };
-
-    renderSelectedItem = () => {
-        const {hide} = this.state;
-        const file = this.getCurrentFile();
-
-        if (hide || !file || !file.source || !file.source.uri || isDocument(file.data) || isVideo(file.data)) {
-            return null;
-        }
-
-        const containerStyle = this.getSwipeableStyle();
-        return (
-            <ScrollView scrollEnabled={false}>
-                <Animated.View style={[style.center, style.flex, containerStyle]}>
-                    <ProgressiveImage
-                        imageUri={file.source.uri}
-                        style={[StyleSheet.absoluteFill, style.fullWidth]}
-                        resizeMode='contain'
-                    />
-                </Animated.View>
-            </ScrollView>
-        );
     };
 
     renderVideoPreview = (file) => {
@@ -543,7 +478,7 @@ export default class ImagePreview extends PureComponent {
                 items.push({
                     action: this.saveVideoIOS,
                     text: {
-                        id: 'mobile.image_preview.save_video',
+                        id: t('mobile.image_preview.save_video'),
                         defaultMessage: 'Save Video',
                     },
                 });
@@ -554,7 +489,7 @@ export default class ImagePreview extends PureComponent {
             items.push({
                 action: this.showDownloader,
                 text: {
-                    id: 'mobile.image_preview.save',
+                    id: t('mobile.image_preview.save'),
                     defaultMessage: 'Save Image',
                 },
             });
@@ -609,9 +544,7 @@ export default class ImagePreview extends PureComponent {
     };
 
     startOpenAnimation = () => {
-        this.animateOpenAnimToValue(1, () => {
-            this.setState({gallery: true});
-        });
+        this.animateOpenAnimToValue(1);
     };
 
     render() {
@@ -620,8 +553,7 @@ export default class ImagePreview extends PureComponent {
         return (
             <AnimatedSafeAreaView style={[style.container, opacity]}>
                 <AnimatedView style={style.container}>
-                    {this.renderSelectedItem()}
-                    {this.state.gallery && this.renderGallery()}
+                    {this.renderGallery()}
                     {this.renderHeader()}
                     {this.renderFooter()}
                 </AnimatedView>

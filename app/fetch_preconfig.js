@@ -6,13 +6,14 @@ import RNFetchBlob from 'rn-fetch-blob';
 import urlParse from 'url-parse';
 
 import {Client4} from 'mattermost-redux/client';
-import {General} from 'mattermost-redux/constants';
-import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import mattermostBucket from 'app/mattermost_bucket';
 import LocalConfig from 'assets/config';
 
-const HEADER_X_VERSION_ID = 'X-Version-Id';
+import {t} from 'app/utils/i18n';
+
+/* eslint-disable no-throw-literal */
+
 const HEADER_X_CLUSTER_ID = 'X-Cluster-Id';
 const HEADER_TOKEN = 'Token';
 
@@ -35,12 +36,24 @@ Client4.doFetchWithResponse = async (url, options) => {
         };
     }
 
+    const customHeaders = LocalConfig.CustomRequestHeaders;
+    let requestOptions = Client4.getOptions(options);
+    if (customHeaders && Object.keys(customHeaders).length > 0) {
+        requestOptions = {
+            ...requestOptions,
+            headers: {
+                ...requestOptions.headers,
+                ...LocalConfig.CustomRequestHeaders,
+            },
+        };
+    }
+
     let response;
     let headers;
 
     let data;
     try {
-        response = await fetch(url, Client4.getOptions(options));
+        response = await fetch(url, requestOptions);
         headers = response.headers;
         if (!url.startsWith('https') && response.rnfbRespInfo && response.rnfbRespInfo.redirects && response.rnfbRespInfo.redirects.length > 1) {
             handleRedirectProtocol(url, response);
@@ -59,21 +72,11 @@ Client4.doFetchWithResponse = async (url, options) => {
         throw {
             message: 'Received invalid response from the server.',
             intl: {
-                id: 'mobile.request.invalid_response',
+                id: t('mobile.request.invalid_response'),
                 defaultMessage: 'Received invalid response from the server.',
             },
+            url,
         };
-    }
-
-    // Need to only accept version in the header from requests that are not cached
-    // to avoid getting an old version from a cached response
-    if ((headers[HEADER_X_VERSION_ID] || headers[HEADER_X_VERSION_ID.toLowerCase()]) &&
-        (!headers['Cache-Control'] && !headers['cache-control'])) {
-        const serverVersion = headers[HEADER_X_VERSION_ID] || headers[HEADER_X_VERSION_ID.toLowerCase()];
-        if (serverVersion && this.serverVersion !== serverVersion) {
-            this.serverVersion = serverVersion;
-            EventEmitter.emit(General.SERVER_VERSION_CHANGED, serverVersion);
-        }
     }
 
     if (headers[HEADER_X_CLUSTER_ID] || headers[HEADER_X_CLUSTER_ID.toLowerCase()]) {

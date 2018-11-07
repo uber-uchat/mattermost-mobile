@@ -10,6 +10,8 @@ import {
     StyleSheet,
     TouchableOpacity,
 } from 'react-native';
+import RNFetchBlob from 'rn-fetch-blob';
+
 import Icon from 'react-native-vector-icons/Ionicons';
 import {DocumentPicker} from 'react-native-document-picker';
 import ImagePicker from 'react-native-image-picker';
@@ -17,6 +19,7 @@ import Permissions from 'react-native-permissions';
 
 import {PermissionTypes} from 'app/constants';
 import {changeOpacity} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 
 const ShareExtension = NativeModules.MattermostShare;
 
@@ -26,8 +29,10 @@ export default class AttachmentButton extends PureComponent {
         children: PropTypes.node,
         fileCount: PropTypes.number,
         maxFileCount: PropTypes.number.isRequired,
+        maxFileSize: PropTypes.number.isRequired,
         navigator: PropTypes.object.isRequired,
         onShowFileMaxWarning: PropTypes.func,
+        onShowFileSizeWarning: PropTypes.func,
         theme: PropTypes.object.isRequired,
         uploadFiles: PropTypes.func.isRequired,
         wrapper: PropTypes.bool,
@@ -41,11 +46,17 @@ export default class AttachmentButton extends PureComponent {
         intl: intlShape.isRequired,
     };
 
-    attachFileFromCamera = async () => {
+    attachPhotoFromCamera = () => {
+        return this.attachFileFromCamera('photo');
+    };
+
+    attachFileFromCamera = async (mediaType) => {
         const {formatMessage} = this.context.intl;
         const options = {
-            quality: 1.0,
+            quality: 0.8,
+            videoQuality: 'high',
             noData: true,
+            mediaType,
             storageOptions: {
                 cameraRoll: true,
                 waitUntilSaved: true,
@@ -83,7 +94,7 @@ export default class AttachmentButton extends PureComponent {
     attachFileFromLibrary = () => {
         const {formatMessage} = this.context.intl;
         const options = {
-            quality: 1.0,
+            quality: 0.8,
             noData: true,
             permissionDenied: {
                 title: formatMessage({
@@ -115,10 +126,14 @@ export default class AttachmentButton extends PureComponent {
         });
     };
 
+    attachVideoFromCamera = () => {
+        return this.attachFileFromCamera('video');
+    };
+
     attachVideoFromLibraryAndroid = () => {
         const {formatMessage} = this.context.intl;
         const options = {
-            quality: 1.0,
+            videoQuality: 'low',
             mediaType: 'video',
             noData: true,
             permissionDenied: {
@@ -282,8 +297,20 @@ export default class AttachmentButton extends PureComponent {
         return true;
     };
 
-    uploadFiles = (images) => {
-        this.props.uploadFiles(images);
+    uploadFiles = async (files) => {
+        const file = files[0];
+        if (!file.fileSize | !file.fileName) {
+            const path = (file.path || file.uri).replace('file://', '');
+            const fileInfo = await RNFetchBlob.fs.stat(path);
+            file.fileSize = fileInfo.size;
+            file.fileName = fileInfo.filename;
+        }
+
+        if (file.fileSize > this.props.maxFileSize) {
+            this.props.onShowFileSizeWarning(file.fileName);
+        } else {
+            this.props.uploadFiles(files);
+        }
     };
 
     handleFileAttachmentOption = (action) => {
@@ -312,16 +339,23 @@ export default class AttachmentButton extends PureComponent {
         this.props.blurTextBox();
         const options = {
             items: [{
-                action: () => this.handleFileAttachmentOption(this.attachFileFromCamera),
+                action: () => this.handleFileAttachmentOption(this.attachPhotoFromCamera),
                 text: {
-                    id: 'mobile.file_upload.camera',
-                    defaultMessage: 'Take Photo or Video',
+                    id: t('mobile.file_upload.camera_photo'),
+                    defaultMessage: 'Take Photo',
                 },
                 icon: 'camera',
             }, {
+                action: () => this.handleFileAttachmentOption(this.attachVideoFromCamera),
+                text: {
+                    id: t('mobile.file_upload.camera_video'),
+                    defaultMessage: 'Take Video',
+                },
+                icon: 'video-camera',
+            }, {
                 action: () => this.handleFileAttachmentOption(this.attachFileFromLibrary),
                 text: {
-                    id: 'mobile.file_upload.library',
+                    id: t('mobile.file_upload.library'),
                     defaultMessage: 'Photo Library',
                 },
                 icon: 'photo',
@@ -332,7 +366,7 @@ export default class AttachmentButton extends PureComponent {
             options.items.push({
                 action: () => this.handleFileAttachmentOption(this.attachVideoFromLibraryAndroid),
                 text: {
-                    id: 'mobile.file_upload.video',
+                    id: t('mobile.file_upload.video'),
                     defaultMessage: 'Video Library',
                 },
                 icon: 'file-video-o',
@@ -342,7 +376,7 @@ export default class AttachmentButton extends PureComponent {
         options.items.push({
             action: () => this.handleFileAttachmentOption(this.attachFileFromFiles),
             text: {
-                id: 'mobile.file_upload.browse',
+                id: t('mobile.file_upload.browse'),
                 defaultMessage: 'Browse Files',
             },
             icon: 'file',

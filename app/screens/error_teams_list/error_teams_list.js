@@ -12,14 +12,15 @@ import FailedNetworkAction from 'app/components/failed_network_action';
 import Loading from 'app/components/loading';
 import StatusBar from 'app/components/status_bar';
 import {makeStyleSheetFromTheme, setNavigatorStyles} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 
 const errorTitle = {
-    id: 'error.team_not_found.title',
+    id: t('error.team_not_found.title'),
     defaultMessage: 'Team Not Found',
 };
 
 const errorDescription = {
-    id: 'mobile.failed_network_action.shortDescription',
+    id: t('mobile.failed_network_action.shortDescription'),
     defaultMessage: 'Make sure you have an active connection and try again.',
 };
 
@@ -66,13 +67,17 @@ export default class ErrorTeamsList extends PureComponent {
     };
 
     getUserInfo = async () => {
-        this.setState({loading: true});
-        this.props.actions.connection(true);
-        await this.props.actions.loadMe();
-        this.props.actions.connection(false);
-        this.setState({loading: false});
-        this.props.actions.selectDefaultTeam();
-        this.goToChannelView();
+        try {
+            this.setState({loading: true});
+            this.props.actions.connection(true);
+            await this.props.actions.loadMe();
+            this.props.actions.selectDefaultTeam();
+            this.goToChannelView();
+        } catch {
+            this.props.actions.connection(false);
+        } finally {
+            this.setState({loading: false});
+        }
     }
 
     onNavigatorEvent = (event) => {
