@@ -3,6 +3,7 @@
 
 // Based on the work done by https://github.com/wcandillon/react-native-expo-image-cache/
 
+import {Platform} from 'react-native';
 import RNFetchBlob from 'rn-fetch-blob';
 import {Client4} from 'mattermost-redux/client';
 
@@ -22,11 +23,11 @@ export default class ImageCacheManager {
         }
 
         const {path, exists} = await getCacheFile(filename, uri);
-
+        const prefix = Platform.OS === 'android' ? 'file://' : '';
         if (isDownloading(uri)) {
             addListener(uri, listener);
         } else if (exists) {
-            listener(path);
+            listener(`${prefix}${path}`);
         } else {
             addListener(uri, listener);
             if (uri.startsWith('http')) {
@@ -49,9 +50,9 @@ export default class ImageCacheManager {
                         throw new Error();
                     }
 
-                    notifyAll(uri, path);
+                    notifyAll(uri, `${prefix}${path}`);
                 } catch (e) {
-                    RNFetchBlob.fs.unlink(path);
+                    RNFetchBlob.fs.unlink(`${prefix}${path}`);
                     notifyAll(uri, uri);
                 }
             } else {
@@ -67,7 +68,7 @@ export default class ImageCacheManager {
 export const getCacheFile = async (name, uri) => {
     const filename = name || uri.substring(uri.lastIndexOf('/'), uri.indexOf('?') === -1 ? uri.length : uri.indexOf('?'));
     const ext = filename.indexOf('.') === -1 ? '.png' : filename.substring(filename.lastIndexOf('.'));
-    const path = `${IMAGES_PATH}/${hashCode(uri)}${ext}`;
+    const path = `${IMAGES_PATH}/${Math.abs(hashCode(uri))}${ext}`;
 
     try {
         const isDir = await RNFetchBlob.fs.isDir(IMAGES_PATH);
