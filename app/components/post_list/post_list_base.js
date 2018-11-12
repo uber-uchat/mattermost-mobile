@@ -31,6 +31,7 @@ export default class PostListBase extends PureComponent {
         lastViewedAt: PropTypes.number, // Used by container // eslint-disable-line no-unused-prop-types
         navigator: PropTypes.object,
         onLoadMoreUp: PropTypes.func,
+        onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
         onRefresh: PropTypes.func,
@@ -169,6 +170,7 @@ export default class PostListBase extends PureComponent {
                 postId={postId}
                 previousPostId={previousPostId}
                 nextPostId={nextPostId}
+                onHashtagPress={onHashtagPress}
                 onPermalinkPress={this.handlePermalinkPress}
                 highlight={highlight}
                 renderReplies={renderReplies}
@@ -213,7 +215,6 @@ export default class PostListBase extends PureComponent {
                 passProps: {
                     isPermalink: true,
                     onClose: this.handleClosePermalink,
-                    onPermalinkPress: this.handlePermalinkPress,
                 },
             };
 
