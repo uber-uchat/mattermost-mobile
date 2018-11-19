@@ -5,9 +5,9 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import {
     Keyboard,
+    Platform,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
     View,
 } from 'react-native';
 
@@ -29,7 +29,6 @@ export default class FileAttachmentList extends Component {
         deviceWidth: PropTypes.number.isRequired,
         fileIds: PropTypes.array.isRequired,
         files: PropTypes.array.isRequired,
-        hideOptionsContext: PropTypes.func.isRequired,
         isFailed: PropTypes.bool,
         navigator: PropTypes.object,
         onLongPress: PropTypes.func,
@@ -100,7 +99,8 @@ export default class FileAttachmentList extends Component {
                 }
 
                 if (cache) {
-                    uri = cache.path;
+                    const prefix = Platform.OS === 'android' ? 'file://' : '';
+                    uri = `${prefix}${cache.path}`;
                 }
 
                 results.push({
@@ -119,7 +119,6 @@ export default class FileAttachmentList extends Component {
     };
 
     handlePreviewPress = preventDoubleTap((idx) => {
-        this.props.hideOptionsContext();
         Keyboard.dismiss();
         previewImageAtIndex(this.props.navigator, this.items, idx, this.galleryFiles);
     });
@@ -155,23 +154,18 @@ export default class FileAttachmentList extends Component {
             };
 
             return (
-                <TouchableOpacity
+                <FileAttachment
                     key={file.id}
+                    canDownloadFiles={canDownloadFiles}
+                    deviceWidth={deviceWidth}
+                    file={f}
+                    index={idx}
+                    navigator={navigator}
+                    onCaptureRef={this.handleCaptureRef}
+                    onPreviewPress={this.handlePreviewPress}
                     onLongPress={this.props.onLongPress}
-                    onPressIn={this.handlePressIn}
-                    onPressOut={this.handlePressOut}
-                >
-                    <FileAttachment
-                        canDownloadFiles={canDownloadFiles}
-                        deviceWidth={deviceWidth}
-                        file={f}
-                        index={idx}
-                        navigator={navigator}
-                        onCaptureRef={this.handleCaptureRef}
-                        onPreviewPress={this.handlePreviewPress}
-                        theme={this.props.theme}
-                    />
-                </TouchableOpacity>
+                    theme={this.props.theme}
+                />
             );
         });
     };

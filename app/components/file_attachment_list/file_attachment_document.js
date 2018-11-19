@@ -30,23 +30,24 @@ import LocalConfig from 'assets/config';
 import FileAttachmentIcon from './file_attachment_icon';
 
 const {DOCUMENTS_PATH} = DeviceTypes;
-
+const DOWNLOADING_OFFSET = 28;
 const TEXT_PREVIEW_FORMATS = [
     'application/json',
     'application/x-x509-ca-cert',
     'text/plain',
 ];
-
 const circularProgressWidth = 4;
 
 export default class FileAttachmentDocument extends PureComponent {
     static propTypes = {
+        backgroundColor: PropTypes.string,
         canDownloadFiles: PropTypes.bool.isRequired,
         iconHeight: PropTypes.number,
         iconWidth: PropTypes.number,
         file: PropTypes.object.isRequired,
         theme: PropTypes.object.isRequired,
         navigator: PropTypes.object,
+        onLongPress: PropTypes.func,
         wrapperHeight: PropTypes.number,
         wrapperWidth: PropTypes.number,
     };
@@ -334,22 +335,31 @@ export default class FileAttachmentDocument extends PureComponent {
     };
 
     renderFileAttachmentIcon = () => {
-        const {iconHeight, iconWidth, file, theme, wrapperHeight, wrapperWidth} = this.props;
+        const {backgroundColor, iconHeight, iconWidth, file, theme, wrapperHeight, wrapperWidth} = this.props;
+        const {downloading} = this.state;
+        let height = wrapperHeight;
+        let width = wrapperWidth;
+
+        if (downloading) {
+            height -= DOWNLOADING_OFFSET;
+            width -= DOWNLOADING_OFFSET;
+        }
 
         return (
             <FileAttachmentIcon
+                backgroundColor={backgroundColor}
                 file={file.data}
                 theme={theme}
                 iconHeight={iconHeight}
                 iconWidth={iconWidth}
-                wrapperHeight={wrapperHeight}
-                wrapperWidth={wrapperWidth}
+                wrapperHeight={height}
+                wrapperWidth={width}
             />
         );
     }
 
     render() {
-        const {theme, wrapperHeight} = this.props;
+        const {onLongPress, theme, wrapperHeight} = this.props;
         const {downloading, progress} = this.state;
 
         let fileAttachmentComponent;
@@ -371,10 +381,11 @@ export default class FileAttachmentDocument extends PureComponent {
         }
 
         return (
-            <TouchableOpacity onPress={this.handlePreviewPress}>
-                <View style={style.whiteBackgroud}>
-                    {fileAttachmentComponent}
-                </View>
+            <TouchableOpacity
+                onPress={this.handlePreviewPress}
+                onLongPress={onLongPress}
+            >
+                {fileAttachmentComponent}
             </TouchableOpacity>
         );
     }
@@ -388,8 +399,5 @@ const style = StyleSheet.create({
         left: -circularProgressWidth,
         position: 'absolute',
         top: 0,
-    },
-    whiteBackgroud: {
-        backgroundColor: '#fff',
     },
 });
