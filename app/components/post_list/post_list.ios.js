@@ -11,6 +11,9 @@ import PostListBase from './post_list_base';
 
 const INITIAL_BATCH_TO_RENDER = 15;
 const SCROLL_UP_MULTIPLIER = 3.5;
+const SCROLL_POSITION_CONFIG = {
+    minIndexForVisible: 0,
+};
 
 export default class PostList extends PostListBase {
     constructor(props) {
@@ -93,11 +96,10 @@ export default class PostList extends PostListBase {
             channelId,
             highlightPostId,
             postIds,
+            refreshing,
         } = this.props;
 
-        const refreshControl = {
-            refreshing: false,
-        };
+        const refreshControl = {refreshing};
 
         if (channelId) {
             refreshControl.onRefresh = this.handleRefresh;
@@ -116,6 +118,7 @@ export default class PostList extends PostListBase {
                 inverted={true}
                 keyExtractor={this.keyExtractor}
                 ListFooterComponent={this.props.renderFooter}
+                maintainVisibleContentPosition={SCROLL_POSITION_CONFIG}
                 maxToRenderPerBatch={INITIAL_BATCH_TO_RENDER + 1}
                 onContentSizeChange={this.handleContentSizeChange}
                 onLayout={this.handleLayout}

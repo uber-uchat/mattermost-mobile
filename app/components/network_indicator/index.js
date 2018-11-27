@@ -6,8 +6,10 @@ import {connect} from 'react-redux';
 
 import {startPeriodicStatusUpdates, stopPeriodicStatusUpdates, logout} from 'mattermost-redux/actions/users';
 import {init as initWebSocket, close as closeWebSocket} from 'mattermost-redux/actions/websocket';
+import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 
 import {connection} from 'app/actions/device';
+import {setCurrentUserStatus} from 'app/actions/views/user';
 import {getConnection, isLandscape} from 'app/selectors/device';
 
 import NetworkIndicator from './network_indicator';
@@ -17,6 +19,7 @@ function mapStateToProps(state) {
     const websocketStatus = websocket.status;
 
     return {
+        currentChannelId: getCurrentChannelId(state),
         isLandscape: isLandscape(state),
         isOnline: getConnection(state),
         websocketErrorCount: websocket.error,
@@ -31,6 +34,7 @@ function mapDispatchToProps(dispatch) {
             connection,
             initWebSocket,
             logout,
+            setCurrentUserStatus,
             startPeriodicStatusUpdates,
             stopPeriodicStatusUpdates,
         }, dispatch),

@@ -25,6 +25,7 @@ export default class PostListBase extends PureComponent {
         channelId: PropTypes.string,
         deepLinkURL: PropTypes.string,
         extraData: PropTypes.any,
+        highlightPinnedOrFlagged: PropTypes.bool,
         highlightPostId: PropTypes.string,
         initialIndex: PropTypes.number,
         isSearchResult: PropTypes.bool,
@@ -36,6 +37,7 @@ export default class PostListBase extends PureComponent {
         onPostPress: PropTypes.func,
         onRefresh: PropTypes.func,
         postIds: PropTypes.array.isRequired,
+        refreshing: PropTypes.bool,
         renderFooter: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
         renderReplies: PropTypes.bool,
         serverURL: PropTypes.string.isRequired,
@@ -47,6 +49,7 @@ export default class PostListBase extends PureComponent {
     static defaultProps = {
         onLoadMoreUp: () => true,
         renderFooter: () => null,
+        refreshing: false,
     };
 
     componentWillMount() {
@@ -154,6 +157,7 @@ export default class PostListBase extends PureComponent {
 
     renderPost = (postId, previousPostId, nextPostId) => {
         const {
+            highlightPinnedOrFlagged,
             highlightPostId,
             isSearchResult,
             navigator,
@@ -173,6 +177,7 @@ export default class PostListBase extends PureComponent {
                 onHashtagPress={onHashtagPress}
                 onPermalinkPress={this.handlePermalinkPress}
                 highlight={highlight}
+                highlightPinnedOrFlagged={highlightPinnedOrFlagged}
                 renderReplies={renderReplies}
                 isSearchResult={isSearchResult}
                 shouldRenderReplyButton={shouldRenderReplyButton}

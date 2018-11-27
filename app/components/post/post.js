@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import {intlShape} from 'react-intl';
 
-import FlagIcon from 'app/components/flag_icon';
 import PostBody from 'app/components/post_body';
 import PostHeader from 'app/components/post_header';
+import PostPreHeader from 'app/components/post_header/post_pre_header';
 import PostProfilePicture from 'app/components/post_profile_picture';
 import {NavigationTypes} from 'app/constants';
 import {fromAutoResponder} from 'app/utils/general';
@@ -59,6 +59,10 @@ export default class Post extends PureComponent {
         onPress: PropTypes.func,
         onReply: PropTypes.func,
         isFlagged: PropTypes.bool,
+        highlightPinnedOrFlagged: PropTypes.bool,
+        skipFlaggedHeader: PropTypes.bool,
+        skipPinnedHeader: PropTypes.bool,
+        isCommentMention: PropTypes.bool,
     };
 
     static defaultProps = {
@@ -66,6 +70,7 @@ export default class Post extends PureComponent {
         showAddReaction: true,
         showLongPost: false,
         channelIsReadOnly: false,
+        highlightPinnedOrFlagged: true,
     };
 
     static contextTypes = {
@@ -192,6 +197,7 @@ export default class Post extends PureComponent {
             isFirstReply,
             isLastReply,
             theme,
+            isCommentMention,
         } = this.props;
 
         if (!this.isReplyPost()) {
@@ -209,24 +215,16 @@ export default class Post extends PureComponent {
             replyBarStyle.push(style.replyBarLast);
         }
 
+        if (isCommentMention) {
+            replyBarStyle.push(style.commentMentionBgColor);
+        }
+
         return replyBarStyle;
     };
 
     viewUserProfile = preventDoubleTap(() => {
         this.goToUserProfile();
     });
-
-    toggleSelected = (selected) => {
-        this.setState({selected});
-    };
-
-    handleHideUnderlay = () => {
-        this.toggleSelected(false);
-    };
-
-    handleShowUnderlay = () => {
-        this.toggleSelected(true);
-    };
 
     showPostOptions = () => {
         if (this.refs.postBody) {
@@ -254,6 +252,9 @@ export default class Post extends PureComponent {
             consecutivePost,
             hasComments,
             isFlagged,
+            highlightPinnedOrFlagged,
+            skipFlaggedHeader,
+            skipPinnedHeader,
         } = this.props;
 
         if (!post) {
@@ -261,11 +262,18 @@ export default class Post extends PureComponent {
         }
 
         const style = getStyleSheet(theme);
-        const selected = this.state && this.state.selected ? style.selected : null;
-        const highlighted = highlight ? style.highlight : null;
         const isReplyPost = this.isReplyPost();
         const onUsernamePress = Config.ExperimentalUsernamePressIsMention ? this.autofillUserMention : this.viewUserProfile;
         const mergeMessage = consecutivePost && !hasComments;
+        const highlightFlagged = isFlagged && !skipFlaggedHeader;
+        const hightlightPinned = post.is_pinned && !skipPinnedHeader;
+
+        let highlighted = highlight ? style.highlight : null;
+        if (highlight) {
+            highlighted = style.highlight;
+        } else if ((highlightFlagged || hightlightPinned) && highlightPinnedOrFlagged) {
+            highlighted = style.highlightPinnedOrFlagged;
+        }
 
         let postHeader;
         let userProfile;
@@ -273,36 +281,15 @@ export default class Post extends PureComponent {
 
         if (mergeMessage) {
             consecutiveStyle = {marginTop: 0};
-            if (isFlagged) {
-                userProfile = (
-                    <View style={style.consecutivePostContainer}>
-                        <View style={style.consecutivePostWithFlag}>
-                            <FlagIcon
-                                height={11}
-                                width={11}
-                                color={theme.linkColor}
-                            />
-                        </View>
-                    </View>
-                );
-            } else {
-                userProfile = <View style={style.consecutivePostContainer}/>;
-            }
+            userProfile = <View style={style.consecutivePostContainer}/>;
         } else {
             userProfile = (
-                <TouchableHighlight
-                    style={[style.profilePictureContainer, (isPostPendingOrFailed(post) && style.pendingPost)]}
-                    onPress={this.handlePress}
-                    onHideUnderlay={this.handleHideUnderlay}
-                    onShowUnderlay={this.handleShowUnderlay}
-                    onLongPress={this.showPostOptions}
-                    underlayColor='transparent'
-                >
+                <View style={[style.profilePictureContainer, (isPostPendingOrFailed(post) && style.pendingPost)]}>
                     <PostProfilePicture
                         onViewUserProfile={this.viewUserProfile}
                         postId={post.id}
                     />
-                </TouchableHighlight>
+                </View>
             );
             postHeader = (
                 <PostHeader
@@ -316,40 +303,55 @@ export default class Post extends PureComponent {
                     onUsernamePress={onUsernamePress}
                     renderReplies={renderReplies}
                     theme={theme}
-                    isFlagged={isFlagged}
                 />
             );
         }
         const replyBarStyle = this.replyBarStyle();
+        const rightColumnStyle = [style.rightColumn, (commentedOnPost && isLastReply && style.rightColumnPadding)];
 
         return (
-            <View style={[style.container, this.props.style, consecutiveStyle, highlighted, selected]}>
-                {userProfile}
-                <View style={style.messageContainerWithReplyBar}>
-                    <View style={[style.rightColumn, (commentedOnPost && isLastReply && style.rightColumnPadding)]}>
-                        {postHeader}
-                        <PostBody
-                            ref={'postBody'}
-                            highlight={highlight}
-                            channelIsReadOnly={channelIsReadOnly}
-                            isSearchResult={isSearchResult}
-                            navigator={this.props.navigator}
-                            onFailedPostPress={this.handleFailedPostPress}
-                            onHashtagPress={onHashtagPress}
-                            onPermalinkPress={onPermalinkPress}
-                            onPress={this.handlePress}
-                            postId={post.id}
-                            replyBarStyle={replyBarStyle}
-                            toggleSelected={this.toggleSelected}
-                            managedConfig={managedConfig}
-                            isFlagged={isFlagged}
-                            isReplyPost={isReplyPost}
-                            showAddReaction={showAddReaction}
-                            showLongPost={showLongPost}
-                        />
+            <TouchableHighlight
+                style={highlighted}
+                onPress={this.handlePress}
+                onLongPress={this.showPostOptions}
+                underlayColor={changeOpacity(theme.centerChannelColor, 0.1)}
+            >
+                <React.Fragment>
+                    <PostPreHeader
+                        isConsecutive={mergeMessage}
+                        isFlagged={isFlagged}
+                        isPinned={post.is_pinned}
+                        rightColumnStyle={style.rightColumn}
+                        skipFlaggedHeader={skipFlaggedHeader}
+                        skipPinnedHeader={skipPinnedHeader}
+                        theme={theme}
+                    />
+                    <View style={[style.container, this.props.style, consecutiveStyle]}>
+                        {userProfile}
+                        <View style={rightColumnStyle}>
+                            {postHeader}
+                            <PostBody
+                                ref={'postBody'}
+                                highlight={highlight}
+                                channelIsReadOnly={channelIsReadOnly}
+                                isSearchResult={isSearchResult}
+                                navigator={this.props.navigator}
+                                onFailedPostPress={this.handleFailedPostPress}
+                                onHashtagPress={onHashtagPress}
+                                onPermalinkPress={onPermalinkPress}
+                                onPress={this.handlePress}
+                                postId={post.id}
+                                replyBarStyle={replyBarStyle}
+                                managedConfig={managedConfig}
+                                isFlagged={isFlagged}
+                                isReplyPost={isReplyPost}
+                                showAddReaction={showAddReaction}
+                                showLongPost={showLongPost}
+                            />
+                        </View>
                     </View>
-                </View>
-            </View>
+                </React.Fragment>
+            </TouchableHighlight>
         );
     }
 }
@@ -370,10 +372,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         rightColumnPadding: {
             paddingBottom: 3,
-        },
-        messageContainerWithReplyBar: {
-            flexDirection: 'row',
-            flex: 1,
         },
         consecutivePostContainer: {
             marginBottom: 10,
@@ -407,11 +405,15 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         replyBarLast: {
             paddingBottom: 10,
         },
-        selected: {
-            backgroundColor: changeOpacity(theme.centerChannelColor, 0.1),
+        commentMentionBgColor: {
+            backgroundColor: theme.mentionHighlightBg,
+            opacity: 1,
         },
         highlight: {
             backgroundColor: changeOpacity(theme.mentionHighlightBg, 0.5),
+        },
+        highlightPinnedOrFlagged: {
+            backgroundColor: changeOpacity(theme.mentionHighlightBg, 0.2),
         },
     };
 });

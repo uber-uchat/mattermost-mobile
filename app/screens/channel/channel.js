@@ -14,6 +14,7 @@ import {
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
+import InteractiveDialogController from 'app/components/interactive_dialog_controller';
 import EmptyToolbar from 'app/components/start/empty_toolbar';
 import ChannelLoader from 'app/components/channel_loader';
 import MainSidebar from 'app/components/sidebars/main';
@@ -25,6 +26,7 @@ import StatusBar from 'app/components/status_bar';
 import {DeviceTypes, ViewTypes} from 'app/constants';
 import {preventDoubleTap} from 'app/utils/tap';
 import PostTextbox from 'app/components/post_textbox';
+import PushNotifications from 'app/push_notifications';
 import tracker from 'app/utils/time_tracker';
 import LocalConfig from 'assets/config';
 
@@ -107,6 +109,11 @@ export default class Channel extends PureComponent {
 
         if (nextProps.currentTeamId && this.props.currentTeamId !== nextProps.currentTeamId) {
             this.loadChannels(nextProps.currentTeamId);
+        }
+
+        if (nextProps.currentChannelId !== this.props.currentChannelId &&
+            nextProps.currentTeamId === this.props.currentTeamId) {
+            PushNotifications.clearChannelNotifications(nextProps.currentChannelId);
         }
 
         if (LocalConfig.EnableMobileClientUpgrade && !ClientUpgradeListener) {
@@ -330,6 +337,10 @@ export default class Channel extends PureComponent {
                         {LocalConfig.EnableMobileClientUpgrade && <ClientUpgradeListener navigator={navigator}/>}
                     </SafeAreaView>
                 </SettingsSidebar>
+                <InteractiveDialogController
+                    navigator={navigator}
+                    theme={theme}
+                />
             </MainSidebar>
         );
     }

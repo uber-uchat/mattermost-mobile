@@ -28,13 +28,12 @@ export default class FileAttachmentList extends Component {
         deviceHeight: PropTypes.number.isRequired,
         deviceWidth: PropTypes.number.isRequired,
         fileIds: PropTypes.array.isRequired,
-        files: PropTypes.array.isRequired,
+        files: PropTypes.array,
         isFailed: PropTypes.bool,
         navigator: PropTypes.object,
         onLongPress: PropTypes.func,
         postId: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
-        toggleSelected: PropTypes.func.isRequired,
         filesForPostRequest: PropTypes.object.isRequired,
     };
 
@@ -50,8 +49,10 @@ export default class FileAttachmentList extends Component {
     }
 
     componentDidMount() {
-        const {postId} = this.props;
-        this.props.actions.loadFilesForPostIfNecessary(postId);
+        const {files, postId} = this.props;
+        if (!files || !files.length) {
+            this.props.actions.loadFilesForPostIfNecessary(postId);
+        }
     }
 
     componentWillReceiveProps(nextProps) {
@@ -122,14 +123,6 @@ export default class FileAttachmentList extends Component {
         Keyboard.dismiss();
         previewImageAtIndex(this.props.navigator, this.items, idx, this.galleryFiles);
     });
-
-    handlePressIn = () => {
-        this.props.toggleSelected(true);
-    };
-
-    handlePressOut = () => {
-        this.props.toggleSelected(false);
-    };
 
     renderItems = () => {
         const {canDownloadFiles, deviceWidth, fileIds, files, navigator} = this.props;

@@ -9,9 +9,9 @@ import {
     Alert,
     Animated,
     AppState,
+    NetInfo,
     Platform,
     StyleSheet,
-    TouchableOpacity,
     View,
 } from 'react-native';
 import IonIcon from 'react-native-vector-icons/Ionicons';
@@ -19,6 +19,7 @@ import IonIcon from 'react-native-vector-icons/Ionicons';
 import FormattedText from 'app/components/formatted_text';
 import {DeviceTypes, ViewTypes} from 'app/constants';
 import mattermostBucket from 'app/mattermost_bucket';
+import PushNotifications from 'app/push_notifications';
 import networkConnectionListener, {checkConnection} from 'app/utils/network';
 import {t} from 'app/utils/i18n';
 import LocalConfig from 'assets/config';
@@ -27,7 +28,7 @@ import {RequestStatus} from 'mattermost-redux/constants';
 
 const HEIGHT = 38;
 const MAX_WEBSOCKET_RETRIES = 3;
-const CONNECTION_RETRY_SECONDS = 30;
+const CONNECTION_RETRY_SECONDS = 5;
 const CONNECTION_RETRY_TIMEOUT = 1000 * CONNECTION_RETRY_SECONDS; // 30 seconds
 const {
     ANDROID_TOP_LANDSCAPE,
@@ -45,9 +46,11 @@ export default class NetworkIndicator extends PureComponent {
             connection: PropTypes.func.isRequired,
             initWebSocket: PropTypes.func.isRequired,
             logout: PropTypes.func.isRequired,
+            setCurrentUserStatus: PropTypes.func.isRequired,
             startPeriodicStatusUpdates: PropTypes.func.isRequired,
             stopPeriodicStatusUpdates: PropTypes.func.isRequired,
         }).isRequired,
+        currentChannelId: PropTypes.string,
         isLandscape: PropTypes.bool,
         isOnline: PropTypes.bool,
         websocketErrorCount: PropTypes.number,
@@ -69,6 +72,7 @@ export default class NetworkIndicator extends PureComponent {
         this.top = new Animated.Value(navBar - HEIGHT);
 
         this.backgroundColor = new Animated.Value(0);
+        this.firstRun = true;
 
         this.networkListener = networkConnectionListener(this.handleConnectionChange);
     }
@@ -77,11 +81,21 @@ export default class NetworkIndicator extends PureComponent {
         this.mounted = true;
 
         AppState.addEventListener('change', this.handleAppStateChange);
+
+        // Attempt to connect when this component mounts
+        // if the websocket is already connected it does not try and connect again
+        this.connect();
     }
 
     componentDidUpdate(prevProps) {
-        const {websocketStatus: previousWebsocketStatus} = prevProps;
-        const {websocketErrorCount, websocketStatus} = this.props;
+        const {isLandscape: prevIsLandscape, websocketStatus: previousWebsocketStatus} = prevProps;
+        const {isLandscape, websocketErrorCount, websocketStatus} = this.props;
+
+        if (isLandscape !== prevIsLandscape) {
+            const navBar = this.getNavBarHeight(isLandscape);
+            const initialTop = websocketErrorCount || previousWebsocketStatus === RequestStatus.FAILURE || previousWebsocketStatus === RequestStatus.NOT_STARTED ? 0 : HEIGHT;
+            this.top.setValue(navBar - initialTop);
+        }
 
         if (this.props.isOnline) {
             if (previousWebsocketStatus === RequestStatus.STARTED && websocketStatus === RequestStatus.SUCCESS) {
@@ -91,10 +105,10 @@ export default class NetworkIndicator extends PureComponent {
             } else if (previousWebsocketStatus === RequestStatus.STARTED && websocketStatus === RequestStatus.FAILURE && websocketErrorCount > MAX_WEBSOCKET_RETRIES) {
                 this.handleWebSocket(false);
                 this.handleReconnect();
-            } else if (websocketStatus === RequestStatus.FAILURE && websocketErrorCount > 1) {
+            } else if (websocketStatus === RequestStatus.FAILURE) {
                 this.show();
             }
-        } else if (prevProps.isOnline && !this.props.isOnline) {
+        } else {
             this.offline();
         }
     }
@@ -102,32 +116,43 @@ export default class NetworkIndicator extends PureComponent {
     componentWillUnmount() {
         this.mounted = false;
 
-        const {closeWebSocket, stopPeriodicStatusUpdates} = this.props.actions;
-
         this.networkListener.removeEventListener();
-
         AppState.removeEventListener('change', this.handleAppStateChange);
 
-        closeWebSocket();
-        stopPeriodicStatusUpdates();
-
         clearTimeout(this.connectionRetryTimeout);
+        this.connectionRetryTimeout = null;
     }
 
-    connect = async () => {
+    connect = (displayBar = false) => {
+        const {connection} = this.props.actions;
         clearTimeout(this.connectionRetryTimeout);
 
-        const result = await checkConnection(this.props.isOnline);
+        NetInfo.isConnected.fetch().then(async (isConnected) => {
+            const {hasInternet, serverReachable} = await checkConnection(isConnected);
 
-        if (result) {
-            this.props.actions.connection(true);
-            this.initializeWebSocket();
-        } else {
-            this.handleWebSocket(false);
-        }
+            connection(hasInternet);
+            this.hasInternet = hasInternet;
+            this.serverReachable = serverReachable;
+
+            if (serverReachable) {
+                this.initializeWebSocket();
+            } else {
+                if (displayBar) {
+                    this.show();
+                }
+
+                this.handleWebSocket(false);
+
+                if (hasInternet) {
+                    // try to reconnect cause we have internet
+                    this.handleReconnect();
+                }
+            }
+        });
     };
 
     connected = () => {
+        this.props.actions.setCurrentUserStatus(true);
         Animated.sequence([
             Animated.timing(
                 this.backgroundColor, {
@@ -187,17 +212,40 @@ export default class NetworkIndicator extends PureComponent {
     };
 
     handleAppStateChange = async (appState) => {
-        this.handleWebSocket(appState === 'active');
+        const {currentChannelId} = this.props;
+        const active = appState === 'active';
+
+        if (active) {
+            this.connect(true);
+
+            if (currentChannelId) {
+                PushNotifications.clearChannelNotifications(currentChannelId);
+            }
+        } else {
+            this.handleWebSocket(false);
+        }
     };
 
-    handleConnectionChange = (isConnected) => {
+    handleConnectionChange = ({hasInternet, serverReachable}) => {
         const {connection} = this.props.actions;
 
+        // On first run always initialize the WebSocket
+        // if we have internet connection
+        if (hasInternet && this.firstRun) {
+            this.initializeWebSocket();
+            this.firstRun = false;
+            return;
+        }
+
         // Prevent for being called more than once.
-        if (this.isConnected !== isConnected) {
-            this.isConnected = isConnected;
-            this.handleWebSocket(isConnected);
-            connection(isConnected);
+        if (this.hasInternet !== hasInternet) {
+            this.hasInternet = hasInternet;
+            connection(hasInternet);
+        }
+
+        if (this.serverReachable !== serverReachable) {
+            this.serverReachable = serverReachable;
+            this.handleWebSocket(serverReachable);
         }
     };
 
@@ -209,7 +257,7 @@ export default class NetworkIndicator extends PureComponent {
                 this.connect();
             }
         }, CONNECTION_RETRY_TIMEOUT);
-    }
+    };
 
     initializeWebSocket = async () => {
         const {formatMessage} = this.context.intl;
@@ -221,7 +269,7 @@ export default class NetworkIndicator extends PureComponent {
             certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
         }
 
-        initWebSocket(platform, null, null, null, {certificate}).catch(() => {
+        initWebSocket(platform, null, null, null, {certificate, forceConnection: true}).catch(() => {
             // we should dispatch a failure and show the app as disconnected
             Alert.alert(
                 formatMessage({id: 'mobile.authentication_error.title', defaultMessage: 'Authentication Error'}),
@@ -243,6 +291,10 @@ export default class NetworkIndicator extends PureComponent {
     };
 
     offline = () => {
+        if (this.connectionRetryTimeout) {
+            clearTimeout(this.connectionRetryTimeout);
+        }
+
         this.show();
     };
 
@@ -252,11 +304,13 @@ export default class NetworkIndicator extends PureComponent {
                 toValue: this.getNavBarHeight(),
                 duration: 300,
             }
-        ).start();
+        ).start(() => {
+            this.props.actions.setCurrentUserStatus(false);
+        });
     };
 
     render() {
-        const {websocketErrorCount, websocketStatus} = this.props;
+        const {isOnline, websocketStatus} = this.props;
         const background = this.backgroundColor.interpolate({
             inputRange: [0, 1],
             outputRange: ['#939393', '#629a41'],
@@ -267,53 +321,40 @@ export default class NetworkIndicator extends PureComponent {
         let values;
         let action;
 
-        const currentWebsocketStatus = (websocketStatus === RequestStatus.FAILURE && websocketErrorCount <= MAX_WEBSOCKET_RETRIES) ? RequestStatus.STARTED : websocketStatus;
-
-        switch (currentWebsocketStatus) {
-        case (RequestStatus.NOT_STARTED):
-        case (RequestStatus.FAILURE):
+        if (isOnline) {
+            switch (websocketStatus) {
+            case RequestStatus.NOT_STARTED:
+            case RequestStatus.FAILURE:
+            case RequestStatus.STARTED:
+                i18nId = t('mobile.offlineIndicator.connecting');
+                defaultMessage = 'Connecting...';
+                action = (
+                    <View style={styles.actionContainer}>
+                        <ActivityIndicator
+                            color='#FFFFFF'
+                            size='small'
+                        />
+                    </View>
+                );
+                break;
+            case RequestStatus.SUCCESS:
+            default:
+                i18nId = t('mobile.offlineIndicator.connected');
+                defaultMessage = 'Connected';
+                action = (
+                    <View style={styles.actionContainer}>
+                        <IonIcon
+                            color='#FFFFFF'
+                            name='md-checkmark'
+                            size={20}
+                        />
+                    </View>
+                );
+                break;
+            }
+        } else {
             i18nId = t('mobile.offlineIndicator.offline');
-            defaultMessage = 'Cannot connect to the server. Retrying in {seconds} seconds';
-            values = {seconds: CONNECTION_RETRY_SECONDS};
-            action = (
-                <TouchableOpacity
-                    onPress={this.connect}
-                    style={[styles.actionContainer, styles.actionButton]}
-                >
-                    <IonIcon
-                        color='#FFFFFF'
-                        name='ios-refresh'
-                        size={20}
-                    />
-                </TouchableOpacity>
-            );
-            break;
-        case RequestStatus.STARTED:
-            i18nId = t('mobile.offlineIndicator.connecting');
-            defaultMessage = 'Connecting...';
-            action = (
-                <View style={styles.actionContainer}>
-                    <ActivityIndicator
-                        color='#FFFFFF'
-                        size='small'
-                    />
-                </View>
-            );
-            break;
-        case RequestStatus.SUCCESS:
-        default:
-            i18nId = t('mobile.offlineIndicator.connected');
-            defaultMessage = 'Connected';
-            action = (
-                <View style={styles.actionContainer}>
-                    <IonIcon
-                        color='#FFFFFF'
-                        name='md-checkmark'
-                        size={20}
-                    />
-                </View>
-            );
-            break;
+            defaultMessage = 'No internet connection';
         }
 
         return (
