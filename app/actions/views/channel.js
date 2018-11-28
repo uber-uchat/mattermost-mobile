@@ -19,7 +19,6 @@ import {getProfilesInChannel} from 'mattermost-redux/actions/users';
 import {General, Preferences} from 'mattermost-redux/constants';
 import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 import {getTeamByName} from 'mattermost-redux/selectors/entities/teams';
-import {getConfig} from 'mattermost-redux/selectors/entities/general';
 
 import {
     getChannelByName,
@@ -29,7 +28,7 @@ import {
     isGroupChannel,
 } from 'mattermost-redux/utils/channel_utils';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
-import {getLastCreateAt} from 'mattermost-redux/utils/post_utils';
+import {combineSystemPosts, getLastCreateAt} from 'mattermost-redux/utils/post_utils';
 import {getPreferencesByCategory} from 'mattermost-redux/utils/preference_utils';
 
 import {INSERT_TO_COMMENT, INSERT_TO_DRAFT} from 'app/constants/post_textbox';
@@ -165,12 +164,14 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
 
         let loadMorePostsVisible = true;
         let received;
+        let combined;
         if (!postsIds || postsIds.length < ViewTypes.POST_VISIBILITY_CHUNK_SIZE) {
             // Get the first page of posts if it appears we haven't gotten it yet, like the webapp
             received = await retryGetPostsAction(getPosts(channelId), dispatch, getState);
 
             if (received) {
-                loadMorePostsVisible = received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+                combined = combineSystemPosts(received.order, received.posts, channelId);
+                loadMorePostsVisible = combined.postsForChannel.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
             }
         } else {
             const {lastConnectAt} = state.device.websocket;
@@ -190,7 +191,8 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
             received = await retryGetPostsAction(getPostsSince(channelId, since), dispatch, getState);
 
             if (received) {
-                loadMorePostsVisible = postsIds.length + received.order.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
+                combined = combineSystemPosts(received.order, received.posts, channelId);
+                loadMorePostsVisible = postsIds.length + combined.postsForChannel.length >= ViewTypes.POST_VISIBILITY_CHUNK_SIZE;
             }
         }
 
@@ -281,7 +283,6 @@ export function selectPenultimateChannel(teamId) {
         const {channels, myMembers} = state.entities.channels;
         const {currentUserId} = state.entities.users;
         const {myPreferences} = state.entities.preferences;
-        const viewArchivedChannels = getConfig(state).ExperimentalViewArchivedChannels === 'true';
         const lastChannelForTeam = state.views.team.lastChannelForTeam[teamId];
         const lastChannelId = lastChannelForTeam && lastChannelForTeam.length > 1 ? lastChannelForTeam[1] : '';
         const lastChannel = channels[lastChannelId];
@@ -295,7 +296,7 @@ export function selectPenultimateChannel(teamId) {
         if (
             myMembers[lastChannelId] &&
             lastChannel &&
-            (lastChannel.delete_at === 0 || viewArchivedChannels) &&
+            lastChannel.delete_at === 0 &&
             (lastChannel.team_id === teamId || isDMVisible || isGMVisible)
         ) {
             dispatch(setChannelLoading(true));
