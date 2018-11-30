@@ -65,7 +65,7 @@ export default class MessageAttachment extends PureComponent {
         }
 
         return (
-            <View>
+            <React.Fragment>
                 <AttachmentPreText
                     baseTextStyle={baseTextStyle}
                     blockStyles={blockStyles}
@@ -75,9 +75,7 @@ export default class MessageAttachment extends PureComponent {
                     textStyles={textStyles}
                     value={attachment.pretext}
                 />
-                <View
-                    style={[style.container, style.border, borderStyle]}
-                >
+                <View style={[style.container, style.border, borderStyle]}>
                     <AttachmentAuthor
                         icon={attachment.author_icon}
                         link={attachment.author_link}
@@ -99,7 +97,7 @@ export default class MessageAttachment extends PureComponent {
                         navigator={navigator}
                         onPermalinkPress={onPermalinkPress}
                         textStyles={textStyles}
-                        value={attachment.text}
+                        value={attachment.text || attachment.fallback}
                     />
                     <AttachmentFields
                         baseTextStyle={baseTextStyle}
@@ -125,7 +123,7 @@ export default class MessageAttachment extends PureComponent {
                         theme={theme}
                     />
                 </View>
-            </View>
+            </React.Fragment>
         );
     }
 }
