@@ -4,7 +4,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
 import {
-    Platform,
     Text,
     TouchableHighlight,
     View,
@@ -62,8 +61,6 @@ export default class TeamsListItem extends React.PureComponent {
                 style={styles.badge}
                 countStyle={styles.mention}
                 count={mentionCount}
-                minHeight={20}
-                minWidth={20}
             />
         );
 
@@ -153,14 +150,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             padding: 3,
             position: 'absolute',
             left: 45,
-            ...Platform.select({
-                ios: {
-                    top: -7.5,
-                },
-                android: {
-                    top: -2,
-                },
-            }),
+            top: -2,
         },
         mention: {
             color: theme.mentionColor,
