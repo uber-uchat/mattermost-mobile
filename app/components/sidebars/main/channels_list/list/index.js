@@ -49,7 +49,7 @@ function mapStateToProps(state) {
         sidebarPrefs.grouping,
         sidebarPrefs.sorting,
         sidebarPrefs.unreads_at_top === 'true',
-        sidebarPrefs.favorite_at_top === 'true',
+        sidebarPrefs.favorite_at_top === 'true' && favoriteChannelIds.length,
     ));
 
     return {
