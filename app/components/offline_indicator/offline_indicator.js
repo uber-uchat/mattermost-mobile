@@ -11,13 +11,13 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
-import DeviceInfo from 'react-native-device-info';
 import IonIcon from 'react-native-vector-icons/Ionicons';
 
 import FormattedText from 'app/components/formatted_text';
-import {ViewTypes} from 'app/constants';
+import {DeviceTypes, ViewTypes} from 'app/constants';
 import mattermostBucket from 'app/mattermost_bucket';
 import checkNetwork from 'app/utils/network';
+import {t} from 'app/utils/i18n';
 import LocalConfig from 'assets/config';
 
 import {RequestStatus} from 'mattermost-redux/constants';
@@ -47,14 +47,13 @@ export default class OfflineIndicator extends Component {
         webSocketStatus: PropTypes.string,
     };
 
-    static defaultProps: {
-        isOnline: true
+    static defaultProps = {
+        isOnline: true,
     };
 
     constructor(props) {
         super(props);
 
-        this.isX = DeviceInfo.getModel() === 'iPhone X';
         const navBar = this.getNavBarHeight(props.isLandscape);
 
         this.state = {
@@ -153,9 +152,9 @@ export default class OfflineIndicator extends Component {
             return ANDROID_TOP_PORTRAIT;
         }
 
-        if (this.isX && isLandscape) {
+        if (DeviceTypes.IS_IPHONE_X && isLandscape) {
             return IOS_TOP_LANDSCAPE;
-        } else if (this.isX) {
+        } else if (DeviceTypes.IS_IPHONE_X) {
             return IOSX_TOP_PORTRAIT;
         } else if (isLandscape) {
             return IOS_TOP_LANDSCAPE + STATUS_BAR_HEIGHT;
@@ -214,7 +213,7 @@ export default class OfflineIndicator extends Component {
         let action;
         switch (this.state.network) {
         case OFFLINE:
-            i18nId = 'mobile.offlineIndicator.offline';
+            i18nId = t('mobile.offlineIndicator.offline');
             defaultMessage = 'Cannot connect to the server';
             action = (
                 <TouchableOpacity
@@ -230,7 +229,7 @@ export default class OfflineIndicator extends Component {
             );
             break;
         case CONNECTING:
-            i18nId = 'mobile.offlineIndicator.connecting';
+            i18nId = t('mobile.offlineIndicator.connecting');
             defaultMessage = 'Connecting...';
             action = (
                 <View style={styles.actionContainer}>
@@ -243,7 +242,7 @@ export default class OfflineIndicator extends Component {
             break;
         case CONNECTED:
         default:
-            i18nId = 'mobile.offlineIndicator.connected';
+            i18nId = t('mobile.offlineIndicator.connected');
             defaultMessage = 'Connected';
             action = (
                 <View style={styles.actionContainer}>

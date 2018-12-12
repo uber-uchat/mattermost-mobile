@@ -1,5 +1,78 @@
 # Mattermost Mobile Apps Changelog
 
+
+## 1.13.1 Release
+- Release Date: October 18, 2018
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported
+
+**Combatibility Note: Mobile App v1.13+ is required for Mattermost Server v5.4+**
+
+### Bug Fixes
+- Fixed an issue preventing some users from authenticating using OKTA
+
+## v1.13.0 Release
+- Release Date: October 16, 2018
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported
+
+**Combatibility Note: Mobile App v1.13+ is required for Mattermost Server v5.4+**
+
+### Highlights
+
+#### View Emoji Reactions
+- Hold down on any emoji reaction to see who reacted to the post.
+
+#### Hashtags
+- Added support for searching for hashtags in posts.
+
+#### Dropdown menus
+- Added support for dropdown menus in message attachments.
+
+### Improvements
+- Added support for iPhone XR, XS and XS Max.
+- Added support for nicknames on user profile.
+- On servers 5.4+, added support for searching in direct and group message channels using the "in:" modifier.
+- Channel autocomplete now gets closed if multiple tildes are typed.
+- Added a draft icon in sidebar and channel switcher for channels with unsent messages.
+- Users are now redirected to the archived channel view (rather than to Town Square) when a channel is archived.
+- When closing an archived channel, users are now returned to the previously viewed channel.
+
+### Bug Fixes
+- Refactored postlist to include Android Pie fixes and smoother scrolling.
+- Fixed an issue where deactivated users were not marked as such in "Jump To" search.
+- Fixed an issue where users got a permission error when trying to open a file from within the image preview screen.
+- Fixed an issue where session expiry notifications were not being sent on Android.
+- Fixed an issue where post attachments failed to upload.
+- Fixed an issue where the "DM More..." list cut off user info.
+- Fixed an issue where the user would briefly see a system message when loading a reply thread.
+- Fixed an issue where the error message was incorrectly formatted if the login method was set to email/password and the user tried to log in with SAML.
+- Fixed an issue on Android where the keyboard sometimes overlapped the bottom of the post textbox.
+- Fixed an issue where there was no option to take video via "+" > "Take Photo or Video" on iOS.
+
+## v1.12.0 Release
+- Release Date: September 16, 2018
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported
+
+### Highlights
+
+#### Search Date Filters
+- Search for messages before, on, or after a specified date.
+
+### Improvements
+- Added notification support for Android O and P.
+
+### Bug Fixes
+- Fixed an issue where Okta was not able to login in some deployments.
+- Fixed an issue where messages in Direct Message channels did not show when clicking "Jump To".
+- Fixed an issue where `Show More` on a post with a message attachment displayed a blank where content should have been.
+- Prevent downloading of files when disallowed in the System Console.
+- Fixed an issue where users could not click on attachment filenames to open them.
+- Fixed an issue where email notification settings did not save from mobile.
+- Fixed an issue where the share extension allowed users to select and attempt to share content to channels that had been archived.
+- Fixed an issue where reacting to an existing emoji in an archived channel was allowed.
+- Fixed an issue where archived channels sometimes remained in the drawer.
+- Fixed an issue where deactivated users were not marked as such in Direct Message search.
+
+
 ## v1.11.0 Release
 - Release Date: August 16, 2018
 - Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported

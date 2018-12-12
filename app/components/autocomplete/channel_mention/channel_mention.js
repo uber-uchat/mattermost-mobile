@@ -6,23 +6,27 @@ import PropTypes from 'prop-types';
 import {SectionList} from 'react-native';
 
 import {RequestStatus} from 'mattermost-redux/constants';
+import {isMinimumServerVersion} from 'mattermost-redux/utils/helpers';
+import {debounce} from 'mattermost-redux/actions/helpers';
 
 import {CHANNEL_MENTION_REGEX, CHANNEL_MENTION_SEARCH_REGEX} from 'app/constants/autocomplete';
 import AutocompleteDivider from 'app/components/autocomplete/autocomplete_divider';
 import AutocompleteSectionHeader from 'app/components/autocomplete/autocomplete_section_header';
 import ChannelMentionItem from 'app/components/autocomplete/channel_mention_item';
 import {makeStyleSheetFromTheme} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 
 export default class ChannelMention extends PureComponent {
     static propTypes = {
         actions: PropTypes.shape({
             searchChannels: PropTypes.func.isRequired,
+            autocompleteChannelsForSearch: PropTypes.func.isRequired,
         }).isRequired,
         currentTeamId: PropTypes.string.isRequired,
         cursorPosition: PropTypes.number.isRequired,
         isSearch: PropTypes.bool,
-        listHeight: PropTypes.number,
         matchTerm: PropTypes.string,
+        maxListHeight: PropTypes.number,
         myChannels: PropTypes.array,
         myMembers: PropTypes.object,
         otherChannels: PropTypes.array,
@@ -30,10 +34,12 @@ export default class ChannelMention extends PureComponent {
         onResultCountChange: PropTypes.func.isRequired,
         privateChannels: PropTypes.array,
         publicChannels: PropTypes.array,
+        directAndGroupMessages: PropTypes.array,
         deletedPublicChannels: PropTypes.instanceOf(Set),
         requestStatus: PropTypes.string.isRequired,
         theme: PropTypes.object.isRequired,
         value: PropTypes.string,
+        serverVersion: PropTypes.string,
     };
 
     static defaultProps = {
@@ -49,8 +55,16 @@ export default class ChannelMention extends PureComponent {
         };
     }
 
+    runSearch = debounce((currentTeamId, matchTerm) => {
+        if (isMinimumServerVersion(this.props.serverVersion, 5, 4)) {
+            this.props.actions.autocompleteChannelsForSearch(currentTeamId, matchTerm);
+            return;
+        }
+        this.props.actions.searchChannels(currentTeamId, matchTerm);
+    }, 200);
+
     componentWillReceiveProps(nextProps) {
-        const {isSearch, matchTerm, myChannels, otherChannels, privateChannels, publicChannels, requestStatus, myMembers, deletedPublicChannels} = nextProps;
+        const {isSearch, matchTerm, myChannels, otherChannels, privateChannels, publicChannels, directAndGroupMessages, requestStatus, myMembers, deletedPublicChannels} = nextProps;
 
         if ((matchTerm !== this.props.matchTerm && matchTerm === null) || this.state.mentionComplete) {
             // if the term changes but is null or the mention has been completed we render this component as null
@@ -70,38 +84,48 @@ export default class ChannelMention extends PureComponent {
         if (matchTerm !== this.props.matchTerm) {
             // if the term changed and we haven't made the request do that first
             const {currentTeamId} = this.props;
-            this.props.actions.searchChannels(currentTeamId, matchTerm);
+            this.runSearch(currentTeamId, matchTerm);
             return;
         }
 
         if (requestStatus !== RequestStatus.STARTED &&
             (myChannels !== this.props.myChannels || otherChannels !== this.props.otherChannels ||
                 privateChannels !== this.props.privateChannels || publicChannels !== this.props.publicChannels ||
+                directAndGroupMessages !== this.props.directAndGroupMessages ||
                 myMembers !== this.props.myMembers || deletedPublicChannels !== this.props.deletedPublicChannels)) {
             // if the request is complete and the term is not null we show the autocomplete
             const sections = [];
             if (isSearch) {
                 if (publicChannels.length) {
                     sections.push({
-                        id: 'suggestion.search.public',
+                        id: t('suggestion.search.public'),
                         defaultMessage: 'Public Channels',
-                        data: publicChannels.filter((cId) => !deletedPublicChannels.has(cId) || myMembers[cId]),
+                        data: publicChannels.filter((cId) => myMembers[cId]),
                         key: 'publicChannels',
                     });
                 }
 
                 if (privateChannels.length) {
                     sections.push({
-                        id: 'suggestion.search.private',
+                        id: t('suggestion.search.private'),
                         defaultMessage: 'Private Channels',
                         data: privateChannels,
                         key: 'privateChannels',
                     });
                 }
+
+                if (directAndGroupMessages.length && isMinimumServerVersion(this.props.serverVersion, 5, 4)) {
+                    sections.push({
+                        id: t('suggestion.search.direct'),
+                        defaultMessage: 'Direct Messages',
+                        data: directAndGroupMessages,
+                        key: 'directAndGroupMessages',
+                    });
+                }
             } else {
                 if (myChannels.length) {
                     sections.push({
-                        id: 'suggestion.mention.channels',
+                        id: t('suggestion.mention.channels'),
                         defaultMessage: 'My Channels',
                         data: myChannels,
                         key: 'myChannels',
@@ -110,7 +134,7 @@ export default class ChannelMention extends PureComponent {
 
                 if (otherChannels.length) {
                     sections.push({
-                        id: 'suggestion.mention.morechannels',
+                        id: t('suggestion.mention.morechannels'),
                         defaultMessage: 'Other Channels',
                         data: otherChannels,
                         key: 'otherChannels',
@@ -170,7 +194,7 @@ export default class ChannelMention extends PureComponent {
     };
 
     render() {
-        const {isSearch, listHeight, theme} = this.props;
+        const {maxListHeight, theme} = this.props;
         const {mentionComplete, sections} = this.state;
 
         if (sections.length === 0 || mentionComplete) {
@@ -185,7 +209,7 @@ export default class ChannelMention extends PureComponent {
             <SectionList
                 keyboardShouldPersistTaps='always'
                 keyExtractor={this.keyExtractor}
-                style={[style.listView, isSearch ? [style.search, {height: listHeight}] : null]}
+                style={[style.listView, {maxHeight: maxListHeight}]}
                 sections={sections}
                 renderItem={this.renderItem}
                 renderSectionHeader={this.renderSectionHeader}
@@ -200,9 +224,6 @@ const getStyleFromTheme = makeStyleSheetFromTheme((theme) => {
     return {
         listView: {
             backgroundColor: theme.centerChannelBg,
-        },
-        search: {
-            minHeight: 125,
         },
     };
 });

@@ -7,6 +7,24 @@ configure({adapter: new Adapter()});
 
 /* eslint-disable no-console */
 
+jest.mock('NativeModules', () => {
+    return {
+        BlurAppScreen: () => true,
+        MattermostManaged: {
+            getConfig: jest.fn(),
+        },
+    };
+});
+jest.mock('NativeEventEmitter');
+
+jest.mock('react-native-device-info', () => {
+    return {
+        getVersion: () => '0.0.0',
+        getBuildNumber: () => '0',
+        getModel: () => 'iPhone X',
+    };
+});
+
 let logs;
 let warns;
 let errors;
@@ -41,3 +59,23 @@ afterEach(() => {
         throw new Error('Unexpected console logs' + logs + warns + errors);
     }
 });
+
+jest.mock('rn-fetch-blob', () => ({
+    fs: {
+        dirs: {
+            DocumentDir: () => jest.fn(),
+            CacheDir: () => jest.fn(),
+        },
+    },
+}));
+
+jest.mock('rn-fetch-blob/fs', () => ({
+    dirs: {
+        DocumentDir: () => jest.fn(),
+        CacheDir: () => jest.fn(),
+    },
+}));
+
+global.requestAnimationFrame = (callback) => {
+    setTimeout(callback, 0);
+};

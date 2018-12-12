@@ -14,6 +14,7 @@ import {
     StatusBar,
     StyleSheet,
     Text,
+    TextInput,
     TouchableWithoutFeedback,
     View,
 } from 'react-native';
@@ -24,8 +25,7 @@ import {Client4} from 'mattermost-redux/client';
 
 import ErrorText from 'app/components/error_text';
 import FormattedText from 'app/components/formatted_text';
-import QuickTextInput from 'app/components/quick_text_input';
-import {UpgradeTypes} from 'app/constants/view';
+import {UpgradeTypes} from 'app/constants';
 import fetchConfig from 'app/fetch_preconfig';
 import mattermostBucket from 'app/mattermost_bucket';
 import PushNotifications from 'app/push_notifications';
@@ -34,6 +34,7 @@ import checkUpgradeType from 'app/utils/client_upgrade';
 import {isValidUrl, stripTrailingSlashes} from 'app/utils/url';
 import {preventDoubleTap} from 'app/utils/tap';
 import tracker from 'app/utils/time_tracker';
+import {t} from 'app/utils/i18n';
 
 import LocalConfig from 'assets/config';
 
@@ -176,7 +177,7 @@ export default class SelectServer extends PureComponent {
             this.setState({
                 error: {
                     intl: {
-                        id: 'mobile.server_url.invalid_format',
+                        id: t('mobile.server_url.invalid_format'),
                         defaultMessage: 'URL must start with http:// or https://',
                     },
                 },
@@ -442,6 +443,7 @@ export default class SelectServer extends PureComponent {
                 behavior='padding'
                 style={style.container}
                 keyboardVerticalOffset={0}
+                enabled={Platform.OS === 'ios'}
             >
                 <StatusBar barStyle={statusStyle}/>
                 <TouchableWithoutFeedback onPress={this.blur}>
@@ -457,7 +459,7 @@ export default class SelectServer extends PureComponent {
                                 defaultMessage='Enter Server URL'
                             />
                         </View>
-                        <QuickTextInput
+                        <TextInput
                             ref={this.inputRef}
                             value={url}
                             editable={!inputDisabled}

@@ -56,18 +56,12 @@ export default class PostList extends PostListBase {
         if (contentOffset.y >= 0) {
             const definedHeight = Math.round(this.postListHeight) * SCROLL_UP_MULTIPLIER;
             const pageOffsetY = contentOffset.y;
-            const contentHeight = contentSize.height;
             const direction = (this.contentOffsetY < pageOffsetY) ?
                 ListTypes.VISIBILITY_SCROLL_DOWN :
                 ListTypes.VISIBILITY_SCROLL_UP;
             this.contentOffsetY = contentOffset.y;
 
             switch (direction) {
-            case ListTypes.VISIBILITY_SCROLL_DOWN:
-                if ((Math.round(contentHeight - pageOffsetY) < definedHeight)) {
-                    this.props.onLoadMoreDown();
-                }
-                break;
             case ListTypes.VISIBILITY_SCROLL_UP:
                 if (Math.round(pageOffsetY) < definedHeight) {
                     this.props.onLoadMoreUp();
@@ -85,10 +79,11 @@ export default class PostList extends PostListBase {
         } = this.props;
 
         const otherProps = {};
+        const footer = typeof this.props.renderFooter === 'object' ? this.props.renderFooter : this.props.renderFooter();
         if (postIds.length) {
-            otherProps.ListFooterComponent = this.props.renderFooter();
+            otherProps.ListFooterComponent = footer;
         } else {
-            otherProps.ListEmptyComponent = this.props.renderFooter();
+            otherProps.ListEmptyComponent = footer;
         }
 
         const hasPostsKey = postIds.length ? 'true' : 'false';

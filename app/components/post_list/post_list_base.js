@@ -30,13 +30,13 @@ export default class PostListBase extends PureComponent {
         isSearchResult: PropTypes.bool,
         lastViewedAt: PropTypes.number, // Used by container // eslint-disable-line no-unused-prop-types
         navigator: PropTypes.object,
-        onLoadMoreDown: PropTypes.func,
         onLoadMoreUp: PropTypes.func,
+        onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPostPress: PropTypes.func,
         onRefresh: PropTypes.func,
         postIds: PropTypes.array.isRequired,
-        renderFooter: PropTypes.func,
+        renderFooter: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
         renderReplies: PropTypes.bool,
         serverURL: PropTypes.string.isRequired,
         shouldRenderReplyButton: PropTypes.bool,
@@ -45,7 +45,6 @@ export default class PostListBase extends PureComponent {
     };
 
     static defaultProps = {
-        onLoadMoreDown: () => true,
         onLoadMoreUp: () => true,
         renderFooter: () => null,
     };
@@ -158,6 +157,7 @@ export default class PostListBase extends PureComponent {
             highlightPostId,
             isSearchResult,
             navigator,
+            onHashtagPress,
             onPostPress,
             renderReplies,
             shouldRenderReplyButton,
@@ -170,6 +170,7 @@ export default class PostListBase extends PureComponent {
                 postId={postId}
                 previousPostId={previousPostId}
                 nextPostId={nextPostId}
+                onHashtagPress={onHashtagPress}
                 onPermalinkPress={this.handlePermalinkPress}
                 highlight={highlight}
                 renderReplies={renderReplies}
@@ -188,7 +189,7 @@ export default class PostListBase extends PureComponent {
             nextConfig = await mattermostManaged.getLocalConfig();
         }
 
-        if (Object.keys(nextConfig).length) {
+        if (this.mounted) {
             this.setState({
                 managedConfig: nextConfig,
             });
@@ -214,7 +215,6 @@ export default class PostListBase extends PureComponent {
                 passProps: {
                     isPermalink: true,
                     onClose: this.handleClosePermalink,
-                    onPermalinkPress: this.handlePermalinkPress,
                 },
             };
 

@@ -13,7 +13,7 @@ import AnnouncementBanner from 'app/components/announcement_banner';
 import PostList from 'app/components/post_list';
 import PostListRetry from 'app/components/post_list_retry';
 import RetryBarIndicator from 'app/components/retry_bar_indicator';
-import {ListTypes, ViewTypes} from 'app/constants';
+import {ViewTypes} from 'app/constants';
 import tracker from 'app/utils/time_tracker';
 
 let ChannelIntro = null;
@@ -60,6 +60,10 @@ export default class ChannelPostList extends PureComponent {
         let visiblePostIds = this.state.visiblePostIds;
         if (nextPostIds !== this.props.postIds || nextProps.postVisibility !== this.props.postVisibility) {
             visiblePostIds = this.getVisiblePostIds(nextProps);
+        }
+
+        if (this.props.channelId !== nextProps.channelId) {
+            this.isLoadingMoreTop = false;
         }
 
         this.setState({visiblePostIds});
@@ -113,20 +117,6 @@ export default class ChannelPostList extends PureComponent {
             this.isLoadingMoreTop = true;
             actions.increasePostVisibility(channelId).then((hasMore) => {
                 this.isLoadingMoreTop = !hasMore;
-            });
-        }
-    };
-
-    loadMorePostsBottom = async () => {
-        const {actions, channelId} = this.props;
-        if (!this.isLoadingMoreBottom) {
-            this.isLoadingMoreBottom = true;
-            actions.increasePostVisibility(
-                channelId,
-                null,
-                ListTypes.VISIBILITY_SCROLL_DOWN,
-            ).then((hasMore) => {
-                this.isLoadingMoreBottom = !hasMore;
             });
         }
     };
@@ -195,7 +185,6 @@ export default class ChannelPostList extends PureComponent {
                 <PostList
                     postIds={visiblePostIds}
                     extraData={loadMorePostsVisible}
-                    onLoadMoreDown={this.loadMorePostsBottom}
                     onLoadMoreUp={this.loadMorePostsTop}
                     onPostPress={this.goToThread}
                     onRefresh={actions.setChannelRefreshing}

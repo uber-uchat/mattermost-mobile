@@ -19,7 +19,7 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>1.12.0</string>
+	<string>1.14.0</string>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleURLTypes</key>
@@ -34,7 +34,7 @@
 		</dict>
 	</array>
 	<key>CFBundleVersion</key>
-	<string>142</string>
+	<string>156</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
@@ -62,10 +62,12 @@
 	<string>Share contacts in your Mattermost instance</string>
 	<key>NSCameraUsageDescription</key>
 	<string>Take a Photo or Video and upload it to your mattermost instance</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Send your current location to your Mattermost instance</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Send your current location to your Mattermost instance</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-    <string>Send your current location to your Mattermost instance</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Capture audio when recording a video to share to your Mattermost instance</string>
 	<key>NSMotionUsageDescription</key>
 	<string>Share your route in your Mattermost instance</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -94,6 +96,18 @@
 		<string>OpenSans-Regular.ttf</string>
 		<string>OpenSans-Semibold.ttf</string>
 		<string>OpenSans-SemiboldItalic.ttf</string>
+		<string>Roboto-Black.ttf</string>
+		<string>Roboto-BlackItalic.ttf</string>
+		<string>Roboto-Bold.ttf</string>
+		<string>Roboto-BoldItalic.ttf</string>
+		<string>Roboto-Italic.ttf</string>
+		<string>Roboto-Light.ttf</string>
+		<string>Roboto-LightItalic.ttf</string>
+		<string>Roboto-Medium.ttf</string>
+		<string>Roboto-MediumItalic.ttf</string>
+		<string>Roboto-Regular.ttf</string>
+		<string>Roboto-Thin.ttf</string>
+		<string>Roboto-ThinItalic.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
 	<array>

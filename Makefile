@@ -1,8 +1,9 @@
-.PHONY: pre-run clean
+.PHONY: pre-run pre-build clean
 .PHONY: check-style
 .PHONY: start stop
 .PHONY: run run-ios run-android
-.PHONY: build-ios build-android unsigned-ios unsigned-android
+.PHONY: build build-ios build-android unsigned-ios unsigned-android
+.PHONY: build-pr can-build-pr prepare-pr
 .PHONY: test help
 
 POD := $(shell which pod 2> /dev/null)
@@ -10,7 +11,7 @@ OS := $(shell sh -c 'uname -s 2>/dev/null')
 BASE_ASSETS = $(shell find assets/base -type d) $(shell find assets/base -type f -name '*')
 OVERRIDE_ASSETS = $(shell find assets/override -type d 2> /dev/null) $(shell find assets/override -type f -name '*' 2> /dev/null)
 
-.npminstall: package.json
+node_modules: package.json
 	@if ! [ $(shell which npm 2> /dev/null) ]; then \
 		echo "npm is not installed https://npmjs.com"; \
 		exit 1; \
@@ -19,7 +20,14 @@ OVERRIDE_ASSETS = $(shell find assets/override -type d 2> /dev/null) $(shell fin
 	@echo Getting Javascript dependencies
 	@npm install
 
-	@touch $@
+npm-ci: package.json
+	@if ! [ $(shell which npm 2> /dev/null) ]; then \
+		echo "npm is not installed https://npmjs.com"; \
+		exit 1; \
+	fi
+
+	@echo Getting Javascript dependencies
+	@npm ci
 
 .podinstall:
 ifeq ($(OS), Darwin)
@@ -43,9 +51,11 @@ dist/assets: $(BASE_ASSETS) $(OVERRIDE_ASSETS)
 	@echo "Generating app assets"
 	@node scripts/make-dist-assets.js
 
-pre-run: | .npminstall .podinstall dist/assets ## Installs dependencies and assets
+pre-run: | node_modules .podinstall dist/assets ## Installs dependencies and assets
 
-check-style: .npminstall ## Runs eslint
+pre-build: | npm-ci .podinstall dist/assets ## Install dependencies and assets before building
+
+check-style: node_modules ## Runs eslint
 	@echo Checking for style guide compliance
 	@npm run check
 
@@ -53,7 +63,6 @@ clean: ## Cleans dependencies, previous builds and temp files
 	@echo Cleaning started
 
 	@rm -rf node_modules
-	@rm -f .npminstall
 	@rm -f .podinstall
 	@rm -rf dist
 	@rm -rf ios/build
@@ -63,11 +72,6 @@ clean: ## Cleans dependencies, previous builds and temp files
 	@echo Cleanup finished
 
 post-install:
-	@./node_modules/.bin/remotedev-debugger --hostname localhost --port 5678 --injectserver
-	@# Must remove the .babelrc for 0.42.0 to work correctly
-	@# Need to copy custom ImagePickerModule.java that implements correct permission checks for android
-	@rm node_modules/react-native-image-picker/android/src/main/java/com/imagepicker/ImagePickerModule.java
-	@cp ./native_modules/ImagePickerModule.java node_modules/react-native-image-picker/android/src/main/java/com/imagepicker
 	@# Need to copy custom RNDocumentPicker.m that implements direct access to the document picker in iOS
 	@cp ./native_modules/RNDocumentPicker.m node_modules/react-native-document-picker/ios/RNDocumentPicker/RNDocumentPicker.m
 
@@ -85,7 +89,6 @@ post-install:
 		sed $ -i'' -e "s|const ReactNative = require('ReactNative');|const ReactNative = require('ReactNative');`echo $\\\\\\r;`const Platform = require('Platform');|g" node_modules/react-native/Libraries/Lists/VirtualizedList.js; \
 	fi
 	@sed -i'' -e 's|transform: \[{scaleY: -1}\],|...Platform.select({android: {transform: \[{perspective: 1}, {scaleY: -1}\]}, ios: {transform: \[{scaleY: -1}\]}}),|g' node_modules/react-native/Libraries/Lists/VirtualizedList.js
-	@cd ./node_modules/mattermost-redux && npm run build
 
 start: | pre-run ## Starts the React Native packager server
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
@@ -177,7 +180,17 @@ run-android: | check-device-android pre-run prepare-android-build ## Runs the ap
 		fi; \
     fi
 
-build-ios: | pre-run check-style ## Creates an iOS build
+build: | stop pre-build check-style ## Builds the app for Android & iOS
+	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
+		echo Starting React Native packager server; \
+		npm start & echo; \
+	fi
+	@echo "Building App"
+	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane build
+	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
+
+
+build-ios: | stop pre-build check-style ## Builds the iOS app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -186,7 +199,7 @@ build-ios: | pre-run check-style ## Creates an iOS build
 	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane ios build
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-build-android: | pre-run check-style prepare-android-build ## Creates an Android build
+build-android: | stop pre-build check-style prepare-android-build ## Build the Android app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -195,7 +208,7 @@ build-android: | pre-run check-style prepare-android-build ## Creates an Android
 	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane android build
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-unsigned-ios: pre-run check-style
+unsigned-ios: stop pre-build check-style ## Build an unsigned version of the iOS app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -209,7 +222,7 @@ unsigned-ios: pre-run check-style
 	@rm -rf build-ios/
 	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
 
-unsigned-android: pre-run check-style prepare-android-build
+unsigned-android: stop pre-build check-style prepare-android-build ## Build an unsigned version of the Android app
 	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
 		echo Starting React Native packager server; \
 		npm start & echo; \
@@ -221,6 +234,21 @@ unsigned-android: pre-run check-style prepare-android-build
 
 test: | pre-run check-style ## Runs tests
 	@npm test
+
+build-pr: | can-build-pr stop pre-build check-style ## Build a PR from the mattermost-mobile repo
+	@if [ $(shell ps -ef | grep -i "cli.js start" | grep -civ grep) -eq 0 ]; then \
+		echo Starting React Native packager server; \
+		npm start & echo; \
+	fi
+	@echo "Building App from PR ${PR_ID}"
+	@cd fastlane && BABEL_ENV=production NODE_ENV=production bundle exec fastlane build_pr pr:PR-${PR_ID}
+	@ps -ef | grep -i "cli.js start" | grep -iv grep | awk '{print $$2}' | xargs kill -9
+
+can-build-pr:
+	@if [ -z ${PR_ID} ]; then \
+		echo a PR number needs to be specified; \
+		exit 1; \
+	fi
 
 ## Help documentation https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:

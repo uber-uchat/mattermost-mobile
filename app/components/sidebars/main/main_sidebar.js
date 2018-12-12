@@ -10,13 +10,14 @@ import {
     View,
 } from 'react-native';
 import {intlShape} from 'react-intl';
-import DrawerLayout from 'react-native-drawer-layout';
 
 import {General, WebsocketEvents} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import SafeAreaView from 'app/components/safe_area_view';
+import DrawerLayout from 'app/components/sidebars/drawer_layout';
 import tracker from 'app/utils/time_tracker';
+import {t} from 'app/utils/i18n';
 
 import ChannelsList from './channels_list';
 import DrawerSwiper from './drawer_swipper';
@@ -49,8 +50,6 @@ export default class ChannelSidebar extends Component {
         intl: intlShape.isRequired,
     };
 
-    swiperIndex = 1;
-
     constructor(props) {
         super(props);
 
@@ -59,9 +58,9 @@ export default class ChannelSidebar extends Component {
             openDrawerOffset = DRAWER_LANDSCAPE_OFFSET;
         }
 
+        this.swiperIndex = 1;
         this.state = {
             show: false,
-            lockMode: 'unlocked',
             openDrawerOffset,
             drawerOpened: false,
         };
@@ -101,7 +100,7 @@ export default class ChannelSidebar extends Component {
 
         return nextProps.currentTeamId !== currentTeamId ||
             nextProps.isLandscape !== isLandscape || nextProps.deviceWidth !== deviceWidth ||
-            nextProps.teamsCount !== teamsCount || this.state.lockMode !== nextState.lockMode;
+            nextProps.teamsCount !== teamsCount;
     }
 
     componentWillUnmount() {
@@ -186,7 +185,7 @@ export default class ChannelSidebar extends Component {
             const {intl} = this.context;
 
             const unableToJoinMessage = {
-                id: 'mobile.open_unknown_channel.error',
+                id: t('mobile.open_unknown_channel.error'),
                 defaultMessage: "We couldn't join the channel. Please reset the cache and try again.",
             };
             const erroMessage = {};
@@ -226,7 +225,7 @@ export default class ChannelSidebar extends Component {
 
                 if (result.error) {
                     const dmFailedMessage = {
-                        id: 'mobile.open_dm.error',
+                        id: t('mobile.open_dm.error'),
                         defaultMessage: "We couldn't open a direct message with {displayName}. Please check your connection and try again.",
                     };
                     utils.alertErrorWithFallback(intl, result.error, dmFailedMessage, displayValue);
@@ -236,7 +235,7 @@ export default class ChannelSidebar extends Component {
 
                 if (result.error || !result.data || !result.data.channel) {
                     const joinFailedMessage = {
-                        id: 'mobile.join_channel.error',
+                        id: t('mobile.join_channel.error'),
                         defaultMessage: "We couldn't join the channel {displayName}. Please check your connection and try again.",
                     };
                     utils.alertErrorWithFallback(intl, result.error, joinFailedMessage, displayValue);
@@ -256,10 +255,13 @@ export default class ChannelSidebar extends Component {
 
     onPageSelected = (index) => {
         this.swiperIndex = index;
-        if (this.swiperIndex === 0) {
-            this.setState({lockMode: 'locked-open'});
-        } else {
-            this.setState({lockMode: 'unlocked'});
+
+        if (this.refs.drawer) {
+            if (this.swiperIndex === 0) {
+                this.refs.drawer.canClose = false;
+            } else {
+                this.refs.drawer.canClose = true;
+            }
         }
     };
 
@@ -271,10 +273,16 @@ export default class ChannelSidebar extends Component {
         if (isLandscape || isTablet) {
             openDrawerOffset = DRAWER_LANDSCAPE_OFFSET;
         }
+        if (this.refs.drawer) {
+            this.refs.drawer.canClose = true;
+        }
         this.setState({openDrawerOffset});
     };
 
     onSearchStart = () => {
+        if (this.refs.drawer) {
+            this.refs.drawer.canClose = false;
+        }
         this.setState({openDrawerOffset: 0});
     };
 
@@ -371,11 +379,10 @@ export default class ChannelSidebar extends Component {
 
     render() {
         const {children, deviceWidth} = this.props;
-        const {lockMode, openDrawerOffset} = this.state;
+        const {openDrawerOffset} = this.state;
 
         return (
             <DrawerLayout
-                drawerLockMode={lockMode}
                 ref='drawer'
                 renderNavigationView={this.renderNavigationView}
                 onDrawerClose={this.handleDrawerClose}
@@ -392,6 +399,5 @@ export default class ChannelSidebar extends Component {
 const style = StyleSheet.create({
     swiperContent: {
         flex: 1,
-        marginBottom: 10,
     },
 });

@@ -19,10 +19,10 @@ export default class ChannelIcon extends React.PureComponent {
         isActive: PropTypes.bool,
         isInfo: PropTypes.bool,
         isUnread: PropTypes.bool,
+        hasDraft: PropTypes.bool,
         membersCount: PropTypes.number,
         size: PropTypes.number,
         status: PropTypes.string,
-        teammateDeletedAt: PropTypes.number,
         theme: PropTypes.object.isRequired,
         type: PropTypes.string.isRequired,
         isArchived: PropTypes.bool.isRequired,
@@ -40,10 +40,10 @@ export default class ChannelIcon extends React.PureComponent {
             isActive,
             isUnread,
             isInfo,
+            hasDraft,
             membersCount,
             size,
             status,
-            teammateDeletedAt,
             theme,
             type,
             isArchived,
@@ -85,6 +85,13 @@ export default class ChannelIcon extends React.PureComponent {
                     style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
                 />
             );
+        } else if (hasDraft) {
+            icon = (
+                <Icon
+                    name='pencil'
+                    style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                />
+            );
         } else if (type === General.OPEN_CHANNEL) {
             icon = (
                 <Icon
@@ -106,13 +113,6 @@ export default class ChannelIcon extends React.PureComponent {
                         {membersCount}
                     </Text>
                 </View>
-            );
-        } else if (type === General.DM_CHANNEL && teammateDeletedAt) {
-            icon = (
-                <Image
-                    source={require('assets/images/status/archive_avatar.png')}
-                    style={{width: size, height: size, tintColor: offlineColor}}
-                />
             );
         } else if (type === General.DM_CHANNEL) {
             switch (status) {

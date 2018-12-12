@@ -11,18 +11,19 @@ import {
     ScrollView,
     View,
 } from 'react-native';
-import DrawerLayout from 'react-native-drawer-layout';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 
 import {General} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import SafeAreaView from 'app/components/safe_area_view';
+import DrawerLayout from 'app/components/sidebars/drawer_layout';
 import UserStatus from 'app/components/user_status';
 import {NavigationTypes} from 'app/constants';
 import {confirmOutOfOfficeDisabled} from 'app/utils/status';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 
 import DrawerItem from './drawer_item';
 import UserInfo from './user_info';
@@ -107,25 +108,25 @@ export default class SettingsDrawer extends PureComponent {
         const items = [{
             action: () => this.setStatus(General.ONLINE),
             text: {
-                id: 'mobile.set_status.online',
+                id: t('mobile.set_status.online'),
                 defaultMessage: 'Online',
             },
         }, {
             action: () => this.setStatus(General.AWAY),
             text: {
-                id: 'mobile.set_status.away',
+                id: t('mobile.set_status.away'),
                 defaultMessage: 'Away',
             },
         }, {
             action: () => this.setStatus(General.DND),
             text: {
-                id: 'mobile.set_status.dnd',
+                id: t('mobile.set_status.dnd'),
                 defaultMessage: 'Do Not Disturb',
             },
         }, {
             action: () => this.setStatus(General.OFFLINE),
             text: {
-                id: 'mobile.set_status.offline',
+                id: t('mobile.set_status.offline'),
                 defaultMessage: 'Offline',
             },
         }];
@@ -272,7 +273,7 @@ export default class SettingsDrawer extends PureComponent {
                             <DrawerItem
                                 defaultMessage='Recent Mentions'
                                 i18nId='search_header.title2'
-                                iconName='ios-at-outline'
+                                iconName='ios-at'
                                 iconType='ion'
                                 onPress={this.goToMentions}
                                 separator={true}
@@ -281,7 +282,7 @@ export default class SettingsDrawer extends PureComponent {
                             <DrawerItem
                                 defaultMessage='Flagged Posts'
                                 i18nId='search_header.title3'
-                                iconName='ios-flag-outline'
+                                iconName='ios-flag'
                                 iconType='ion'
                                 onPress={this.goToFlagged}
                                 separator={false}
@@ -357,6 +358,7 @@ export default class SettingsDrawer extends PureComponent {
                 onDrawerOpen={this.handleDrawerOpen}
                 drawerPosition='right'
                 drawerWidth={deviceWidth - DRAWER_INITIAL_OFFSET}
+                useNativeAnimations={true}
             >
                 {children}
             </DrawerLayout>

@@ -17,13 +17,16 @@ import StatusBar from 'app/components/status_bar';
 import TextInputWithLocalizedPlaceholder from 'app/components/text_input_with_localized_placeholder';
 import SectionItem from 'app/screens/settings/section_item';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+import {t} from 'app/utils/i18n';
 
 import NotificationSettingsMentionsBase from './notification_settings_mention_base';
 
 class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBase {
     cancelMentionKeys = () => {
-        this.setState({showKeywordsModal: false});
-        this.keywords = this.state.mention_keys;
+        this.setState({
+            androidKeywords: this.state.mention_keys,
+            showKeywordsModal: false,
+        });
     };
 
     cancelReplyNotification = () => {
@@ -33,8 +36,8 @@ class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBa
         });
     };
 
-    onKeywordsChangeText = (value) => {
-        this.keywords = value;
+    onKeywordsChangeText = (androidKeywords) => {
+        this.setState({androidKeywords});
     };
 
     onReplyChanged = (value) => {
@@ -63,9 +66,10 @@ class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBa
                             </View>
                             <TextInputWithLocalizedPlaceholder
                                 autoFocus={true}
-                                value={this.keywords}
-                                blurOnSubmit={false}
+                                value={this.state.androidKeywords}
+                                blurOnSubmit={true}
                                 onChangeText={this.onKeywordsChangeText}
+                                onSubmitEditing={this.saveMentionKeys}
                                 multiline={false}
                                 style={style.input}
                                 autoCapitalize='none'
@@ -73,6 +77,7 @@ class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBa
                                 placeholder={{id: 'mobile.notification_settings_mentions.keywordsDescription', defaultMessage: 'Other words that trigger a mention'}}
                                 placeholderTextColor={changeOpacity(theme.centerChannelColor, 0.4)}
                                 returnKeyType='done'
+                                returnKeyLabel={this.props.intl.formatMessage({id: 'mobile.notification_settings.modal_save'})}
                                 underlineColorAndroid={theme.linkColor}
                             />
                             <FormattedText
@@ -204,16 +209,16 @@ class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBa
         let i18nMessage;
         switch (this.state.comments) {
         case 'root':
-            i18nId = 'mobile.account_notifications.threads_start';
+            i18nId = t('mobile.account_notifications.threads_start');
             i18nMessage = 'Threads that I start';
             break;
         case 'never':
-            i18nId = 'mobile.account_notifications.threads_mentions';
+            i18nId = t('mobile.account_notifications.threads_mentions');
             i18nMessage = 'Mentions in threads';
             break;
         case 'any':
         default:
-            i18nId = 'mobile.account_notifications.threads_start_participate';
+            i18nId = t('mobile.account_notifications.threads_start_participate');
             i18nMessage = 'Threads that I start or participate in';
             break;
         }
@@ -240,8 +245,7 @@ class NotificationSettingsMentionsAndroid extends NotificationSettingsMentionsBa
     }
 
     saveMentionKeys = () => {
-        this.setState({showKeywordsModal: false});
-        this.updateMentionKeys(this.keywords);
+        this.updateMentionKeys(this.state.androidKeywords);
     };
 
     saveReplyNotification = () => {

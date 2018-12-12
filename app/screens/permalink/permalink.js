@@ -70,8 +70,6 @@ export default class Permalink extends PureComponent {
         myMembers: PropTypes.object.isRequired,
         navigator: PropTypes.object,
         onClose: PropTypes.func,
-        onHashtagPress: PropTypes.func,
-        onPermalinkPress: PropTypes.func,
         onPress: PropTypes.func,
         postIds: PropTypes.array,
         theme: PropTypes.object.isRequired,
@@ -86,10 +84,49 @@ export default class Permalink extends PureComponent {
         intl: intlShape.isRequired,
     };
 
+    static getDerivedStateFromProps(nextProps, prevState) {
+        const newState = {};
+        if (nextProps.focusedPostId !== prevState.focusedPostIdState) {
+            newState.focusedPostIdState = nextProps.focusedPostId;
+        }
+
+        if (nextProps.channelId && nextProps.channelId !== prevState.channelIdState) {
+            newState.channelIdState = nextProps.channelId;
+        }
+
+        if (nextProps.channelName && nextProps.channelName !== prevState.channelNameState) {
+            newState.channelNameState = nextProps.channelName;
+        }
+
+        if (nextProps.postIds && nextProps.postIds.length > 0 && nextProps.postIds !== prevState.postIdsState) {
+            newState.postIdsState = nextProps.postIds;
+        }
+
+        if (nextProps.focusedPostId !== prevState.focusedPostIdState) {
+            let loading = true;
+            if (nextProps.postIds && nextProps.postIds.length >= 10) {
+                loading = false;
+            }
+
+            newState.loading = loading;
+        }
+
+        if (Object.keys(newState).length === 0) {
+            return null;
+        }
+
+        return newState;
+    }
+
     constructor(props) {
         super(props);
 
-        const {postIds, channelName} = props;
+        const {
+            postIds,
+            channelId,
+            channelName,
+            focusedPostId,
+        } = props;
         let loading = true;
 
         if (postIds && postIds.length >= 10) {
@@ -103,10 +140,14 @@ export default class Permalink extends PureComponent {
             loading,
             error: '',
             retry: false,
+            channelIdState: channelId,
+            channelNameState: channelName,
+            focusedPostIdState: focusedPostId,
+            postIdsState: postIds,
         };
     }
 
-    componentWillMount() {
+    componentDidMount() {
         this.mounted = true;
 
         if (this.state.loading) {
@@ -114,18 +155,9 @@ export default class Permalink extends PureComponent {
         }
     }
 
-    componentWillReceiveProps(nextProps) {
-        if (this.props.channelName !== nextProps.channelName && this.mounted) {
-            this.setState({title: nextProps.channelName});
-        }
-
-        if (this.props.focusedPostId !== nextProps.focusedPostId && this.mounted) {
-            this.setState({loading: true});
-            if (nextProps.postIds && nextProps.postIds.length < 10) {
-                this.loadPosts(nextProps);
-            } else {
-                this.setState({loading: false});
-            }
+    componentDidUpdate() {
+        if (this.state.loading) {
+            this.loadPosts(this.props);
         }
     }
 
@@ -175,12 +207,20 @@ export default class Permalink extends PureComponent {
         }
     };
 
+    handleHashtagPress = () => {
+        // Do nothing because we're already in a modal
+    };
+
+    handlePermalinkPress = () => {
+        // Do nothing because we're already in permalink view for a different post
+    };
+
     handlePress = () => {
-        const {channelId, channelName} = this.props;
+        const {channelIdState, channelNameState} = this.state;
 
         if (this.refs.view) {
             this.refs.view.growOut().then(() => {
-                this.jumpToChannel(channelId, channelName);
+                this.jumpToChannel(channelIdState, channelNameState);
             });
         }
     };
@@ -303,18 +343,21 @@ export default class Permalink extends PureComponent {
         }
     };
 
-    archivedIcon = (style) => {
-        let ico = null;
+    archivedIcon = () => {
+        const style = getStyleSheet(this.props.theme);
+        let icon = null;
         if (this.props.channelIsArchived) {
-            ico = (<Text>
-                <AwesomeIcon
-                    name='archive'
-                    style={[style.archiveIcon]}
-                />
-                {' '}
-            </Text>);
+            icon = (
+                <Text>
+                    <AwesomeIcon
+                        name='archive'
+                        style={[style.archiveIcon]}
+                    />
+                    {' '}
+                </Text>
+            );
         }
-        return ico;
+        return icon;
     };
 
     render() {
@@ -322,12 +365,15 @@ export default class Permalink extends PureComponent {
             currentUserId,
             focusedPostId,
             navigator,
-            onHashtagPress,
-            onPermalinkPress,
-            postIds,
             theme,
         } = this.props;
-        const {error, retry, loading, title} = this.state;
+        const {
+            error,
+            retry,
+            loading,
+            postIdsState,
+            title,
+        } = this.state;
         const style = getStyleSheet(theme);
 
         let postList;
@@ -356,10 +402,10 @@ export default class Permalink extends PureComponent {
                     isSearchResult={false}
                     shouldRenderReplyButton={false}
                     renderReplies={true}
-                    onHashtagPress={onHashtagPress}
-                    onPermalinkPress={onPermalinkPress}
+                    onHashtagPress={this.handleHashtagPress}
+                    onPermalinkPress={this.handlePermalinkPress}
                     onPostPress={this.goToThread}
-                    postIds={postIds}
+                    postIds={postIdsState}
                     currentUserId={currentUserId}
                     lastViewedAt={0}
                     navigator={navigator}
@@ -404,7 +450,7 @@ export default class Permalink extends PureComponent {
                                     numberOfLines={1}
                                     style={style.title}
                                 >
-                                    {this.archivedIcon(style)}
+                                    {this.archivedIcon()}
                                     {title}
                                 </Text>
                             </View>

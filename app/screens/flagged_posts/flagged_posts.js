@@ -33,6 +33,7 @@ export default class FlaggedPosts extends PureComponent {
             getFlaggedPosts: PropTypes.func.isRequired,
             selectFocusedPostId: PropTypes.func.isRequired,
             selectPost: PropTypes.func.isRequired,
+            showSearchModal: PropTypes.func.isRequired,
         }).isRequired,
         didFail: PropTypes.bool,
         isLoading: PropTypes.bool,
@@ -112,6 +113,14 @@ export default class FlaggedPosts extends PureComponent {
         this.showPermalinkView(postId, true);
     };
 
+    handleHashtagPress = async (hashtag) => {
+        const {actions, navigator} = this.props;
+
+        await navigator.dismissModal();
+
+        actions.showSearchModal(navigator, '#' + hashtag);
+    };
+
     keyExtractor = (item) => item;
 
     onNavigatorEvent = (event) => {
@@ -140,7 +149,7 @@ export default class FlaggedPosts extends PureComponent {
                     id: 'mobile.flagged_posts.empty_description',
                     defaultMessage: 'Flags are a way to mark messages for follow up. Your flags are personal, and cannot be seen by other users.',
                 })}
-                iconName='ios-flag-outline'
+                iconName='ios-flag'
                 title={formatMessage({id: 'mobile.flagged_posts.empty_title', defaultMessage: 'No Flagged Posts'})}
                 theme={theme}
             />
@@ -173,6 +182,7 @@ export default class FlaggedPosts extends PureComponent {
                     previewPost={this.previewPost}
                     goToThread={this.goToThread}
                     navigator={this.props.navigator}
+                    onHashtagPress={this.handleHashtagPress}
                     onPermalinkPress={this.handlePermalinkPress}
                     managedConfig={managedConfig}
                     showFullDate={false}
@@ -212,7 +222,6 @@ export default class FlaggedPosts extends PureComponent {
                 passProps: {
                     isPermalink,
                     onClose: this.handleClosePermalink,
-                    onPermalinkPress: this.handlePermalinkPress,
                 },
             };
 

@@ -3,6 +3,9 @@
 
 import {Posts} from 'mattermost-redux/constants';
 import {PostTypes} from 'mattermost-redux/action_types';
+import {doPostAction} from 'mattermost-redux/actions/posts';
+
+import {ViewTypes} from 'app/constants';
 
 import {generateId} from 'app/utils/file';
 
@@ -35,5 +38,33 @@ export function sendAddToChannelEphemeralPost(user, addedUsername, message, chan
             },
             channelId,
         });
+    };
+}
+
+export function setMenuActionSelector(dataSource, onSelect, options) {
+    return {
+        type: ViewTypes.SELECTED_ACTION_MENU,
+        data: {
+            dataSource,
+            onSelect,
+            options,
+        },
+    };
+}
+
+export function selectAttachmentMenuAction(postId, actionId, displayText, value) {
+    return (dispatch) => {
+        dispatch({
+            type: ViewTypes.SUBMIT_ATTACHMENT_MENU_ACTION,
+            postId,
+            data: {
+                [actionId]: {
+                    displayText,
+                    value,
+                },
+            },
+        });
+
+        dispatch(doPostAction(postId, actionId, value));
     };
 }

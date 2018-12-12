@@ -95,18 +95,14 @@ export default class FileAttachmentList extends Component {
                 if (file.localPath) {
                     uri = file.localPath;
                 } else if (isGif(file)) {
-                    cache = await getCacheFile(file.name, Client4.getFileUrl(file.id));
+                    cache = await getCacheFile(file.name, Client4.getFileUrl(file.id)); // eslint-disable-line no-await-in-loop
                 } else {
-                    cache = await getCacheFile(file.name, Client4.getFilePreviewUrl(file.id));
+                    cache = await getCacheFile(file.name, Client4.getFilePreviewUrl(file.id)); // eslint-disable-line no-await-in-loop
                 }
 
                 if (cache) {
-                    let path = cache.path;
-                    if (Platform.OS === 'android') {
-                        path = `file://${path}`;
-                    }
-
-                    uri = path;
+                    const prefix = Platform.OS === 'android' ? 'file://' : '';
+                    uri = `${prefix}${cache.path}`;
                 }
 
                 results.push({
