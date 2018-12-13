@@ -3,6 +3,7 @@
 
 import {AppState} from 'react-native';
 import NotificationsIOS, {NotificationAction, NotificationCategory} from 'react-native-notifications';
+import {loadPostsIfNecessaryWithRetry} from 'app/actions/views/channel';
 
 const CATEGORY = 'CAN_REPLY';
 const REPLY_ACTION = 'REPLY_ACTION';
@@ -67,6 +68,10 @@ class PushNotification {
 
         if (this.onNotification) {
             this.onNotification(this.deviceNotification);
+        }
+
+        if (data.channel_id) {
+            loadPostsIfNecessaryWithRetry(data.channel_id);
         }
     };
 

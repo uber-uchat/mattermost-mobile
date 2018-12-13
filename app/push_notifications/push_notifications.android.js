@@ -4,6 +4,7 @@
 import {AppRegistry, AppState, NativeModules} from 'react-native';
 import {NotificationsAndroid, PendingNotifications} from 'react-native-notifications';
 import Notification from 'react-native-notifications/notification.android';
+import {loadPostsIfNecessaryWithRetry} from 'app/actions/views/channel';
 
 import {emptyFunction} from 'app/utils/general';
 
@@ -67,6 +68,10 @@ class PushNotification {
 
         if (this.onNotification) {
             this.onNotification(this.deviceNotification);
+        }
+
+        if (data.channel_id) {
+            loadPostsIfNecessaryWithRetry(data.channel_id);
         }
     };
 
