@@ -22,12 +22,14 @@ class DiagnosticsScreen extends PureComponent {
       websocketConnected: PropTypes.bool,
   };
 
-  state = {
+  initialState = {
       averageStartTime: 0,
       fastestStartTime: 0,
       slowestStartTime: 0,
       startTimeItems: [],
   };
+
+  state = this.initialState;
 
   componentDidMount() {
       this.gatherStartTimes();
@@ -35,6 +37,7 @@ class DiagnosticsScreen extends PureComponent {
 
   clearStartTimes = async () => {
       await Diagnostics.clearStartUpTimes();
+      this.setState(this.initialState);
   }
 
   convertToStatus = (connected) => {
@@ -42,7 +45,7 @@ class DiagnosticsScreen extends PureComponent {
       const style = getStyleSheet(theme);
 
       const name = connected ? 'thumbs-o-up' : 'thumbs-o-down';
-      const color = connected ? 'green' : 'red';
+      const color = connected ? theme.onlineIndicator : 'red';
 
       return (
           <FontAwesomeIcon
@@ -228,6 +231,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => ({
     listRowText: {
         fontSize: 16,
         marginLeft: 10,
+        color: theme.centerChannelColor,
     },
     section: {
         marginBottom: 15,
