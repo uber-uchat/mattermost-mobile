@@ -126,6 +126,9 @@ export default class SelectTeam extends PureComponent {
                 statusBarHideWithNavBar: false,
                 screenBackgroundColor: theme.centerChannelBg,
             },
+            passProps: {
+                disableTermsModal: true,
+            },
         });
     };
 
@@ -314,7 +317,7 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             fontSize: 18,
         },
         imageContainer: {
-            backgroundColor: theme.centerChannelBg,
+            backgroundColor: '#FFF',
         },
         noTeam: {
             color: theme.centerChannelColor,
