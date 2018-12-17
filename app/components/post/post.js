@@ -374,7 +374,8 @@ export default class Post extends PureComponent {
         const selected = this.state && this.state.selected ? style.selected : null;
         const highlighted = highlight ? style.highlight : null;
         const isReplyPost = this.isReplyPost();
-        const onUsernamePress = Config.ExperimentalUsernamePressIsMention ? this.autofillUserMention : this.viewUserProfile;
+        const onUsernamePress =
+            Config.ExperimentalUsernamePressIsMention && !channelIsReadOnly ? this.autofillUserMention : this.viewUserProfile;
         const mergeMessage = consecutivePost && !hasComments;
 
         let postHeader;
