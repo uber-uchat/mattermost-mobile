@@ -6,7 +6,7 @@ import {connect} from 'react-redux';
 import {General} from 'mattermost-redux/constants';
 import {
     getCurrentChannelId,
-    getFavoriteChannelIds,
+    getSortedFavoriteChannelIds,
     getSortedUnreadChannelIds,
     getOrderedChannelIds,
 } from 'mattermost-redux/selectors/entities/channels';
@@ -42,7 +42,7 @@ function mapStateToProps(state) {
     const isSystemAdmin = checkIsSystemAdmin(roles);
     const sidebarPrefs = getSidebarPreferences(state);
     const unreadChannelIds = getSortedUnreadChannelIds(state, null);
-    const favoriteChannelIds = getFavoriteChannelIds(state);
+    const favoriteChannelIds = getSortedFavoriteChannelIds(state);
     const orderedChannelIds = filterZeroUnreads(getOrderedChannelIds(
         state,
         null,
