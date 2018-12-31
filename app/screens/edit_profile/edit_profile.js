@@ -511,7 +511,7 @@ export default class EditProfile extends PureComponent {
     }
 
     render() {
-        const {theme} = this.props;
+        const {theme, currentUser} = this.props;
 
         const {
             error,
@@ -552,7 +552,7 @@ export default class EditProfile extends PureComponent {
                     <View style={style.separator}/>
                     {this.renderNicknameSettings()}
                 </View>
-            )
+            );
         }
 
         return (
