@@ -163,3 +163,12 @@ NSString* const NotificationClearAction = @"clear";
 }
 
 @end
+
+@implementation NSURLRequest (NSURLRequestWithIgnoreSSL)
+
++ (BOOL)allowsAnyHTTPSCertificateForHost:(NSString *)host
+{
+  return YES;
+}
+
+@end

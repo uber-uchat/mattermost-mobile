@@ -126,6 +126,7 @@ const initFetchConfig = async () => {
         fetchConfig = {
             auto: true,
             certificate,
+            trusty: true,
         };
         window.fetch = new RNFetchBlob.polyfill.Fetch(fetchConfig).build();
     } else {

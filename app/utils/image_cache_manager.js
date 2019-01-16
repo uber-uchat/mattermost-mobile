@@ -39,6 +39,7 @@ export default class ImageCacheManager {
                         overwrite: true,
                         path,
                         certificate,
+                        trusty: true,
                     };
 
                     this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri);
