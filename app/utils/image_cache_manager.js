@@ -7,12 +7,15 @@ import {Platform} from 'react-native';
 import RNFetchBlob from 'rn-fetch-blob';
 import {Client4} from 'mattermost-redux/client';
 
+import {Client4} from 'mattermost-redux/client';
+
 import {DeviceTypes} from 'app/constants';
 import mattermostBucket from 'app/mattermost_bucket';
 
 import LocalConfig from 'assets/config';
 
 const {IMAGES_PATH} = DeviceTypes;
+let siteUrl;
 
 export default class ImageCacheManager {
     static listeners = {};
@@ -42,10 +45,13 @@ export default class ImageCacheManager {
                         certificate,
                     };
 
-                    this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri, {
-                        Authorization: `Bearer ${Client4.getToken()}`,
-                    });
+                    const headers = {};
+                    if (uri.includes(Client4.getUrl()) || uri.includes(siteUrl)) {
+                        headers.Authorization = `Bearer ${Client4.getToken()}`;
+                        headers['X-Requested-With'] = 'XMLHttpRequest';
+                    }
 
+                    this.downloadTask = await RNFetchBlob.config(options).fetch('GET', uri, headers);
                     if (this.downloadTask.respInfo.respType === 'text') {
                         throw new Error();
                     }
@@ -81,6 +87,14 @@ export const getCacheFile = async (name, uri) => {
 
     const exists = await RNFetchBlob.fs.exists(path);
     return {exists, path};
+};
+
+export const getSiteUrl = () => {
+    return siteUrl;
+};
+
+export const setSiteUrl = (url) => {
+    siteUrl = url;
 };
 
 const isDownloading = (uri) => Boolean(ImageCacheManager.listeners[uri]);
