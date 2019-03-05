@@ -138,7 +138,7 @@ class ShareViewController: SLComposeServiceViewController {
     var count = 0
     for item in extensionContext?.inputItems as! [NSExtensionItem] {
       guard let attachments = item.attachments else {return 0}
-      for itemProvider in attachments {
+      for case let itemProvider as NSItemProvider in attachments {
         if itemProvider.hasItemConformingToTypeIdentifier(kUTTypeMovie as String) ||
           itemProvider.hasItemConformingToTypeIdentifier(kUTTypeImage as String) ||
           itemProvider.hasItemConformingToTypeIdentifier(kUTTypeFileURL as String) {
