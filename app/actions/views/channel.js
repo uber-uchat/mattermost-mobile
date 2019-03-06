@@ -347,7 +347,7 @@ export function selectDefaultChannel(teamId) {
     };
 }
 
-export function handleSelectChannel(channelId) {
+export function handleSelectChannel(channelId, markAsRead = true) {
     return async (dispatch, getState) => {
         const state = getState();
         const channel = getChannel(state, channelId);
@@ -382,8 +382,10 @@ export function handleSelectChannel(channelId) {
             },
         ]));
 
-        dispatch(markChannelAsRead(channelId, sameChannel ? null : currentChannelId));
-        dispatch(markChannelAsViewed(channelId, sameChannel ? null : currentChannelId));
+        if (markAsRead) {
+            dispatch(markChannelAsRead(channelId, sameChannel ? null : currentChannelId));
+            dispatch(markChannelAsViewed(channelId, sameChannel ? null : currentChannelId));
+        }
     };
 }
 
@@ -397,6 +399,13 @@ export function handleSelectChannelByName(channelName, teamName) {
         if (channel && currentChannelId !== channel.id) {
             dispatch(handleSelectChannel(channel.id));
         }
+    };
+}
+
+export function renderChannelInBackground(channelId, currentChannelId) {
+    return async (dispatch) => {
+        dispatch(handleSelectChannel(channelId, false));
+        dispatch(handleSelectChannel(currentChannelId, false));
     };
 }
 

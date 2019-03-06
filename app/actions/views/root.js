@@ -13,8 +13,10 @@ import {recordTime} from 'app/utils/segment';
 
 import {
     handleSelectChannel,
+    renderChannelInBackground,
     setChannelDisplayName,
 } from 'app/actions/views/channel';
+import Config from 'assets/config';
 
 export function startDataCleanup() {
     return async (dispatch, getState) => {
@@ -52,7 +54,7 @@ export function loadConfigAndLicense() {
 export function loadFromPushNotification(notification, startAppFromPushNotification) {
     return async (dispatch, getState) => {
         const state = getState();
-        const {data} = notification;
+        const {data, userInteraction} = notification;
         const {currentTeamId, teams, myMembers: myTeamMembers} = state.entities.teams;
         const {currentChannelId, channels} = state.entities.channels;
 
@@ -91,8 +93,12 @@ export function loadFromPushNotification(notification, startAppFromPushNotificat
             dispatch(markChannelAsViewed(channelId));
         } else if (channelId !== currentChannelId) {
             // when the notification is from a channel other than the current channel
-            dispatch(setChannelDisplayName(''));
-            dispatch(handleSelectChannel(channelId));
+            if (!userInteraction && Config.ExperimentalEagerLoadChannelOnPushNotification) {
+                dispatch(renderChannelInBackground(channelId, currentChannelId));
+            } else {
+                dispatch(setChannelDisplayName(''));
+                dispatch(handleSelectChannel(channelId));
+            }
         }
     };
 }
