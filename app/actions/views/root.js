@@ -11,7 +11,11 @@ import {getMyTeams, getMyTeamMembers, selectTeam} from 'mattermost-redux/actions
 import {ViewTypes} from 'app/constants';
 import {recordTime} from 'app/utils/segment';
 
-import {handleSelectChannel} from 'app/actions/views/channel';
+import {
+    handleSelectChannel,
+    renderChannelInBackground,
+} from 'app/actions/views/channel';
+import Config from 'assets/config';
 
 export function startDataCleanup() {
     return async (dispatch, getState) => {
@@ -49,9 +53,9 @@ export function loadConfigAndLicense() {
 export function loadFromPushNotification(notification, startAppFromPushNotification) {
     return async (dispatch, getState) => {
         const state = getState();
-        const {data} = notification;
+        const {data, userInteraction} = notification;
         const {currentTeamId, teams, myMembers: myTeamMembers} = state.entities.teams;
-        const {channels} = state.entities.channels;
+        const {currentChannelId, channels} = state.entities.channels;
 
         let channelId = '';
         let teamId = currentTeamId;
@@ -83,7 +87,12 @@ export function loadFromPushNotification(notification, startAppFromPushNotificat
             dispatch(selectTeam({id: teamId}));
         }
 
-        dispatch(handleSelectChannel(channelId, startAppFromPushNotification));
+        // when the notification is from a channel other than the current channel
+        if (channelId !== currentChannelId && startAppFromPushNotification && !userInteraction && Config.ExperimentalEagerLoadChannelOnPushNotification) {
+            dispatch(renderChannelInBackground(channelId, currentChannelId));
+        } else {
+            dispatch(handleSelectChannel(channelId, startAppFromPushNotification));
+        }
     };
 }
 
