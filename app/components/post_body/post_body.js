@@ -66,6 +66,7 @@ export default class PostBody extends PureComponent {
         isEmojiOnly: PropTypes.bool.isRequired,
         shouldRenderJumboEmoji: PropTypes.bool.isRequired,
         theme: PropTypes.object,
+        location: PropTypes.string,
     };
 
     static defaultProps = {
@@ -149,6 +150,7 @@ export default class PostBody extends PureComponent {
             navigator,
             postId,
             showAddReaction,
+            location,
         } = this.props;
 
         if (isSystemMessage && (!canDelete || hasBeenDeleted)) {
@@ -174,9 +176,11 @@ export default class PostBody extends PureComponent {
                 channelIsReadOnly,
                 hasBeenDeleted,
                 isFlagged,
+                isSystemMessage,
                 postId,
                 managedConfig,
                 showAddReaction,
+                location,
             },
         };
 
