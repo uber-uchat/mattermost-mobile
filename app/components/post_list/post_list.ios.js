@@ -88,11 +88,14 @@ export default class PostList extends PostListBase {
     };
 
     handleScrollToRecentPost = debounce(() => {
-        this.refs.list.scrollToIndex({
-            animated: true,
-            index: 0,
-            viewPosition: 1,
-        });
+        const postList = this.refs.list;
+        if (postList.data && postList.data.length > 0) {
+            postList.scrollToIndex({
+                animated: true,
+                index: 0,
+                viewPosition: 1,
+            });
+        }
     }, 100);
 
     handleScrollToIndexFailed = () => {
