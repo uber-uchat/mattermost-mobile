@@ -7,6 +7,7 @@ export const UpgradeTypes = {
     CAN_UPGRADE: 'can_upgrade',
     MUST_UPGRADE: 'must_upgrade',
     NO_UPGRADE: 'no_upgrade',
+    IS_BETA: 'is_beta',
 };
 
 export const SidebarSectionTypes = {
@@ -57,6 +58,7 @@ const ViewTypes = keyMirror({
     REMOVE_LAST_CHANNEL_FOR_TEAM: null,
 
     GITLAB: null,
+    OFFICE365: null,
     SAML: null,
 
     SET_INITIAL_POST_VISIBILITY: null,
@@ -64,6 +66,9 @@ const ViewTypes = keyMirror({
     RECEIVED_FOCUSED_POST: null,
     LOADING_POSTS: null,
     SET_LOAD_MORE_POSTS_VISIBLE: null,
+
+    SET_INITIAL_POST_COUNT: null,
+    INCREASE_POST_COUNT: null,
 
     RECEIVED_POSTS_FOR_CHANNEL_AT_TIME: null,
 
@@ -84,6 +89,7 @@ const ViewTypes = keyMirror({
 
     SELECTED_ACTION_MENU: null,
     SUBMIT_ATTACHMENT_MENU_ACTION: null,
+    SELECT_CHANNEL_WITH_MEMBER: null,
 });
 
 export default {

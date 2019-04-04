@@ -24,6 +24,7 @@ import TextInputWithLocalizedPlaceholder from 'app/components/text_input_with_lo
 import {GlobalStyles} from 'app/styles';
 import {preventDoubleTap} from 'app/utils/tap';
 import {t} from 'app/utils/i18n';
+import {setMfaPreflightDone} from 'app/utils/security';
 
 export default class Mfa extends PureComponent {
     static propTypes = {
@@ -81,7 +82,7 @@ export default class Mfa extends PureComponent {
     };
 
     blur = () => {
-        this.textInput.refs.wrappedInstance.blur();
+        this.textInput.blur();
     };
 
     submit = preventDoubleTap(() => {
@@ -97,7 +98,7 @@ export default class Mfa extends PureComponent {
             });
             return;
         }
-
+        setMfaPreflightDone(true);
         this.props.actions.login(this.props.loginId, this.props.password, this.state.token);
     });
 

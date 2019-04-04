@@ -20,13 +20,18 @@ import {Provider} from 'react-redux';
 import semver from 'semver';
 
 import {Client4} from 'mattermost-redux/client';
-import {General} from 'mattermost-redux/constants';
 import {setAppState, setServerVersion} from 'mattermost-redux/actions/general';
 import {loadMe, logout} from 'mattermost-redux/actions/users';
-import {handleLoginIdChanged} from 'app/actions/views/login';
-import {handleServerUrlChanged} from 'app/actions/views/select_server';
+import {close as closeWebSocket} from 'mattermost-redux/actions/websocket';
+import {General} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
+
+import {selectDefaultChannel} from 'app/actions/views/channel';
+import {setDeviceDimensions, setDeviceOrientation, setDeviceAsTablet, setStatusBarHeight} from 'app/actions/device';
+import {handleLoginIdChanged} from 'app/actions/views/login';
+import {handleServerUrlChanged} from 'app/actions/views/select_server';
+import {loadConfigAndLicense, startDataCleanup} from 'app/actions/views/root';
 
 import initialState from 'app/initial_state';
 import configureStore from 'app/store';
@@ -36,14 +41,6 @@ import mattermostManaged from 'app/mattermost_managed';
 import {configurePushNotifications} from 'app/utils/push_notifications';
 import PushNotifications from 'app/push_notifications';
 import {registerScreens} from 'app/screens';
-import {
-    setDeviceDimensions,
-    setDeviceOrientation,
-    setDeviceAsTablet,
-    setStatusBarHeight,
-} from 'app/actions/device';
-import {loadConfigAndLicense, startDataCleanup} from 'app/actions/views/root';
-import {setChannelDisplayName} from 'app/actions/views/channel';
 import {deleteFileCache} from 'app/utils/file';
 import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 import {t} from 'app/utils/i18n';
@@ -94,7 +91,7 @@ const initializeModules = () => {
     EventEmitter.on(NavigationTypes.RESTART_APP, restartApp);
     EventEmitter.on(General.SERVER_VERSION_CHANGED, handleServerVersionChanged);
     EventEmitter.on(General.CONFIG_CHANGED, handleConfigChanged);
-    EventEmitter.on(General.DEFAULT_CHANNEL, handleResetChannelDisplayName);
+    EventEmitter.on(General.SWITCH_TO_DEFAULT_CHANNEL, handleSwitchToDefaultChannel);
     Dimensions.addEventListener('change', handleOrientationChange);
     mattermostManaged.addEventListener('managedConfigDidChange', () => {
         handleManagedConfig(true);
@@ -121,7 +118,7 @@ const configureAnalytics = (config) => {
     const {
         initAnalytics,
     } = lazyLoadAnalytics();
-    if (config && config.DiagnosticsEnabled === 'true' && config.DiagnosticId && LocalConfig.SegmentApiKey) {
+    if (!__DEV__ && config && config.DiagnosticsEnabled === 'true' && config.DiagnosticId && LocalConfig.SegmentApiKey) {
         initAnalytics(config);
     } else {
         global.analytics = null;
@@ -137,6 +134,13 @@ const resetBadgeAndVersion = () => {
 };
 
 const handleLogout = () => {
+    // Because we can logout while being offline we reset
+    // the Client online flag to true cause the network handler
+    // is not available at this point
+    Client4.setOnline(true);
+    Client4.setCSRF(null);
+    store.dispatch(closeWebSocket(false));
+
     app.setAppStarted(true);
     app.clearNativeCache();
     deleteFileCache();
@@ -318,7 +322,7 @@ const handleAuthentication = async (vendor) => {
     const translations = app.getTranslations();
     if (isSecured) {
         try {
-            mattermostBucket.setPreference('emm', vendor, LocalConfig.AppGroupId);
+            mattermostBucket.setPreference('emm', vendor);
             await mattermostManaged.authenticate({
                 reason: translations[t('mobile.managed.secured_by')].replace('{vendor}', vendor),
                 fallbackToPasscode: true,
@@ -334,8 +338,8 @@ const handleAuthentication = async (vendor) => {
     return true;
 };
 
-const handleResetChannelDisplayName = (displayName) => {
-    store.dispatch(setChannelDisplayName(displayName));
+const handleSwitchToDefaultChannel = (teamId) => {
+    store.dispatch(selectDefaultChannel(teamId));
 };
 
 const launchSelectServer = () => {

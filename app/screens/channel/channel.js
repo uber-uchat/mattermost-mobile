@@ -5,29 +5,30 @@ import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {intlShape} from 'react-intl';
 import {
-    Alert,
-    AppState,
     Dimensions,
     Platform,
     StyleSheet,
     View,
 } from 'react-native';
 
+import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
+import {app} from 'app/mattermost';
+
+import InteractiveDialogController from 'app/components/interactive_dialog_controller';
 import EmptyToolbar from 'app/components/start/empty_toolbar';
 import ChannelLoader from 'app/components/channel_loader';
 import MainSidebar from 'app/components/sidebars/main';
 import SettingsSidebar from 'app/components/sidebars/settings';
 import KeyboardLayout from 'app/components/layout/keyboard_layout';
-import OfflineIndicator from 'app/components/offline_indicator';
+import NetworkIndicator from 'app/components/network_indicator';
 import SafeAreaView from 'app/components/safe_area_view';
 import StatusBar from 'app/components/status_bar';
 import {DeviceTypes, ViewTypes} from 'app/constants';
-import mattermostBucket from 'app/mattermost_bucket';
 import {preventDoubleTap} from 'app/utils/tap';
 import PostTextbox from 'app/components/post_textbox';
-import networkConnectionListener from 'app/utils/network';
+import PushNotifications from 'app/push_notifications';
 import tracker from 'app/utils/time_tracker';
 import LocalConfig from 'assets/config';
 
@@ -47,17 +48,11 @@ let ClientUpgradeListener;
 export default class Channel extends PureComponent {
     static propTypes = {
         actions: PropTypes.shape({
-            connection: PropTypes.func.isRequired,
             loadChannelsIfNecessary: PropTypes.func.isRequired,
             loadProfilesAndTeamMembersForDMSidebar: PropTypes.func.isRequired,
-            logout: PropTypes.func.isRequired,
             selectDefaultTeam: PropTypes.func.isRequired,
             selectInitialChannel: PropTypes.func.isRequired,
-            initWebSocket: PropTypes.func.isRequired,
-            closeWebSocket: PropTypes.func.isRequired,
             recordLoadTime: PropTypes.func.isRequired,
-            startPeriodicStatusUpdates: PropTypes.func.isRequired,
-            stopPeriodicStatusUpdates: PropTypes.func.isRequired,
         }).isRequired,
         currentChannelId: PropTypes.string,
         channelsRequestFailed: PropTypes.bool,
@@ -65,10 +60,16 @@ export default class Channel extends PureComponent {
         isLandscape: PropTypes.bool,
         navigator: PropTypes.object,
         theme: PropTypes.object.isRequired,
+        showTermsOfService: PropTypes.bool,
+        disableTermsModal: PropTypes.bool,
     };
 
     static contextTypes = {
         intl: intlShape.isRequired,
+    };
+
+    static defaultProps = {
+        disableTermsModal: false,
     };
 
     constructor(props) {
@@ -82,20 +83,24 @@ export default class Channel extends PureComponent {
     async componentWillMount() {
         EventEmitter.on('leave_team', this.handleLeaveTeam);
 
-        this.networkListener = networkConnectionListener(this.handleConnectionChange);
-
         if (this.props.currentTeamId) {
             this.loadChannels(this.props.currentTeamId);
         } else {
             await this.props.actions.selectDefaultTeam();
         }
+
+        if (this.props.currentChannelId) {
+            PushNotifications.clearChannelNotifications(this.props.currentChannelId);
+        }
     }
 
     componentDidMount() {
-        AppState.addEventListener('change', this.handleAppStateChange);
-
         if (tracker.initialLoad) {
             this.props.actions.recordLoadTime('Start time', 'initialLoad');
+        }
+
+        if (this.props.showTermsOfService && !this.props.disableTermsModal) {
+            this.showTermsOfServiceModal();
         }
 
         EventEmitter.emit('renderDrawer');
@@ -110,6 +115,11 @@ export default class Channel extends PureComponent {
 
         if (nextProps.currentTeamId && this.props.currentTeamId !== nextProps.currentTeamId) {
             this.loadChannels(nextProps.currentTeamId);
+        }
+
+        if (nextProps.currentChannelId !== this.props.currentChannelId &&
+            nextProps.currentTeamId === this.props.currentTeamId) {
+            PushNotifications.clearChannelNotifications(nextProps.currentChannelId);
         }
 
         if (LocalConfig.EnableMobileClientUpgrade && !ClientUpgradeListener) {
@@ -129,15 +139,7 @@ export default class Channel extends PureComponent {
     }
 
     componentWillUnmount() {
-        const {closeWebSocket, stopPeriodicStatusUpdates} = this.props.actions;
-
         EventEmitter.off('leave_team', this.handleLeaveTeam);
-        this.networkListener.removeEventListener();
-
-        AppState.removeEventListener('change', this.handleAppStateChange);
-
-        closeWebSocket();
-        stopPeriodicStatusUpdates();
     }
 
     attachPostTextBox = (ref) => {
@@ -188,6 +190,29 @@ export default class Channel extends PureComponent {
         }
     };
 
+    showTermsOfServiceModal = async () => {
+        const {navigator, theme} = this.props;
+        const closeButton = await MaterialIcon.getImageSource('close', 20, theme.sidebarHeaderTextColor);
+        navigator.showModal({
+            screen: 'TermsOfService',
+            animationType: 'slide-up',
+            title: '',
+            backButtonTitle: '',
+            animated: true,
+            navigatorStyle: {
+                navBarTextColor: theme.centerChannelColor,
+                navBarBackgroundColor: theme.centerChannelBg,
+                navBarButtonColor: theme.buttonBg,
+                screenBackgroundColor: theme.centerChannelBg,
+                modalPresentationStyle: 'overCurrentContext',
+            },
+            overrideBackPress: true,
+            passProps: {
+                closeButton,
+            },
+        });
+    };
+
     goToChannelInfo = preventDoubleTap(() => {
         const {intl} = this.context;
         const {navigator, theme} = this.props;
@@ -211,71 +236,8 @@ export default class Channel extends PureComponent {
         }
     });
 
-    handleWebSocket = (open) => {
-        const {actions} = this.props;
-        const {
-            closeWebSocket,
-            startPeriodicStatusUpdates,
-            stopPeriodicStatusUpdates,
-        } = actions;
-
-        if (open) {
-            this.initializeWebSocket();
-            startPeriodicStatusUpdates();
-        } else {
-            closeWebSocket(true);
-            stopPeriodicStatusUpdates();
-        }
-    };
-
-    handleAppStateChange = async (appState) => {
-        this.handleWebSocket(appState === 'active');
-    };
-
-    handleConnectionChange = (isConnected) => {
-        const {connection} = this.props.actions;
-
-        // Prevent for being called more than once.
-        if (this.isConnected !== isConnected) {
-            this.isConnected = isConnected;
-            this.handleWebSocket(isConnected);
-            connection(isConnected);
-        }
-    };
-
     handleLeaveTeam = () => {
         this.props.actions.selectDefaultTeam();
-    };
-
-    initializeWebSocket = async () => {
-        const {formatMessage} = this.context.intl;
-        const {actions} = this.props;
-        const {initWebSocket} = actions;
-        const platform = Platform.OS;
-        let certificate = null;
-        if (platform === 'ios') {
-            certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
-        }
-
-        initWebSocket(platform, null, null, null, {certificate}).catch(() => {
-            // we should dispatch a failure and show the app as disconnected
-            Alert.alert(
-                formatMessage({id: 'mobile.authentication_error.title', defaultMessage: 'Authentication Error'}),
-                formatMessage({
-                    id: 'mobile.authentication_error.message',
-                    defaultMessage: 'Mattermost has encountered an error. Please re-authenticate to start a new session.',
-                }),
-                [{
-                    text: formatMessage({
-                        id: 'navbar_dropdown.logout',
-                        defaultMessage: 'Logout',
-                    }),
-                    onPress: actions.logout,
-                }],
-                {cancelable: false}
-            );
-            this.props.actions.closeWebSocket(true);
-        });
     };
 
     loadChannels = (teamId) => {
@@ -287,9 +249,12 @@ export default class Channel extends PureComponent {
 
         loadChannelsIfNecessary(teamId).then(() => {
             loadProfilesAndTeamMembersForDMSidebar(teamId);
-            selectInitialChannel(teamId);
-        }).catch(() => {
-            selectInitialChannel(teamId);
+
+            if (app.startAppFromPushNotification) {
+                app.setStartAppFromPushNotification(false);
+            } else {
+                selectInitialChannel(teamId);
+            }
         });
     };
 
@@ -358,7 +323,7 @@ export default class Channel extends PureComponent {
                 >
                     <SafeAreaView navigator={navigator}>
                         <StatusBar/>
-                        <OfflineIndicator/>
+                        <NetworkIndicator/>
                         <ChannelNavBar
                             navigator={navigator}
                             openChannelDrawer={this.openChannelSidebar}
@@ -381,6 +346,10 @@ export default class Channel extends PureComponent {
                         {LocalConfig.EnableMobileClientUpgrade && <ClientUpgradeListener navigator={navigator}/>}
                     </SafeAreaView>
                 </SettingsSidebar>
+                <InteractiveDialogController
+                    navigator={navigator}
+                    theme={theme}
+                />
             </MainSidebar>
         );
     }

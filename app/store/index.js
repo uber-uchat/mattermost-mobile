@@ -8,17 +8,17 @@ import {createTransform, persistStore} from 'redux-persist';
 
 import {ErrorTypes, GeneralTypes} from 'mattermost-redux/action_types';
 import {General, RequestStatus} from 'mattermost-redux/constants';
+import {getConfig} from 'mattermost-redux/selectors/entities/general';
 import configureStore from 'mattermost-redux/store';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import {NavigationTypes, ViewTypes} from 'app/constants';
 import appReducer from 'app/reducers';
 import {throttle} from 'app/utils/general';
-import networkConnectionListener from 'app/utils/network';
+import {getSiteUrl, setSiteUrl} from 'app/utils/image_cache_manager';
 import {createSentryMiddleware} from 'app/utils/sentry/middleware';
 
 import mattermostBucket from 'app/mattermost_bucket';
-import Config from 'assets/config';
 
 import {messageRetention} from './middleware';
 import {createThunkMiddleware} from './thunk';
@@ -141,12 +141,10 @@ export default function configureAppStore(initialState) {
 
             return effect();
         },
-        detectNetwork: (callback) => networkConnectionListener(callback),
         persist: (store, options) => {
             const persistor = persistStore(store, {storage: AsyncStorage, ...options}, () => {
                 store.dispatch({
                     type: General.STORE_REHYDRATION_COMPLETE,
-                    complete: true,
                 });
             });
 
@@ -181,7 +179,7 @@ export default function configureAppStore(initialState) {
                                 profilesNotInChannel: [],
                             },
                         };
-                        mattermostBucket.writeToFile('entities', JSON.stringify(entities), Config.AppGroupId);
+                        mattermostBucket.writeToFile('entities', JSON.stringify(entities));
                     }
                 }, 1000));
             }
@@ -189,6 +187,12 @@ export default function configureAppStore(initialState) {
             // check to see if the logout request was successful
             store.subscribe(async () => {
                 const state = store.getState();
+                const config = getConfig(state);
+
+                if (getSiteUrl() !== config?.SiteURL) {
+                    setSiteUrl(config.SiteURL);
+                }
+
                 if ((state.requests.users.logout.status === RequestStatus.SUCCESS || state.requests.users.logout.status === RequestStatus.FAILURE) && !purging) {
                     purging = true;
 
@@ -198,6 +202,9 @@ export default function configureAppStore(initialState) {
                         {
                             type: General.OFFLINE_STORE_RESET,
                             data: initialState,
+                        },
+                        {
+                            type: General.STORE_REHYDRATION_COMPLETE,
                         },
                         {
                             type: ViewTypes.SERVER_URL_CHANGED,
@@ -210,9 +217,10 @@ export default function configureAppStore(initialState) {
                     ]));
 
                     // When logging out remove the data stored in the bucket
-                    mattermostBucket.removePreference('cert', Config.AppGroupId);
-                    mattermostBucket.removePreference('emm', Config.AppGroupId);
-                    mattermostBucket.removeFile('entities', Config.AppGroupId);
+                    mattermostBucket.removePreference('cert');
+                    mattermostBucket.removePreference('emm');
+                    mattermostBucket.removeFile('entities');
+                    setSiteUrl(null);
 
                     setTimeout(() => {
                         purging = false;
@@ -249,6 +257,9 @@ export default function configureAppStore(initialState) {
                         {
                             type: GeneralTypes.RECEIVED_SERVER_VERSION,
                             data: state.entities.general.serverVersion,
+                        },
+                        {
+                            type: General.STORE_REHYDRATION_COMPLETE,
                         },
                     ], 'BATCH_FOR_RESTART'));
 

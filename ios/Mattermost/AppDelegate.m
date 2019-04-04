@@ -19,9 +19,20 @@
 #endif
 #import "RCCManager.h"
 #import "RNNotifications.h"
-#import "SessionManager.h"
+#import <UploadAttachments/UploadAttachments-Swift.h>
+#import <UserNotifications/UserNotifications.h>
+#import "Mattermost-Swift.h"
+#import <os/log.h>
 
 @implementation AppDelegate
+
+NSString* const NotificationClearAction = @"clear";
+
+-(void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(NSString *)identifier completionHandler:(void (^)(void))completionHandler {
+  os_log(OS_LOG_DEFAULT, "Mattermost will attach session from handleEventsForBackgroundURLSession!! identifier=%{public}@", identifier);
+  [[UploadSession shared] attachSessionWithIdentifier:identifier completionHandler:completionHandler];
+  os_log(OS_LOG_DEFAULT, "Mattermost session ATTACHED from handleEventsForBackgroundURLSession!! identifier=%{public}@", identifier);
+}
 
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
@@ -51,6 +62,9 @@
   [[RCCManager sharedInstance] initBridgeWithBundleURL:jsCodeLocation launchOptions:launchOptions];
   [[AVAudioSession sharedInstance] setCategory:AVAudioSessionCategoryPlayback error: nil];
 
+  os_log(OS_LOG_DEFAULT, "Mattermost started!!");
+
+
   return YES;
 }
 
@@ -69,9 +83,61 @@
   [RNNotifications didFailToRegisterForRemoteNotificationsWithError:error];
 }
 
+-(void)cleanNotificationsFromChannel:(NSString *)channelId andUpdateBadge:(BOOL)updateBadge {
+  if ([UNUserNotificationCenter class]) {
+    UNUserNotificationCenter *center = [UNUserNotificationCenter currentNotificationCenter];
+    [center getDeliveredNotificationsWithCompletionHandler:^(NSArray<UNNotification *> * _Nonnull notifications) {
+      NSMutableArray<NSString *> *notificationIds = [NSMutableArray new];
+
+      for (UNNotification *prevNotification in notifications) {
+        UNNotificationRequest *notificationRequest = [prevNotification request];
+        UNNotificationContent *notificationContent = [notificationRequest content];
+        NSString *identifier = [notificationRequest identifier];
+        NSString* cId = [[notificationContent userInfo] objectForKey:@"channel_id"];
+
+        if ([cId isEqualToString: channelId]) {
+          [notificationIds addObject:identifier];
+        }
+      }
+
+      [center removeDeliveredNotificationsWithIdentifiers:notificationIds];
+      NSInteger removed = (NSInteger)[notificationIds count] + 1;
+      if (removed > 0 && updateBadge) {
+        NSInteger badge = [UIApplication sharedApplication].applicationIconBadgeNumber;
+        NSInteger count = badge - removed;
+        if (count > 0) {
+          [[UIApplication sharedApplication] setApplicationIconBadgeNumber:count];
+        } else {
+          [[UIApplication sharedApplication] setApplicationIconBadgeNumber:0];
+        }
+      }
+    }];
+  }
+}
+
 // Required for the notification event.
-- (void)application:(UIApplication *)application didReceiveRemoteNotification:(NSDictionary *)notification {
-  [RNNotifications didReceiveRemoteNotification:notification];
+-(void)application:(UIApplication *)application didReceiveRemoteNotification:(nonnull NSDictionary *)userInfo fetchCompletionHandler:(nonnull void (^)(UIBackgroundFetchResult))completionHandler {
+  UIApplicationState state = [UIApplication sharedApplication].applicationState;
+  NSString* action = [userInfo objectForKey:@"type"];
+  NSString* channelId = [userInfo objectForKey:@"channel_id"];
+
+  if (action && [action isEqualToString: NotificationClearAction]) {
+    // If received a notification that a channel was read, remove all notifications from that channel (only with app in foreground/background)
+    [self cleanNotificationsFromChannel:channelId andUpdateBadge:NO];
+    RuntimeUtils *utils = [[RuntimeUtils alloc] init];
+    [utils delayWithSeconds:0.2 closure:^(void) {
+      // This is to notify the NotificationCenter that something has changed.
+      completionHandler(UIBackgroundFetchResultNewData);
+    }];
+
+    return;
+  } else if (state == UIApplicationStateInactive) {
+    // When the notification is opened
+    [self cleanNotificationsFromChannel:channelId andUpdateBadge:NO];
+  }
+
+  [RNNotifications didReceiveRemoteNotification:userInfo];
+  completionHandler(UIBackgroundFetchResultNoData);
 }
 
 // Required for the localNotification event.
@@ -91,11 +157,6 @@
   [RNNotifications handleActionWithIdentifier:identifier forRemoteNotification:userInfo withResponseInfo:responseInfo completionHandler:completionHandler];
 }
 
--(void)application:(UIApplication *)application handleEventsForBackgroundURLSession:(nonnull NSString *)identifier completionHandler:(nonnull void (^)(void))completionHandler {
-  [SessionManager sharedSession].savedCompletionHandler = completionHandler;
-  [[SessionManager sharedSession] createSessionForRequestRequest:identifier];
-}
-
 // Required for deeplinking
 
 - (BOOL)application:(UIApplication *)application openURL:(NSURL *)url
@@ -107,7 +168,7 @@
 
 // Only if your app is using [Universal Links](https://developer.apple.com/library/prerelease/ios/documentation/General/Conceptual/AppSearch/UniversalLinks.html).
 - (BOOL)application:(UIApplication *)application continueUserActivity:(NSUserActivity *)userActivity
- restorationHandler:(void (^)(NSArray * _Nullable))restorationHandler
+ restorationHandler:(void (^)(NSArray<id<UIUserActivityRestoring>> *restorableObjects))restorationHandler
 {
   return [RCTLinkingManager application:application
                    continueUserActivity:userActivity

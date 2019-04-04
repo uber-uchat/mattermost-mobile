@@ -37,7 +37,7 @@
       <service android:name=".NotificationDismissService"
                 android:enabled="true"
                 android:exported="false" />
-      <service android:name=".NotificationReplyService"
+      <receiver android:name=".NotificationReplyBroadcastReceiver"
                android:enabled="true"
                android:exported="false" />
         <activity
@@ -53,7 +53,7 @@
                 <action android:name="android.intent.action.SEND" />
                 <action android:name="android.intent.action.SEND_MULTIPLE" />
                 <category android:name="android.intent.category.DEFAULT" />
-                //  for sharing
+                <!-- for sharing-->
                 <data android:mimeType="*/*" />
             </intent-filter>
         </activity>

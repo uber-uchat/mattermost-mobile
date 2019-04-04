@@ -8,26 +8,30 @@ import urlParse from 'url-parse';
 import {intlShape} from 'react-intl';
 
 import CustomPropTypes from 'app/constants/custom_prop_types';
+import {DeepLinkTypes} from 'app/constants';
 import mattermostManaged from 'app/mattermost_managed';
+import BottomSheet from 'app/utils/bottom_sheet';
+import {preventDoubleTap} from 'app/utils/tap';
+import {matchDeepLink, normalizeProtocol} from 'app/utils/url';
 
 import Config from 'assets/config';
 
-import {preventDoubleTap} from 'app/utils/tap';
-import {matchPermalink, normalizeProtocol} from 'app/utils/url';
-
 export default class MarkdownLink extends PureComponent {
     static propTypes = {
+        actions: PropTypes.shape({
+            handleSelectChannelByName: PropTypes.func.isRequired,
+        }).isRequired,
         children: CustomPropTypes.Children.isRequired,
         href: PropTypes.string.isRequired,
-        onLongPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         serverURL: PropTypes.string.isRequired,
         siteURL: PropTypes.string.isRequired,
     };
 
     static defaultProps = {
-        onLongPress: () => true,
         onPermalinkPress: () => true,
+        serverURL: '',
+        siteURL: '',
     };
 
     static contextTypes = {
@@ -42,12 +46,13 @@ export default class MarkdownLink extends PureComponent {
             return;
         }
 
-        const match = matchPermalink(url, serverURL) || matchPermalink(url, siteURL);
-
+        const match = matchDeepLink(url, serverURL, siteURL);
         if (match) {
-            const teamName = match[1];
-            const postId = match[2];
-            onPermalinkPress(postId, teamName);
+            if (match.type === DeepLinkTypes.CHANNEL) {
+                this.props.actions.handleSelectChannelByName(match.channelName, match.teamName);
+            } else if (match.type === DeepLinkTypes.PERMALINK) {
+                onPermalinkPress(match.postId, match.teamName);
+            }
         } else {
             Linking.canOpenURL(url).then((supported) => {
                 if (supported) {
@@ -89,27 +94,30 @@ export default class MarkdownLink extends PureComponent {
                 ...otherChildProps,
             };
         });
-    }
+    };
 
     handleLongPress = async () => {
         const {formatMessage} = this.context.intl;
 
         const config = await mattermostManaged.getLocalConfig();
 
-        let action;
         if (config.copyAndPasteProtection !== 'true') {
-            action = {
-                text: formatMessage({id: 'mobile.markdown.link.copy_url', defaultMessage: 'Copy URL'}),
-                onPress: this.handleCopyURL,
-            };
+            const cancelText = formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'});
+            const actionText = formatMessage({id: 'mobile.markdown.link.copy_url', defaultMessage: 'Copy URL'});
+            BottomSheet.showBottomSheetWithOptions({
+                options: [actionText, cancelText],
+                cancelButtonIndex: 1,
+            }, (value) => {
+                if (value !== 1) {
+                    this.handleLinkCopy();
+                }
+            });
         }
+    };
 
-        this.props.onLongPress(action);
-    }
-
-    handleCopyURL = () => {
+    handleLinkCopy = () => {
         Clipboard.setString(this.props.href);
-    }
+    };
 
     render() {
         const children = Config.ExperimentalNormalizeMarkdownLinks ? this.parseChildren() : this.props.children;

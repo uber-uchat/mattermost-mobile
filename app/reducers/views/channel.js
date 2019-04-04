@@ -278,6 +278,25 @@ function postVisibility(state = {}, action) {
     }
 }
 
+function postCountInChannel(state = {}, action) {
+    switch (action.type) {
+    case ViewTypes.SET_INITIAL_POST_COUNT: {
+        const {channelId, count} = action.data;
+        const nextState = {...state};
+        nextState[channelId] = count;
+        return nextState;
+    }
+    case ViewTypes.INCREASE_POST_COUNT: {
+        const {channelId, count} = action.data;
+        const nextState = {...state};
+        nextState[channelId] += count;
+        return nextState;
+    }
+    default:
+        return state;
+    }
+}
+
 function loadingPosts(state = {}, action) {
     switch (action.type) {
     case ViewTypes.LOADING_POSTS: {
@@ -313,14 +332,32 @@ function loadMorePostsVisible(state = true, action) {
     }
 }
 
+function lastChannelViewTime(state = {}, action) {
+    switch (action.type) {
+    case ViewTypes.SELECT_CHANNEL_WITH_MEMBER: {
+        if (action.member) {
+            const nextState = {...state};
+            nextState[action.data] = action.member.last_viewed_at;
+            return nextState;
+        }
+        return state;
+    }
+
+    default:
+        return state;
+    }
+}
+
 export default combineReducers({
     displayName,
     drafts,
     loading,
     refreshing,
+    postCountInChannel,
     postVisibility,
     loadingPosts,
     lastGetPosts,
     retryFailed,
     loadMorePostsVisible,
+    lastChannelViewTime,
 });

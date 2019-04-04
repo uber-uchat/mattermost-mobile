@@ -4,7 +4,7 @@
 import {GeneralTypes, PostTypes} from 'mattermost-redux/action_types';
 import {Client4} from 'mattermost-redux/client';
 import {General} from 'mattermost-redux/constants';
-import {fetchMyChannelsAndMembers, markChannelAsRead} from 'mattermost-redux/actions/channels';
+import {fetchMyChannelsAndMembers} from 'mattermost-redux/actions/channels';
 import {getClientConfig, getDataRetentionPolicy, getLicenseConfig} from 'mattermost-redux/actions/general';
 import {getMyTeams, getMyTeamMembers, selectTeam} from 'mattermost-redux/actions/teams';
 
@@ -13,8 +13,9 @@ import {recordTime} from 'app/utils/segment';
 
 import {
     handleSelectChannel,
-    setChannelDisplayName,
+    renderChannelInBackground,
 } from 'app/actions/views/channel';
+import Config from 'assets/config';
 
 export function startDataCleanup() {
     return async (dispatch, getState) => {
@@ -49,10 +50,10 @@ export function loadConfigAndLicense() {
     };
 }
 
-export function loadFromPushNotification(notification) {
+export function loadFromPushNotification(notification, startAppFromPushNotification) {
     return async (dispatch, getState) => {
         const state = getState();
-        const {data} = notification;
+        const {data, userInteraction} = notification;
         const {currentTeamId, teams, myMembers: myTeamMembers} = state.entities.teams;
         const {currentChannelId, channels} = state.entities.channels;
 
@@ -86,14 +87,11 @@ export function loadFromPushNotification(notification) {
             dispatch(selectTeam({id: teamId}));
         }
 
-        // mark channel as read
-        dispatch(markChannelAsRead(channelId, channelId === currentChannelId ? null : currentChannelId, false));
-
-        if (channelId !== currentChannelId) {
-            // when the notification is from a channel other than the current channel
-            dispatch(markChannelAsRead(channelId, currentChannelId, false));
-            dispatch(setChannelDisplayName(''));
-            dispatch(handleSelectChannel(channelId));
+        // when the notification is from a channel other than the current channel
+        if (channelId !== currentChannelId && startAppFromPushNotification && !userInteraction && Config.ExperimentalEagerLoadChannelOnPushNotification) {
+            dispatch(renderChannelInBackground(channelId, currentChannelId));
+        } else {
+            dispatch(handleSelectChannel(channelId, startAppFromPushNotification));
         }
     };
 }
