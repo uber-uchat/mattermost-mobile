@@ -25,28 +25,27 @@ import {DeviceTypes} from 'app/constants/';
 import mattermostBucket from 'app/mattermost_bucket';
 import {changeOpacity} from 'app/utils/theme';
 
-import LocalConfig from 'assets/config';
-
 import FileAttachmentIcon from './file_attachment_icon';
 
 const {DOCUMENTS_PATH} = DeviceTypes;
-
+const DOWNLOADING_OFFSET = 28;
 const TEXT_PREVIEW_FORMATS = [
     'application/json',
     'application/x-x509-ca-cert',
     'text/plain',
 ];
-
 const circularProgressWidth = 4;
 
 export default class FileAttachmentDocument extends PureComponent {
     static propTypes = {
+        backgroundColor: PropTypes.string,
         canDownloadFiles: PropTypes.bool.isRequired,
         iconHeight: PropTypes.number,
         iconWidth: PropTypes.number,
         file: PropTypes.object.isRequired,
         theme: PropTypes.object.isRequired,
         navigator: PropTypes.object,
+        onLongPress: PropTypes.func,
         wrapperHeight: PropTypes.number,
         wrapperWidth: PropTypes.number,
     };
@@ -65,13 +64,14 @@ export default class FileAttachmentDocument extends PureComponent {
     state = {
         didCancel: false,
         downloading: false,
+        preview: false,
         progress: 0,
     };
 
     componentDidMount() {
         this.mounted = true;
         this.eventEmitter = new NativeEventEmitter(NativeModules.RNReactNativeDocViewer);
-        this.eventEmitter.addListener('DoneButtonEvent', () => this.setStatusBarColor());
+        this.eventEmitter.addListener('DoneButtonEvent', this.onDonePreviewingFile);
     }
 
     componentWillUnmount() {
@@ -112,7 +112,7 @@ export default class FileAttachmentDocument extends PureComponent {
         this.setState({didCancel: false});
 
         try {
-            const certificate = await mattermostBucket.getPreference('cert', LocalConfig.AppGroupId);
+            const certificate = await mattermostBucket.getPreference('cert');
             const isDir = await RNFetchBlob.fs.isDir(DOCUMENTS_PATH);
             if (!isDir) {
                 try {
@@ -222,20 +222,26 @@ export default class FileAttachmentDocument extends PureComponent {
         }, delay);
     };
 
+    onDonePreviewingFile = () => {
+        this.setState({preview: false});
+        this.setStatusBarColor();
+    };
+
     openDocument = (file, delay = 2000) => {
         // The animation for the progress circle takes about 2 seconds to finish
         // therefore we are delaying the opening of the document to have the UI
         // shown nicely and smooth
         setTimeout(() => {
-            if (!this.state.didCancel && this.mounted) {
+            if (!this.state.didCancel && !this.state.preview && this.mounted) {
                 const {data} = file;
                 const prefix = Platform.OS === 'android' ? 'file:/' : '';
                 const path = `${DOCUMENTS_PATH}/${data.id}-${file.caption}`;
+                this.setState({preview: true});
                 this.setStatusBarColor('dark-content');
                 OpenFile.openDoc([{
                     url: `${prefix}${path}`,
                     fileNameOptional: file.caption,
-                    fileName: data.name,
+                    fileName: encodeURI(data.name.split('.').slice(0, -1).join('.')),
                     fileType: data.extension,
                     cache: false,
                 }], (error) => {
@@ -259,12 +265,18 @@ export default class FileAttachmentDocument extends PureComponent {
                                 }),
                             }]
                         );
-                        this.setStatusBarColor();
+                        this.onDonePreviewingFile();
                         RNFetchBlob.fs.unlink(path);
                     }
 
                     this.setState({downloading: false, progress: 0});
                 });
+
+                // Android does not trigger the event for DoneButtonEvent
+                // so we'll wait 4 seconds before enabling the tap for open the preview again
+                if (Platform.OS === 'android') {
+                    setTimeout(this.onDonePreviewingFile, 4000);
+                }
             }
         }, delay);
     };
@@ -334,22 +346,31 @@ export default class FileAttachmentDocument extends PureComponent {
     };
 
     renderFileAttachmentIcon = () => {
-        const {iconHeight, iconWidth, file, theme, wrapperHeight, wrapperWidth} = this.props;
+        const {backgroundColor, iconHeight, iconWidth, file, theme, wrapperHeight, wrapperWidth} = this.props;
+        const {downloading} = this.state;
+        let height = wrapperHeight;
+        let width = wrapperWidth;
+
+        if (downloading) {
+            height -= DOWNLOADING_OFFSET;
+            width -= DOWNLOADING_OFFSET;
+        }
 
         return (
             <FileAttachmentIcon
+                backgroundColor={backgroundColor}
                 file={file.data}
                 theme={theme}
                 iconHeight={iconHeight}
                 iconWidth={iconWidth}
-                wrapperHeight={wrapperHeight}
-                wrapperWidth={wrapperWidth}
+                wrapperHeight={height}
+                wrapperWidth={width}
             />
         );
     }
 
     render() {
-        const {theme, wrapperHeight} = this.props;
+        const {onLongPress, theme, wrapperHeight} = this.props;
         const {downloading, progress} = this.state;
 
         let fileAttachmentComponent;
@@ -371,10 +392,11 @@ export default class FileAttachmentDocument extends PureComponent {
         }
 
         return (
-            <TouchableOpacity onPress={this.handlePreviewPress}>
-                <View style={style.whiteBackgroud}>
-                    {fileAttachmentComponent}
-                </View>
+            <TouchableOpacity
+                onPress={this.handlePreviewPress}
+                onLongPress={onLongPress}
+            >
+                {fileAttachmentComponent}
             </TouchableOpacity>
         );
     }
@@ -388,8 +410,5 @@ const style = StyleSheet.create({
         left: -circularProgressWidth,
         position: 'absolute',
         top: 0,
-    },
-    whiteBackgroud: {
-        backgroundColor: '#fff',
     },
 });

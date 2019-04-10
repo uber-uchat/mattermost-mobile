@@ -31,6 +31,7 @@ export default class ProfilePicture extends PureComponent {
         edit: PropTypes.bool,
         imageUri: PropTypes.string,
         profileImageUri: PropTypes.string,
+        profileImageRemove: PropTypes.bool,
         theme: PropTypes.object.isRequired,
         actions: PropTypes.shape({
             getStatusForId: PropTypes.func.isRequired,
@@ -49,8 +50,13 @@ export default class ProfilePicture extends PureComponent {
         pictureUrl: null,
     };
 
-    componentWillMount() {
-        const {edit, imageUri, profileImageUri, user} = this.props;
+    componentDidMount() {
+        const {actions, edit, imageUri, profileImageUri, user, status} = this.props;
+        this.mounted = true;
+
+        if (!status && user) {
+            actions.getStatusForId(user.id);
+        }
 
         if (profileImageUri) {
             this.setImageURL(profileImageUri);
@@ -59,14 +65,6 @@ export default class ProfilePicture extends PureComponent {
         } else if (user) {
             ImageCacheManager.cache('', Client4.getProfilePictureUrl(user.id, user.last_picture_update), this.setImageURL).then(this.clearProfileImageUri).catch(emptyFunction);
         }
-    }
-
-    componentDidMount() {
-        if (!this.props.status && this.props.user) {
-            this.props.actions.getStatusForId(this.props.user.id);
-        }
-
-        this.mounted = true;
     }
 
     componentWillReceiveProps(nextProps) {
@@ -106,6 +104,12 @@ export default class ProfilePicture extends PureComponent {
         }
     }
 
+    componentDidUpdate(prevProps) {
+        if (this.props.profileImageRemove !== prevProps.profileImageRemove) {
+            this.setImageURL(null);
+        }
+    }
+
     render() {
         const {edit, showStatus, theme} = this.props;
         const {pictureUrl} = this.state;
@@ -137,6 +141,7 @@ export default class ProfilePicture extends PureComponent {
         }
 
         let source = null;
+        let image;
         if (pictureUrl) {
             let prefix = '';
             if (Platform.OS === 'android' && !pictureUrl.startsWith('content://') &&
@@ -147,21 +152,26 @@ export default class ProfilePicture extends PureComponent {
             source = {
                 uri: `${prefix}${pictureUrl}`,
             };
-        }
 
-        const otherImageProps = {};
-        if (!this.props.edit) {
-            otherImageProps.defaultSource = placeholder;
-        }
-
-        return (
-            <View style={{width: this.props.size + STATUS_BUFFER, height: this.props.size + STATUS_BUFFER}}>
+            image = (
                 <Image
                     key={pictureUrl}
                     style={{width: this.props.size, height: this.props.size, borderRadius: this.props.size / 2}}
                     source={source}
-                    {...otherImageProps}
                 />
+            );
+        } else {
+            image = (
+                <Image
+                    style={{width: this.props.size, height: this.props.size, borderRadius: this.props.size / 2}}
+                    source={placeholder}
+                />
+            );
+        }
+
+        return (
+            <View style={{width: this.props.size + STATUS_BUFFER, height: this.props.size + STATUS_BUFFER}}>
+                {image}
                 {(showStatus || edit) &&
                     <View style={[style.statusWrapper, statusStyle, {borderRadius: this.props.statusSize / 2}]}>
                         {statusIcon}

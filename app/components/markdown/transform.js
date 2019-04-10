@@ -7,6 +7,8 @@ import {escapeRegex} from 'app/utils/markdown';
 
 /* eslint-disable no-underscore-dangle */
 
+const cjkPattern = /[\u3000-\u303f\u3040-\u309f\u30a0-\u30ff\uff00-\uff9f\u4e00-\u9faf\u3400-\u4dbf\uac00-\ud7a3]/;
+
 // Combines adjacent text nodes into a single text node to make further transformation easier
 export function combineTextNodes(ast) {
     const walker = ast.walker();
@@ -310,11 +312,20 @@ export function getFirstMention(str, mentionKeys) {
     let firstMentionIndex = -1;
 
     for (const mention of mentionKeys) {
+        if (mention.key.trim() === '') {
+            continue;
+        }
+
         const flags = mention.caseSensitive ? '' : 'i';
-        const pattern = new RegExp(`\\b${escapeRegex(mention.key)}_*\\b`, flags);
+        let pattern;
+        if (cjkPattern.test(mention.key)) {
+            pattern = new RegExp(`${escapeRegex(mention.key)}`, flags);
+        } else {
+            pattern = new RegExp(`\\b${escapeRegex(mention.key)}_*\\b`, flags);
+        }
 
         const match = pattern.exec(str);
-        if (!match) {
+        if (!match || match[0] === '') {
             continue;
         }
 

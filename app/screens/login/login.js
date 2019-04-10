@@ -22,13 +22,15 @@ import {KeyboardAwareScrollView} from 'react-native-keyboard-aware-scroll-view';
 import ErrorText from 'app/components/error_text';
 import FormattedText from 'app/components/formatted_text';
 import StatusBar from 'app/components/status_bar';
-import PushNotifications from 'app/push_notifications';
 import {GlobalStyles} from 'app/styles';
 import {preventDoubleTap} from 'app/utils/tap';
 import tracker from 'app/utils/time_tracker';
 import {t} from 'app/utils/i18n';
+import {setMfaPreflightDone, getMfaPreflightDone} from 'app/utils/security';
 
 import {RequestStatus} from 'mattermost-redux/constants';
+
+const mfaExpectedErrors = ['mfa.validate_token.authenticate.app_error', 'ent.mfa.validate_token.authenticate.app_error'];
 
 export default class Login extends PureComponent {
     static propTypes = {
@@ -38,15 +40,13 @@ export default class Login extends PureComponent {
             handleLoginIdChanged: PropTypes.func.isRequired,
             handlePasswordChanged: PropTypes.func.isRequired,
             handleSuccessfulLogin: PropTypes.func.isRequired,
-            getSession: PropTypes.func.isRequired,
-            checkMfa: PropTypes.func.isRequired,
+            scheduleExpiredNotification: PropTypes.func.isRequired,
             login: PropTypes.func.isRequired,
         }).isRequired,
         config: PropTypes.object.isRequired,
         license: PropTypes.object.isRequired,
         loginId: PropTypes.string.isRequired,
         password: PropTypes.string.isRequired,
-        checkMfaRequest: PropTypes.object.isRequired,
         loginRequest: PropTypes.object.isRequired,
     };
 
@@ -62,13 +62,14 @@ export default class Login extends PureComponent {
         };
     }
 
-    componentWillMount() {
+    componentDidMount() {
         Dimensions.addEventListener('change', this.orientationDidChange);
+        setMfaPreflightDone(false);
     }
 
     componentWillReceiveProps(nextProps) {
         if (this.props.loginRequest.status === RequestStatus.STARTED && nextProps.loginRequest.status === RequestStatus.SUCCESS) {
-            this.props.actions.handleSuccessfulLogin().then(this.props.actions.getSession).then(this.goToChannel);
+            this.props.actions.handleSuccessfulLogin().then(this.goToChannel);
         } else if (this.props.loginRequest.status !== nextProps.loginRequest.status && nextProps.loginRequest.status !== RequestStatus.STARTED) {
             this.setState({isLoading: false});
         }
@@ -78,23 +79,11 @@ export default class Login extends PureComponent {
         Dimensions.removeEventListener('change', this.orientationDidChange);
     }
 
-    goToChannel = (expiresAt) => {
-        const {intl} = this.context;
+    goToChannel = () => {
         const {navigator} = this.props;
         tracker.initialLoad = Date.now();
 
-        if (expiresAt) {
-            PushNotifications.localNotificationSchedule({
-                date: new Date(expiresAt),
-                message: intl.formatMessage({
-                    id: 'mobile.session_expired',
-                    defaultMessage: 'Session Expired: Please log in to continue receiving notifications.',
-                }),
-                userInfo: {
-                    localNotification: true,
-                },
-            });
-        }
+        this.scheduleSessionExpiredNotification();
 
         navigator.resetTo({
             screen: 'Channel',
@@ -195,23 +184,27 @@ export default class Login extends PureComponent {
                 return;
             }
 
-            if (this.props.config.EnableMultifactorAuthentication === 'true') {
-                const result = await this.props.actions.checkMfa(this.props.loginId);
-                if (result.data) {
-                    this.goToMfa();
-                } else {
-                    this.signIn();
-                }
-            } else {
-                this.signIn();
-            }
+            this.signIn();
         });
     });
+
+    scheduleSessionExpiredNotification = () => {
+        const {intl} = this.context;
+        const {actions} = this.props;
+
+        actions.scheduleExpiredNotification(intl);
+    };
 
     signIn = () => {
         const {actions, loginId, loginRequest, password} = this.props;
         if (loginRequest.status !== RequestStatus.STARTED) {
-            actions.login(loginId.toLowerCase(), password);
+            actions.login(loginId.toLowerCase(), password).then(this.checkLoginResponse);
+        }
+    };
+
+    checkLoginResponse = (data) => {
+        if (mfaExpectedErrors.includes(data?.error?.server_error_id)) { // eslint-disable-line camelcase
+            this.goToMfa();
         }
     };
 
@@ -251,7 +244,6 @@ export default class Login extends PureComponent {
     getLoginErrorMessage = () => {
         return (
             this.getServerErrorForLogin() ||
-            this.props.checkMfaRequest.error ||
             this.state.error
         );
     };
@@ -264,6 +256,9 @@ export default class Login extends PureComponent {
         const errorId = error.server_error_id;
         if (!errorId) {
             return error.message;
+        }
+        if (mfaExpectedErrors.includes(errorId) && !getMfaPreflightDone()) {
+            return null;
         }
         if (
             errorId === 'store.sql_user.get_for_login.app_error' ||

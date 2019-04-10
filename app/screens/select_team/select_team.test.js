@@ -29,14 +29,12 @@ describe('SelectTeam', () => {
         handleTeamChange: jest.fn(),
         joinTeam: jest.fn(),
         logout: jest.fn(),
-        markChannelAsRead: jest.fn(),
     };
 
     const baseProps = {
         actions,
         currentChannelId: 'someId',
         currentUrl: 'test',
-        joinTeamRequest: {},
         navigator: {
             setOnNavigatorEvent: jest.fn(),
         },
@@ -75,7 +73,9 @@ describe('SelectTeam', () => {
         const wrapper = shallow(
             <SelectTeam {...props}/>,
         );
+        expect(wrapper.state('page')).toEqual(0);
         await getTeams();
+        expect(wrapper.state('page')).toEqual(1);
         wrapper.update();
         expect(wrapper.getElement()).toMatchSnapshot();
     });

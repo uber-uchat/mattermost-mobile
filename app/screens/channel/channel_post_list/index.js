@@ -6,7 +6,7 @@ import {connect} from 'react-redux';
 
 import {selectPost} from 'mattermost-redux/actions/posts';
 import {getPostIdsInCurrentChannel} from 'mattermost-redux/selectors/entities/posts';
-import {getCurrentChannelId, getMyCurrentChannelMembership} from 'mattermost-redux/selectors/entities/channels';
+import {getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
 import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 
@@ -25,8 +25,9 @@ function mapStateToProps(state) {
         currentUserId: getCurrentUserId(state),
         postIds: getPostIdsInCurrentChannel(state),
         postVisibility: state.views.channel.postVisibility[channelId],
-        lastViewedAt: getMyCurrentChannelMembership(state).last_viewed_at,
+        lastViewedAt: state.views.channel.lastChannelViewTime[channelId],
         loadMorePostsVisible: state.views.channel.loadMorePostsVisible,
+        refreshing: state.views.channel.refreshing,
         theme: getTheme(state),
     };
 }
