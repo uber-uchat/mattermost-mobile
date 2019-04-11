@@ -199,6 +199,11 @@ configurations.all {
             if (details.requested.name == 'play-services-basement') {
                 details.useTarget group: details.requested.group, name: details.requested.name, version: '15.0.1'
             }
+            if (requested.group == "com.android.support") {
+                if (!requested.name.startsWith("multidex")) {
+                    details.useVersion "26.+"
+                }
+            }
         }
     }
 }
