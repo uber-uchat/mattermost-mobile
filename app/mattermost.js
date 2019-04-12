@@ -61,6 +61,7 @@ const deleteFileCacheOnAppUpdate = async () => {
         const currentVersion = await DeviceInfo.getVersion();
         const existingVersion = await AsyncStorage.getItem(APP_VERSION);
         if (!existingVersion || currentVersion !== existingVersion) {
+            deleteFileCache();
             AsyncStorage.setItem(APP_VERSION, currentVersion);
         }
     }
