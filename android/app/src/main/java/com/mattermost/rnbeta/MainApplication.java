@@ -10,6 +10,8 @@ import android.os.Bundle;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 
 import com.reactnativedocumentpicker.ReactNativeDocumentPicker;
 import com.oblador.keychain.KeychainPackage;
@@ -100,8 +102,14 @@ public class MainApplication extends NavigationApplication implements INotificat
     super.onCreate();
     instance = this;
 
-    long size = 50L * 1024L * 1024L; // 50 MB 
-    com.facebook.react.modules.storage.ReactDatabaseSupplier.getInstance(getApplicationContext()).setMaximumSize(size);
+    SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
+    int versionCode = sharedPreferences.getInt("VERSION_CODE", BuildConfig.VERSION_CODE);
+
+    if(versionCode != BuildConfig.VERSION_CODE) {
+        clearApplicationData();
+    }
+
+    sharedPreferences.edit().putInt("VERSION_CODE", BuildConfig.VERSION_CODE).apply();
 
     // Delete any previous temp files created by the app
     File tempFolder = new File(getApplicationContext().getCacheDir(), "mmShare");
@@ -138,4 +146,33 @@ public class MainApplication extends NavigationApplication implements INotificat
   public IPushNotificationsDrawer getPushNotificationsDrawer(Context context, AppLaunchHelper defaultAppLaunchHelper) {
     return new CustomPushNotificationDrawer(context, defaultAppLaunchHelper);
   }
+
+    public void clearApplicationData() {
+        File cacheDirectory = getApplicationContext().getCacheDir();
+        File applicationDirectory = new File(cacheDirectory.getParent());
+        if (applicationDirectory.exists()) {
+            String[] fileNames = applicationDirectory.list();
+            for (String fileName : fileNames) {
+                if (!fileName.equals("lib")) {
+                    deleteFile(new File(applicationDirectory, fileName));
+                }
+            }
+        }
+    }
+
+    public static boolean deleteFile(File file) {
+        boolean deletedAll = true;
+        if (file != null) {
+            if (file.isDirectory()) {
+                String[] children = file.list();
+                for (int i = 0; i < children.length; i++) {
+                    deletedAll = deleteFile(new File(file, children[i])) && deletedAll;
+                }
+            } else {
+                deletedAll = file.delete();
+            }
+        }
+
+        return deletedAll;
+    }
 }
