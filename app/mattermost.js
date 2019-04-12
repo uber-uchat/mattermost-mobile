@@ -5,6 +5,7 @@
 import {
     Alert,
     AppState,
+    AsyncStorage,
     Dimensions,
     InteractionManager,
     Keyboard,
@@ -473,6 +474,18 @@ if (startedSharedExtension || fromPushNotification) {
     });
 }
 
+const deleteFileCacheOnAppUpdate = async () => {
+    if (Platform.OS === 'android') {
+        const APP_VERSION = 'APP_VERSION';
+        const currentVersion = await DeviceInfo.getVersion();
+        const existingVersion = await AsyncStorage.getItem(APP_VERSION);
+        if (!existingVersion || currentVersion !== existingVersion) {
+            AsyncStorage.setItem(APP_VERSION, currentVersion);
+        }
+    }
+};
+
 if (!app.appStarted) {
+    deleteFileCacheOnAppUpdate();
     launchEntry();
 }
