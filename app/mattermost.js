@@ -55,6 +55,18 @@ const AUTHENTICATION_TIMEOUT = 5 * 60 * 1000;
 // Hide warnings caused by React Native (https://github.com/facebook/react-native/issues/20841)
 YellowBox.ignoreWarnings(['Require cycle: node_modules/react-native/Libraries/Network/fetch.js']);
 
+const deleteFileCacheOnAppUpdate = async () => {
+    if (Platform.OS === 'android') {
+        const APP_VERSION = 'APP_VERSION';
+        const currentVersion = await DeviceInfo.getVersion();
+        const existingVersion = await AsyncStorage.getItem(APP_VERSION);
+        if (!existingVersion || currentVersion !== existingVersion) {
+            AsyncStorage.setItem(APP_VERSION, currentVersion);
+        }
+    }
+};
+deleteFileCacheOnAppUpdate();
+
 export const app = new App();
 export const store = configureStore(initialState);
 registerScreens(store, Provider);
@@ -474,18 +486,6 @@ if (startedSharedExtension || fromPushNotification) {
     });
 }
 
-const deleteFileCacheOnAppUpdate = async () => {
-    if (Platform.OS === 'android') {
-        const APP_VERSION = 'APP_VERSION';
-        const currentVersion = await DeviceInfo.getVersion();
-        const existingVersion = await AsyncStorage.getItem(APP_VERSION);
-        if (!existingVersion || currentVersion !== existingVersion) {
-            AsyncStorage.setItem(APP_VERSION, currentVersion);
-        }
-    }
-};
-
 if (!app.appStarted) {
-    deleteFileCacheOnAppUpdate();
     launchEntry();
 }
