@@ -65,6 +65,7 @@ export default class App {
         // Usage deeplinking
         Linking.addEventListener('url', this.handleDeepLink);
 
+        this.deleteFileCacheOnAppUpdate();
         this.setFontFamily();
         this.getStartupThemes();
         this.getAppCredentials();

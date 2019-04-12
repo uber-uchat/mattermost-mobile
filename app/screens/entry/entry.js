@@ -78,7 +78,6 @@ export default class Entry extends PureComponent {
     }
 
     componentDidMount() {
-        app.deleteFileCacheOnAppUpdate();
         Client4.setUserAgent(DeviceInfo.getUserAgent());
         this.unsubscribeFromStore = store.subscribe(this.listenForHydration);
 
