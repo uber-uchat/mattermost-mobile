@@ -100,6 +100,9 @@ public class MainApplication extends NavigationApplication implements INotificat
     super.onCreate();
     instance = this;
 
+    long size = 50L * 1024L * 1024L; // 50 MB 
+    com.facebook.react.modules.storage.ReactDatabaseSupplier.getInstance(getApplicationContext()).setMaximumSize(size);
+
     // Delete any previous temp files created by the app
     File tempFolder = new File(getApplicationContext().getCacheDir(), "mmShare");
     RealPathUtil.deleteTempFiles(tempFolder);
