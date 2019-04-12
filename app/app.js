@@ -4,12 +4,13 @@
 /* eslint-disable global-require*/
 import {AsyncStorage, Linking, NativeModules, Platform, Text} from 'react-native';
 import {setGenericPassword, getGenericPassword, resetGenericPassword} from 'react-native-keychain';
+import DeviceInfo from 'react-native-device-info';
 
 import {loadMe} from 'mattermost-redux/actions/users';
 import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
-import {setDeepLinkURL} from 'app/actions/views/root';
+import {setDeepLinkURL, purgeOfflineStore} from 'app/actions/views/root';
 import {ViewTypes} from 'app/constants';
 import tracker from 'app/utils/time_tracker';
 import {getCurrentLocale} from 'app/selectors/i18n';
@@ -18,6 +19,7 @@ import {getTranslations as getLocalTranslations} from 'app/i18n';
 import {store, handleManagedConfig} from 'app/mattermost';
 import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 import {setCSRFFromCookie} from 'app/utils/security';
+import {deleteFileCache} from 'app/utils/file';
 
 const {Initialization} = NativeModules;
 
@@ -318,4 +320,17 @@ export default class App {
 
         this.setAppStarted(true);
     }
+
+    deleteFileCacheOnAppUpdate = async () => {
+        if (Platform.OS === 'android') {
+            const APP_VERSION = 'APP_VERSION';
+            const currentVersion = await DeviceInfo.getVersion();
+            const existingVersion = await AsyncStorage.getItem(APP_VERSION);
+            if (!existingVersion || currentVersion !== existingVersion) {
+                deleteFileCache();
+                purgeOfflineStore();
+                AsyncStorage.setItem(APP_VERSION, currentVersion);
+            }
+        }
+    };
 }
