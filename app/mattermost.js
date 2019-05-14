@@ -45,6 +45,7 @@ import {deleteFileCache} from 'app/utils/file';
 import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 import {t} from 'app/utils/i18n';
 import LocalConfig from 'assets/config';
+import telemetry from 'app/telemetry';
 
 import App from './app';
 import './fetch_preconfig';
@@ -134,10 +135,6 @@ const resetBadgeAndVersion = () => {
 };
 
 const handleLogout = () => {
-    // Because we can logout while being offline we reset
-    // the Client online flag to true cause the network handler
-    // is not available at this point
-    Client4.setOnline(true);
     Client4.setCSRF(null);
     store.dispatch(closeWebSocket(false));
 
@@ -439,6 +436,11 @@ const handleAppInActive = () => {
 AppState.addEventListener('change', handleAppStateChange);
 
 const launchEntry = () => {
+    telemetry.start([
+        'start:select_server_screen',
+        'start:channel_screen',
+    ]);
+
     Navigation.startSingleScreenApp({
         screen: {
             screen: 'Entry',
@@ -456,6 +458,8 @@ const launchEntry = () => {
         },
         animationType: 'fade',
     });
+
+    telemetry.startSinceLaunch(['start:splash_screen']);
 };
 
 configurePushNotifications();

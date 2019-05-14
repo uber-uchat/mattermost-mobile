@@ -4,6 +4,7 @@
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
+    Platform,
     Text,
     TouchableOpacity,
     View,
@@ -15,6 +16,7 @@ import AwesomeIcon from 'react-native-vector-icons/FontAwesome';
 
 import {General} from 'mattermost-redux/constants';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
+import {getLastPostIndex} from 'mattermost-redux/utils/post_list';
 
 import FormattedText from 'app/components/formatted_text';
 import Loading from 'app/components/loading';
@@ -44,8 +46,7 @@ Animatable.initializeRegistryWithDefinitions({
 export default class Permalink extends PureComponent {
     static propTypes = {
         actions: PropTypes.shape({
-            getPostsAfter: PropTypes.func.isRequired,
-            getPostsBefore: PropTypes.func.isRequired,
+            getPostsAround: PropTypes.func.isRequired,
             getPostThread: PropTypes.func.isRequired,
             getChannel: PropTypes.func.isRequired,
             handleSelectChannel: PropTypes.func.isRequired,
@@ -167,7 +168,7 @@ export default class Permalink extends PureComponent {
         const channelId = post.channel_id;
         const rootId = (post.root_id || post.id);
 
-        actions.loadThreadIfNecessary(rootId, channelId);
+        actions.loadThreadIfNecessary(rootId);
         actions.selectPost(rootId);
 
         const options = {
@@ -307,10 +308,7 @@ export default class Permalink extends PureComponent {
             }
         }
 
-        await Promise.all([
-            actions.getPostsBefore(focusChannelId, focusedPostId, 0, 10),
-            actions.getPostsAfter(focusChannelId, focusedPostId, 0, 10),
-        ]);
+        await actions.getPostsAround(focusChannelId, focusedPostId, 10);
 
         if (this.mounted) {
             this.setState({loading: false});
@@ -397,6 +395,7 @@ export default class Permalink extends PureComponent {
                     onPermalinkPress={this.handlePermalinkPress}
                     onPostPress={this.goToThread}
                     postIds={postIdsState}
+                    lastPostIndex={Platform.OS === 'android' ? getLastPostIndex(postIdsState) : -1}
                     currentUserId={currentUserId}
                     lastViewedAt={0}
                     navigator={navigator}
