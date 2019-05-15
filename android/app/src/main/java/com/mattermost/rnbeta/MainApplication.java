@@ -23,6 +23,7 @@ import com.RNFetchBlob.RNFetchBlobPackage;
 import com.gantix.JailMonkey.JailMonkeyPackage;
 import io.tradle.react.LocalAuthPackage;
 import com.github.godness84.RNRecyclerViewList.RNRecyclerviewListPackage;
+import com.reactnativecommunity.asyncstorage.AsyncStoragePackage;
 import com.reactnativecommunity.webview.RNCWebViewPackage;
 import com.swmansion.gesturehandler.react.RNGestureHandlerPackage;
 
@@ -84,6 +85,7 @@ public class MainApplication extends NavigationApplication implements INotificat
             new SharePackage(this),
             new KeychainPackage(),
             new InitializationPackage(this),
+            new AsyncStoragePackage(),
             new RNRecyclerviewListPackage(),
             new RNCWebViewPackage(),
             new RNGestureHandlerPackage()

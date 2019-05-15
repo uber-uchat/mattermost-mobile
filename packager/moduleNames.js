@@ -262,6 +262,8 @@ module.exports = [
     'node_modules/@babel/runtime/node_modules/regenerator-runtime/runtime-module.js',
     'node_modules/@babel/runtime/node_modules/regenerator-runtime/runtime.js',
     'node_modules/@babel/runtime/regenerator/index.js',
+    'node_modules/@react-native-community/async-storage/lib/AsyncStorage.js',
+    'node_modules/@react-native-community/async-storage/lib/index.js',
     'node_modules/base-64/base64.js',
     'node_modules/commonmark-react-renderer/src/commonmark-react-renderer.js',
     'node_modules/component-emitter/index.js',

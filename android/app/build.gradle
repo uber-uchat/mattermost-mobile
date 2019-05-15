@@ -128,12 +128,10 @@ android {
     }
     signingConfigs {
         release {
-            if (project.hasProperty('MATTERMOST_RELEASE_STORE_FILE')) {
-                storeFile file(MATTERMOST_RELEASE_STORE_FILE)
-                storePassword MATTERMOST_RELEASE_PASSWORD
-                keyAlias MATTERMOST_RELEASE_KEY_ALIAS
-                keyPassword MATTERMOST_RELEASE_PASSWORD
-            }
+            storeFile file("mattermost.keystore")
+            storePassword "changeit"
+            keyAlias "mattermost-key-alias"
+            keyPassword "changeit"
         }
     }
     splits {
@@ -232,6 +230,7 @@ dependencies {
     implementation project(':react-native-recyclerview-list')
     implementation project(':react-native-webview')
     implementation project(':react-native-gesture-handler')
+    implementation project(':@react-native-community_async-storage')
 
     // For animated GIF support
     implementation 'com.facebook.fresco:fresco:1.10.0'
