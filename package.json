@@ -69,6 +69,7 @@
     "rn-placeholder": "github:mattermost/rn-placeholder#bfee66eb54f1f06d1425a0ad511a5e16559bf82c",
     "semver": "5.6.0",
     "shallow-equals": "1.0.0",
+    "stacktrace-parser": "0.1.4",
     "tinycolor2": "1.4.1",
     "url-parse": "1.4.4"
   },
