@@ -75,6 +75,8 @@ export default class Search extends Component {
         shadowOpacityExpanded: PropTypes.number,
         shadowRadius: PropTypes.number,
         shadowVisible: PropTypes.bool,
+        leftComponent: PropTypes.element,
+        inputCollapsedMargin: PropTypes.number,
     };
 
     static defaultProps = {
@@ -97,6 +99,8 @@ export default class Search extends Component {
         shadowRadius: 4,
         shadowVisible: false,
         value: '',
+        leftComponent: null,
+        inputCollapsedMargin: 10,
     };
 
     constructor(props) {
@@ -104,6 +108,7 @@ export default class Search extends Component {
 
         this.state = {
             expanded: false,
+            leftComponentWidth: 0,
         };
         const {width} = Dimensions.get('window');
         this.contentWidth = width;
@@ -111,6 +116,8 @@ export default class Search extends Component {
 
         this.iconSearchAnimated = new Animated.Value(this.props.searchIconCollapsedMargin);
         this.iconDeleteAnimated = new Animated.Value(0);
+        this.leftComponentAnimated = new Animated.Value(0);
+        this.inputFocusAnimated = new Animated.Value(0);
         this.inputFocusWidthAnimated = new Animated.Value(this.contentWidth - 10);
         this.inputFocusPlaceholderAnimated = new Animated.Value(this.props.placeholderCollapsedMargin);
         this.btnCancelAnimated = new Animated.Value(this.contentWidth);
@@ -161,6 +168,11 @@ export default class Search extends Component {
         }
     };
 
+    onLeftComponentLayout = (event) => {
+        const leftComponentWidth = event.nativeEvent.layout.width;
+        this.setState({leftComponentWidth});
+    };
+
     onSearch = async () => {
         if (this.props.keyboardShouldPersist === false) {
             await Keyboard.dismiss();
@@ -177,6 +189,7 @@ export default class Search extends Component {
             {
                 toValue: (text.length > 0) ? 1 : 0,
                 duration: 200,
+                useNativeDriver: true,
             }
         ).start();
 
@@ -202,6 +215,7 @@ export default class Search extends Component {
             {
                 toValue: 0,
                 duration: 200,
+                useNativeDriver: true,
             }
         ).start();
         this.focus();
@@ -233,43 +247,59 @@ export default class Search extends Component {
                         toValue: this.contentWidth - 70,
                         duration: 200,
                     }
-                ).start(),
+                ),
+                Animated.timing(
+                    this.inputFocusAnimated,
+                    {
+                        toValue: this.state.leftComponentWidth,
+                        duration: 200,
+                    }
+                ),
+                Animated.timing(
+                    this.leftComponentAnimated,
+                    {
+                        toValue: this.contentWidth,
+                        duration: 200,
+                    }
+                ),
                 Animated.timing(
                     this.btnCancelAnimated,
                     {
-                        toValue: 10,
+                        toValue: this.state.leftComponentWidth ? 15 - this.state.leftComponentWidth : 10,
                         duration: 200,
                     }
-                ).start(),
+                ),
                 Animated.timing(
                     this.inputFocusPlaceholderAnimated,
                     {
                         toValue: this.props.placeholderExpandedMargin,
                         duration: 200,
                     }
-                ).start(),
+                ),
                 Animated.timing(
                     this.iconSearchAnimated,
                     {
                         toValue: this.props.searchIconExpandedMargin,
                         duration: 200,
                     }
-                ).start(),
+                ),
                 Animated.timing(
                     this.iconDeleteAnimated,
                     {
                         toValue: (this.props.value.length > 0) ? 1 : 0,
                         duration: 200,
+                        useNativeDriver: true,
                     }
-                ).start(),
+                ),
                 Animated.timing(
                     this.shadowOpacityAnimated,
                     {
                         toValue: this.props.shadowOpacityExpanded,
                         duration: 200,
+                        useNativeDriver: true,
                     }
-                ).start(),
-            ]);
+                ),
+            ]).start();
             this.shadowHeight = this.props.shadowOffsetHeightExpanded;
             resolve();
         });
@@ -282,17 +312,31 @@ export default class Search extends Component {
                 Animated.timing(
                     this.inputFocusWidthAnimated,
                     {
-                        toValue: this.contentWidth - 10,
+                        toValue: this.contentWidth - this.state.leftComponentWidth - this.props.inputCollapsedMargin,
                         duration: 200,
                     }
-                ).start(),
+                ),
+                Animated.timing(
+                    this.inputFocusAnimated,
+                    {
+                        toValue: 0,
+                        duration: 200,
+                    }
+                ),
+                Animated.timing(
+                    this.leftComponentAnimated,
+                    {
+                        toValue: 0,
+                        duration: 200,
+                    }
+                ),
                 Animated.timing(
                     this.btnCancelAnimated,
                     {
                         toValue: this.contentWidth,
                         duration: 200,
                     }
-                ).start(),
+                ),
                 ((this.props.keyboardShouldPersist === false) ?
                     Animated.timing(
                         this.inputFocusPlaceholderAnimated,
@@ -300,30 +344,32 @@ export default class Search extends Component {
                             toValue: this.props.placeholderCollapsedMargin,
                             duration: 200,
                         }
-                    ).start() : null),
+                    ) : null),
                 ((this.props.keyboardShouldPersist === false || isForceAnim === true) ?
                     Animated.timing(
                         this.iconSearchAnimated,
                         {
-                            toValue: this.props.searchIconCollapsedMargin,
+                            toValue: (this.props.searchIconCollapsedMargin + this.state.leftComponentWidth),
                             duration: 200,
                         }
-                    ).start() : null),
+                    ) : null),
                 Animated.timing(
                     this.iconDeleteAnimated,
                     {
                         toValue: 0,
                         duration: 200,
+                        useNativeDriver: true,
                     }
-                ).start(),
+                ),
                 Animated.timing(
                     this.shadowOpacityAnimated,
                     {
                         toValue: this.props.shadowOpacityCollapsed,
                         duration: 200,
+                        useNativeDriver: true,
                     }
-                ).start(),
-            ]);
+                ),
+            ]).start();
             this.shadowHeight = this.props.shadowOffsetHeightCollapsed;
             resolve();
         });
@@ -331,16 +377,27 @@ export default class Search extends Component {
 
     render() {
         const {backgroundColor, ...restOfInputPropStyles} = this.props.inputStyle;
+
         return (
             <Animated.View
                 ref='searchContainer'
                 style={[
                     styles.container,
                     this.props.backgroundColor && {backgroundColor: this.props.backgroundColor},
+                    this.state.leftComponentWidth && {padding: 0},
                 ]}
                 onLayout={this.onLayout}
             >
-                <View style={{backgroundColor}}>
+                {((this.props.leftComponent) ?
+                    <Animated.View
+                        style={{right: this.leftComponentAnimated}}
+                        onLayout={this.onLeftComponentLayout}
+                    >
+                        {this.props.leftComponent}
+                    </Animated.View> :
+                    null
+                )}
+                <Animated.View style={{backgroundColor, right: this.inputFocusAnimated, borderRadius: 2}}>
                     <AnimatedTextInput
                         ref='input_keyword'
                         style={[
@@ -359,7 +416,6 @@ export default class Search extends Component {
                                 shadowOpacity: this.shadowOpacityAnimated,
                                 shadowRadius: this.props.shadowRadius,
                             },
-
                         ]}
                         autoFocus={this.props.autoFocus}
                         editable={this.props.editable}
@@ -380,7 +436,7 @@ export default class Search extends Component {
                         underlineColorAndroid='transparent'
                         enablesReturnKeyAutomatically={true}
                     />
-                </View>
+                </Animated.View>
                 <TouchableWithoutFeedback onPress={this.onFocus}>
                     {((this.props.iconSearch) ?
                         <Animated.View

@@ -28,6 +28,8 @@ import tracker from 'app/utils/time_tracker';
 import {t} from 'app/utils/i18n';
 import {setMfaPreflightDone, getMfaPreflightDone} from 'app/utils/security';
 
+import telemetry from 'app/telemetry';
+
 import {RequestStatus} from 'mattermost-redux/constants';
 
 const mfaExpectedErrors = ['mfa.validate_token.authenticate.app_error', 'ent.mfa.validate_token.authenticate.app_error'];
@@ -80,6 +82,8 @@ export default class Login extends PureComponent {
     }
 
     goToChannel = () => {
+        telemetry.remove(['start:overall']);
+
         const {navigator} = this.props;
         tracker.initialLoad = Date.now();
 
@@ -360,6 +364,22 @@ export default class Login extends PureComponent {
             );
         }
 
+        let forgotPassword;
+        if (this.props.config.EnableSignInWithEmail === 'true' || this.props.config.EnableSignInWithUsername === 'true') {
+            forgotPassword = (
+                <Button
+                    onPress={this.forgotPassword}
+                    containerStyle={[style.forgotPasswordBtn]}
+                >
+                    <FormattedText
+                        id='login.forgot'
+                        defaultMessage='I forgot my password'
+                        style={style.forgotPasswordTxt}
+                    />
+                </Button>
+            );
+        }
+
         return (
             <View style={style.container}>
                 <StatusBar/>
@@ -415,16 +435,7 @@ export default class Login extends PureComponent {
                             disableFullscreenUI={true}
                         />
                         {proceed}
-                        <Button
-                            onPress={this.forgotPassword}
-                            containerStyle={[style.forgotPasswordBtn]}
-                        >
-                            <FormattedText
-                                id='login.forgot'
-                                defaultMessage='I forgot my password'
-                                style={style.forgotPasswordTxt}
-                            />
-                        </Button>
+                        {forgotPassword}
                     </KeyboardAwareScrollView>
                 </TouchableWithoutFeedback>
             </View>

@@ -3,9 +3,11 @@
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {Alert, Clipboard, Platform, StyleSheet, View} from 'react-native';
+import {Alert, Clipboard, StyleSheet, View} from 'react-native';
 import {intlShape} from 'react-intl';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
+
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import SlideUpPanel from 'app/components/slide_up_panel';
 import {BOTTOM_MARGIN} from 'app/components/slide_up_panel/slide_up_panel';
@@ -23,8 +25,6 @@ export default class PostOptions extends PureComponent {
             removePost: PropTypes.func.isRequired,
             unflagPost: PropTypes.func.isRequired,
             unpinPost: PropTypes.func.isRequired,
-            selectPost: PropTypes.func.isRequired,
-            loadThreadIfNecessary: PropTypes.func.isRequired,
         }).isRequired,
         canAddReaction: PropTypes.bool,
         canReply: PropTypes.bool,
@@ -56,7 +56,7 @@ export default class PostOptions extends PureComponent {
 
     closeWithAnimation = () => {
         if (this.slideUpPanel) {
-            this.slideUpPanel.getWrappedInstance().closeWithAnimation();
+            this.slideUpPanel.closeWithAnimation();
         } else {
             this.close();
         }
@@ -270,7 +270,7 @@ export default class PostOptions extends PureComponent {
         const {navigator, theme} = this.props;
 
         this.close();
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             MaterialIcon.getImageSource('close', 20, theme.sidebarHeaderTextColor).then((source) => {
                 navigator.showModal({
                     screen: 'AddReaction',
@@ -288,39 +288,16 @@ export default class PostOptions extends PureComponent {
                     },
                 });
             });
-        });
+        }, 300);
     };
 
     handleReply = () => {
-        const {actions, post, navigator, theme} = this.props;
-        const rootId = (post.root_id || post.id);
-        const channelId = post.channel_id;
-
-        actions.loadThreadIfNecessary(rootId, channelId);
-        actions.selectPost(rootId);
-
-        const options = {
-            screen: 'Thread',
-            animated: true,
-            backButtonTitle: '',
-            navigatorStyle: {
-                navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
-                navBarButtonColor: theme.sidebarHeaderTextColor,
-                screenBackgroundColor: theme.centerChannelBg,
-            },
-            passProps: {
-                channelId,
-                rootId,
-            },
-        };
-
-        if (Platform.OS === 'android') {
-            navigator.showModal(options);
-        } else {
-            navigator.push(options);
-        }
-    }
+        const {post} = this.props;
+        this.closeWithAnimation();
+        setTimeout(() => {
+            EventEmitter.emit('goToThread', post);
+        }, 250);
+    };
 
     handleAddReactionToPost = (emoji) => {
         const {actions, post} = this.props;
@@ -363,7 +340,7 @@ export default class PostOptions extends PureComponent {
 
     handlePostDelete = () => {
         const {formatMessage} = this.context.intl;
-        const {actions, isMyPost, post} = this.props;
+        const {actions, post} = this.props;
 
         Alert.alert(
             formatMessage({id: 'mobile.post.delete_title', defaultMessage: 'Delete Post'}),
@@ -379,9 +356,7 @@ export default class PostOptions extends PureComponent {
                 style: 'destructive',
                 onPress: () => {
                     actions.deletePost(post);
-                    if (isMyPost) {
-                        actions.removePost(post);
-                    }
+                    actions.removePost(post);
                     this.closeWithAnimation();
                 },
             }]
@@ -393,7 +368,7 @@ export default class PostOptions extends PureComponent {
         const {navigator, post, theme} = this.props;
 
         this.close();
-        requestAnimationFrame(() => {
+        setTimeout(() => {
             MaterialIcon.getImageSource('close', 20, theme.sidebarHeaderTextColor).then((source) => {
                 navigator.showModal({
                     screen: 'EditPost',
@@ -411,7 +386,7 @@ export default class PostOptions extends PureComponent {
                     },
                 });
             });
-        });
+        }, 300);
     };
 
     handleUnflagPost = () => {

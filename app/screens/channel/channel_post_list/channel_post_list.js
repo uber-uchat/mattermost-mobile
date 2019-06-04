@@ -4,10 +4,14 @@
 import PropTypes from 'prop-types';
 import React, {PureComponent} from 'react';
 import {
+    Keyboard,
     Platform,
     StyleSheet,
     View,
 } from 'react-native';
+
+import {getLastPostIndex} from 'mattermost-redux/utils/post_list';
+import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import AnnouncementBanner from 'app/components/announcement_banner';
 import PostList from 'app/components/post_list';
@@ -15,6 +19,7 @@ import PostListRetry from 'app/components/post_list_retry';
 import RetryBarIndicator from 'app/components/retry_bar_indicator';
 import {ViewTypes} from 'app/constants';
 import tracker from 'app/utils/time_tracker';
+import telemetry from 'app/telemetry';
 
 let ChannelIntro = null;
 let LoadMorePosts = null;
@@ -35,13 +40,15 @@ export default class ChannelPostList extends PureComponent {
         lastViewedAt: PropTypes.number,
         loadMorePostsVisible: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
-        postIds: PropTypes.array.isRequired,
+        postIds: PropTypes.array,
         postVisibility: PropTypes.number,
         refreshing: PropTypes.bool.isRequired,
         theme: PropTypes.object.isRequired,
+        updateNativeScrollView: PropTypes.func,
     };
 
     static defaultProps = {
+        postIds: [],
         postVisibility: ViewTypes.POST_VISIBILITY_CHUNK_SIZE,
     };
 
@@ -53,6 +60,13 @@ export default class ChannelPostList extends PureComponent {
         };
 
         this.contentHeight = 0;
+
+        this.isLoadingMoreBottom = false;
+        this.isLoadingMoreTop = false;
+    }
+
+    componentDidMount() {
+        EventEmitter.on('goToThread', this.goToThread);
     }
 
     componentWillReceiveProps(nextProps) {
@@ -76,17 +90,28 @@ export default class ChannelPostList extends PureComponent {
             this.isLoadingMoreBottom = false;
             this.props.actions.recordLoadTime('Switch Channel', 'channelSwitch');
         }
+
+        if (!prevProps.postIds?.length && this.props.postIds?.length > 0 && this.props.updateNativeScrollView) {
+            // This is needed to re-bind the scrollview natively when getting the first posts
+            this.props.updateNativeScrollView();
+        }
+    }
+
+    componentWillUnmount() {
+        EventEmitter.off('goToThread', this.goToThread);
     }
 
     getVisiblePostIds = (props) => {
-        return props.postIds.slice(0, props.postVisibility);
+        return props.postIds ? props.postIds.slice(0, props.postVisibility) : [];
     };
 
     goToThread = (post) => {
+        telemetry.start(['post_list:thread']);
         const {actions, channelId, navigator, theme} = this.props;
         const rootId = (post.root_id || post.id);
 
-        actions.loadThreadIfNecessary(post.root_id, channelId);
+        Keyboard.dismiss();
+        actions.loadThreadIfNecessary(rootId);
         actions.selectPost(rootId);
 
         const options = {
@@ -108,15 +133,20 @@ export default class ChannelPostList extends PureComponent {
         if (Platform.OS === 'android') {
             navigator.showModal(options);
         } else {
-            navigator.push(options);
+            requestAnimationFrame(() => {
+                navigator.push(options);
+            });
         }
     };
 
-    loadMorePostsTop = async () => {
+    loadMorePostsTop = () => {
         const {actions, channelId} = this.props;
         if (!this.isLoadingMoreTop) {
             this.isLoadingMoreTop = true;
-            actions.increasePostVisibility(channelId).then((hasMore) => {
+            actions.increasePostVisibility(
+                channelId,
+                this.state.visiblePostIds[this.state.visiblePostIds.length - 1]
+            ).then((hasMore) => {
                 this.isLoadingMoreTop = !hasMore;
             });
         }
@@ -167,7 +197,6 @@ export default class ChannelPostList extends PureComponent {
             lastViewedAt,
             loadMorePostsVisible,
             navigator,
-            postIds,
             refreshing,
             theme,
         } = this.props;
@@ -175,7 +204,7 @@ export default class ChannelPostList extends PureComponent {
         const {visiblePostIds} = this.state;
         let component;
 
-        if (!postIds.length && channelRefreshingFailed) {
+        if (visiblePostIds.length === 0 && channelRefreshingFailed) {
             component = (
                 <PostListRetry
                     retry={this.loadPostsRetry}
@@ -186,6 +215,7 @@ export default class ChannelPostList extends PureComponent {
             component = (
                 <PostList
                     postIds={visiblePostIds}
+                    lastPostIndex={Platform.OS === 'android' ? getLastPostIndex(visiblePostIds) : -1}
                     extraData={loadMorePostsVisible}
                     onLoadMoreUp={this.loadMorePostsTop}
                     onPostPress={this.goToThread}
@@ -198,6 +228,7 @@ export default class ChannelPostList extends PureComponent {
                     navigator={navigator}
                     renderFooter={this.renderFooter}
                     refreshing={refreshing}
+                    scrollViewNativeID={channelId}
                 />
             );
         }

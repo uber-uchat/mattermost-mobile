@@ -1,19 +1,19 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {BackHandler, NativeModules, DeviceEventEmitter} from 'react-native';
+import {NativeModules, DeviceEventEmitter} from 'react-native';
 import LocalAuth from 'react-native-local-auth';
 import JailMonkey from 'jail-monkey';
 
 const {MattermostManaged} = NativeModules;
 
 const listeners = [];
-let localConfig;
+let cachedConfig = {};
 
 export default {
     addEventListener: (name, callback) => {
         const listener = DeviceEventEmitter.addListener(name, (config) => {
-            localConfig = config;
+            cachedConfig = config;
             if (callback && typeof callback === 'function') {
                 callback(config);
             }
@@ -36,18 +36,19 @@ export default {
     },
     authenticate: LocalAuth.auth,
     blurAppScreen: MattermostManaged.blurAppScreen,
-    getConfig: MattermostManaged.getConfig,
-    getLocalConfig: async () => {
-        if (!localConfig) {
-            try {
-                localConfig = await MattermostManaged.getConfig();
-            } catch (error) {
-                // do nothing...
-            }
+    getConfig: async () => {
+        try {
+            cachedConfig = await MattermostManaged.getConfig();
+        } catch (error) {
+            // do nothing...
         }
 
-        return localConfig || {};
+        return cachedConfig;
     },
+    getCachedConfig: () => {
+        return cachedConfig;
+    },
+    goToSecuritySettings: MattermostManaged.goToSecuritySettings,
     isDeviceSecure: async () => {
         try {
             return await LocalAuth.isDeviceSecure();
@@ -62,5 +63,5 @@ export default {
 
         return JailMonkey.trustFall();
     },
-    quitApp: BackHandler.exitApp,
+    quitApp: MattermostManaged.quitApp,
 };

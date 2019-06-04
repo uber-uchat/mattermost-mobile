@@ -35,7 +35,7 @@ describe('PostBody', () => {
         onHashtagPress: jest.fn(),
         onPermalinkPress: jest.fn(),
         onPress: jest.fn(),
-        postId: 'post',
+        post: {id: 'post'},
         postProps: {},
         postType: '',
         replyBarStyle: [],
@@ -66,5 +66,61 @@ describe('PostBody', () => {
         const wrapper = shallowWithIntl(<PostBody {...props}/>);
 
         expect(wrapper.find(PostBodyAdditionalContent).exists()).toBeFalsy();
+    });
+
+    test('measurePost should update isLongPost when showLongPost is false', () => {
+        const event = {
+            nativeEvent: {
+                layout: {
+                    height: null,
+                },
+            },
+        };
+
+        const props = {...baseProps, showLongPost: false};
+        const wrapper = shallowWithIntl(<PostBody {...props}/>);
+        const instance = wrapper.instance();
+
+        expect(wrapper.state('isLongPost')).toEqual(false);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight');
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(true);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight') - 1;
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(false);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight') + 1;
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(true);
+    });
+
+    test('measurePost should not update isLongPost when showLongPost is true', () => {
+        const event = {
+            nativeEvent: {
+                layout: {
+                    height: null,
+                },
+            },
+        };
+
+        const props = {...baseProps, showLongPost: true};
+        const wrapper = shallowWithIntl(<PostBody {...props}/>);
+        const instance = wrapper.instance();
+
+        expect(wrapper.state('isLongPost')).toEqual(false);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight');
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(false);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight') - 1;
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(false);
+
+        event.nativeEvent.layout.height = wrapper.state('maxHeight') + 1;
+        instance.measurePost(event);
+        expect(wrapper.state('isLongPost')).toEqual(false);
     });
 });

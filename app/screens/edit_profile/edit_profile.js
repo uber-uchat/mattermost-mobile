@@ -28,6 +28,32 @@ import mattermostBucket from 'app/mattermost_bucket';
 import {getFormattedFileSize} from 'mattermost-redux/utils/file_utils';
 
 const MAX_SIZE = 20 * 1024 * 1024;
+export const VALID_MIME_TYPES = [
+    'image/jpeg',
+    'image/jpeg',
+    'image/jpg',
+    'image/jp_',
+    'application/jpg',
+    'application/x-jpg',
+    'image/pjpeg',
+    'image/pipeg',
+    'image/vnd.swiftview-jpeg',
+    'image/x-xbitmap',
+    'image/png',
+    'application/png',
+    'application/x-png',
+    'image/bmp',
+    'image/x-bmp',
+    'image/x-bitmap',
+    'image/x-xbitmap',
+    'image/x-win-bitmap',
+    'image/x-windows-bmp',
+    'image/ms-bmp',
+    'image/x-ms-bmp',
+    'application/bmp',
+    'application/x-bmp',
+    'application/x-win-bitmap',
+];
 const holders = {
     firstName: {
         id: t('user.settings.general.firstName'),
@@ -226,6 +252,7 @@ export default class EditProfile extends PureComponent {
             Authorization: `Bearer ${Client4.getToken()}`,
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'multipart/form-data',
+            'X-CSRF-Token': Client4.csrf,
         };
 
         const fileInfo = {
@@ -275,6 +302,18 @@ export default class EditProfile extends PureComponent {
         });
 
         Alert.alert(fileSizeWarning);
+    };
+
+    onShowUnsupportedMimeTypeWarning = () => {
+        const {formatMessage} = this.context.intl;
+        const fileTypeWarning = formatMessage({
+            id: 'mobile.file_upload.unsupportedMimeType',
+            defaultMessage: 'Only files of the following MIME type can be uploaded: {mimeTypes}',
+        }, {
+            mimeTypes: VALID_MIME_TYPES.join('\n'),
+        });
+
+        Alert.alert('', fileTypeWarning);
     };
 
     renderFirstNameSettings = () => {
@@ -498,6 +537,8 @@ export default class EditProfile extends PureComponent {
                     uploadFiles={this.handleUploadProfileImage}
                     removeProfileImage={this.handleRemoveProfileImage}
                     onShowFileSizeWarning={this.onShowFileSizeWarning}
+                    onShowUnsupportedMimeTypeWarning={this.onShowUnsupportedMimeTypeWarning}
+                    validMimeTypes={VALID_MIME_TYPES}
                 >
                     <ProfilePicture
                         userId={currentUser.id}

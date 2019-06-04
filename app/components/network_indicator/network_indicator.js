@@ -9,11 +9,11 @@ import {
     Alert,
     Animated,
     AppState,
-    NetInfo,
     Platform,
     StyleSheet,
     View,
 } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import IonIcon from 'react-native-vector-icons/Ionicons';
 
 import FormattedText from 'app/components/formatted_text';
@@ -140,7 +140,7 @@ export default class NetworkIndicator extends PureComponent {
         const {connection} = this.props.actions;
         clearTimeout(this.connectionRetryTimeout);
 
-        NetInfo.isConnected.fetch().then(async (isConnected) => {
+        NetInfo.fetch().then(async ({isConnected}) => {
             const {hasInternet, serverReachable} = await checkConnection(isConnected);
 
             connection(hasInternet);
@@ -202,7 +202,7 @@ export default class NetworkIndicator extends PureComponent {
             return IOS_TOP_LANDSCAPE;
         } else if (isX) {
             return IOSX_TOP_PORTRAIT;
-        } else if (isLandscape) {
+        } else if (isLandscape && !DeviceTypes.IS_TABLET) {
             return IOS_TOP_LANDSCAPE;
         }
 
@@ -229,7 +229,6 @@ export default class NetworkIndicator extends PureComponent {
     handleAppStateChange = async (appState) => {
         const {actions, currentChannelId} = this.props;
         const active = appState === 'active';
-
         if (active) {
             this.connect(true);
 

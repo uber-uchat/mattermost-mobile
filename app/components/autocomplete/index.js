@@ -17,4 +17,6 @@ function mapStateToProps(state) {
     };
 }
 
-export default connect(mapStateToProps, null, null, {withRef: true})(Autocomplete);
+export const AUTOCOMPLETE_MAX_HEIGHT = 200;
+
+export default connect(mapStateToProps, null, null, {forwardRef: true})(Autocomplete);

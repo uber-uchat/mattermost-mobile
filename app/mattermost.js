@@ -7,7 +7,6 @@ import {
     AppState,
     Dimensions,
     InteractionManager,
-    Keyboard,
     NativeModules,
     Platform,
     YellowBox,
@@ -45,6 +44,7 @@ import {deleteFileCache} from 'app/utils/file';
 import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 import {t} from 'app/utils/i18n';
 import LocalConfig from 'assets/config';
+import telemetry from 'app/telemetry';
 
 import App from './app';
 import './fetch_preconfig';
@@ -134,10 +134,6 @@ const resetBadgeAndVersion = () => {
 };
 
 const handleLogout = () => {
-    // Because we can logout while being offline we reset
-    // the Client online flag to true cause the network handler
-    // is not available at this point
-    Client4.setOnline(true);
     Client4.setCSRF(null);
     store.dispatch(closeWebSocket(false));
 
@@ -152,8 +148,19 @@ const restartApp = async () => {
     Navigation.dismissModal({animationType: 'none'});
 
     try {
+        const window = Dimensions.get('window');
+
+        handleOrientationChange({window});
         await store.dispatch(loadConfigAndLicense());
         await store.dispatch(loadMe());
+
+        if (Platform.OS === 'ios') {
+            StatusBarManager.getHeight(
+                (data) => {
+                    handleStatusBarHeightChange(data.height);
+                }
+            );
+        }
     } catch (e) {
         console.warn('Failed to load initial data while restarting', e); // eslint-disable-line no-console
     }
@@ -254,9 +261,9 @@ export const handleManagedConfig = async (eventFromEmmServer = false) => {
 
         if (config && Object.keys(config).length) {
             app.setEMMEnabled(true);
-            authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
-            blurApplicationScreen = config.blurApplicationScreen && config.blurApplicationScreen === 'true';
-            jailbreakProtection = config.jailbreakProtection && config.jailbreakProtection === 'true';
+            authNeeded = config.inAppPinCode === 'true';
+            blurApplicationScreen = config.blurApplicationScreen === 'true';
+            jailbreakProtection = config.jailbreakProtection === 'true';
             vendor = config.vendor || 'Mattermost';
 
             if (!state.entities.general.credentials.token) {
@@ -332,11 +339,46 @@ const handleAuthentication = async (vendor) => {
             mattermostManaged.quitApp();
             return false;
         }
+    } else {
+        await showNotSecuredAlert(vendor);
+
+        mattermostManaged.quitApp();
+        return false;
     }
 
     app.setPerformingEMMAuthentication(false);
     return true;
 };
+
+function showNotSecuredAlert(vendor) {
+    const translations = app.getTranslations();
+
+    return new Promise((resolve) => {
+        const options = [];
+
+        if (Platform.OS === 'android') {
+            options.push({
+                text: translations[t('mobile.managed.settings')],
+                onPress: () => {
+                    mattermostManaged.goToSecuritySettings();
+                },
+            });
+        }
+
+        options.push({
+            text: translations[t('mobile.managed.exit')],
+            onPress: resolve,
+            style: 'cancel',
+        });
+
+        Alert.alert(
+            translations[t('mobile.managed.blocked_by')].replace('{vendor}', vendor),
+            Platform.OS === 'ios' ? translations[t('mobile.managed.not_secured.ios')] : translations[t('mobile.managed.not_secured.android')],
+            options,
+            {cancelable: false, onDismiss: resolve},
+        );
+    });
+}
 
 const handleSwitchToDefaultChannel = (teamId) => {
     store.dispatch(selectDefaultChannel(teamId));
@@ -408,7 +450,7 @@ const handleAppActive = async () => {
     if (app.emmEnabled && app.inBackgroundSince && authExpired) {
         try {
             const config = await mattermostManaged.getConfig();
-            const authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
+            const authNeeded = config.inAppPinCode === 'true';
             if (authNeeded) {
                 await handleAuthentication(config.vendor);
             }
@@ -418,7 +460,6 @@ const handleAppActive = async () => {
     }
 
     app.setInBackgroundSince(null);
-    Keyboard.dismiss();
 };
 
 const handleAppInActive = () => {
@@ -439,6 +480,11 @@ const handleAppInActive = () => {
 AppState.addEventListener('change', handleAppStateChange);
 
 const launchEntry = () => {
+    telemetry.start([
+        'start:select_server_screen',
+        'start:channel_screen',
+    ]);
+
     Navigation.startSingleScreenApp({
         screen: {
             screen: 'Entry',
@@ -456,6 +502,8 @@ const launchEntry = () => {
         },
         animationType: 'fade',
     });
+
+    telemetry.startSinceLaunch(['start:splash_screen']);
 };
 
 configurePushNotifications();
