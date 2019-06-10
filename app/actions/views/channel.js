@@ -400,6 +400,7 @@ export function handleSelectChannel(channelId, fromPushNotification = false, mar
             {
                 type: ViewTypes.SELECT_CHANNEL_WITH_MEMBER,
                 data: channelId,
+                channel,
                 member,
             },
         ]));
