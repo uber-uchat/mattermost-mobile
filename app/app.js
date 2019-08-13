@@ -2,7 +2,8 @@
 // See LICENSE.txt for license information.
 
 /* eslint-disable global-require*/
-import {AsyncStorage, Linking, NativeModules, Platform, Text} from 'react-native';
+import {Linking, NativeModules, Platform, Text} from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 import {setGenericPassword, getGenericPassword, resetGenericPassword} from 'react-native-keychain';
 
 import {loadMe} from 'mattermost-redux/actions/users';
@@ -30,6 +31,7 @@ export default class App {
         // Usage: app.js
         this.shouldRelaunchWhenActive = false;
         this.inBackgroundSince = null;
+        this.previousAppState = null;
 
         // Usage: screen/entry.js
         this.startAppFromPushNotification = false;
@@ -51,14 +53,6 @@ export default class App {
         this.currentUserId = null;
         this.token = null;
         this.url = null;
-
-        // Load polyfill for iOS 9
-        if (Platform.OS === 'ios') {
-            const majorVersionIOS = parseInt(Platform.Version, 10);
-            if (majorVersionIOS < 10) {
-                require('@babel/polyfill');
-            }
-        }
 
         // Usage deeplinking
         Linking.addEventListener('url', this.handleDeepLink);
@@ -204,10 +198,11 @@ export default class App {
         const username = `${deviceToken}, ${currentUserId}`;
         const password = `${token},${url}`;
 
+        this.token = token;
+        this.url = url;
+
         if (this.waitForRehydration) {
             this.waitForRehydration = false;
-            this.token = token;
-            this.url = url;
         }
 
         // Only save to keychain if the url and token are set

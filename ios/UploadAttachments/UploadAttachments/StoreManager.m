@@ -1,5 +1,5 @@
 #import "StoreManager.h"
-#import "Constants.h"
+#import "MMMConstants.h"
 
 @implementation StoreManager
 +(instancetype)shared {
@@ -31,7 +31,7 @@
   return channel;
 }
 
--(NSDictionary *)getChannelsBySections:(NSString *)forTeamId {
+-(NSDictionary *)getChannelsBySections:(NSString *)forTeamId excludeArchived:(BOOL)excludeArchived {
   NSDictionary *channelsStore = [self.entities objectForKey:@"channels"];
   NSString *currentUserId = [self getCurrentUserId];
   NSString *currentChannelId = [self getCurrentChannelId];
@@ -44,6 +44,12 @@
   
   for (NSString * key in channels) {
     NSMutableDictionary *channel = [[channels objectForKey:key] mutableCopy];
+
+    NSNumber *deleteAt = [channel objectForKey:@"delete_at"];
+    if (excludeArchived && ![deleteAt isEqualToNumber:@0]) {
+      continue;
+    }
+
     NSString *team_id = [channel objectForKey:@"team_id"];
     NSString *channelType = [channel objectForKey:@"type"];
     BOOL isDM = [channelType isEqualToString:@"D"];
@@ -150,17 +156,42 @@
   return [credentials objectForKey:@"token"];
 }
 
+-(UInt64)scanValueFromConfig:(NSDictionary *)config key:(NSString *)key {
+  NSString *value = [config objectForKey:key];
+  NSScanner *scanner = [NSScanner scannerWithString:value];
+  unsigned long long convertedValue = 0;
+  [scanner scanUnsignedLongLong:&convertedValue];
+  return convertedValue;
+}
+
+-(UInt64)getMaxImagePixels {
+  NSDictionary *config = [self getConfig];
+  NSString *key = @"MaxImagePixels";
+  if (config != nil && [config objectForKey:key]) {
+    return [self scanValueFromConfig:config key:key];
+  }
+
+  return DEFAULT_SERVER_MAX_IMAGE_PIXELS;
+}
+
 -(UInt64)getMaxFileSize {
   NSDictionary *config = [self getConfig];
-  if (config != nil && [config objectForKey:@"MaxFileSize"]) {
-    NSString *maxFileSize = [config objectForKey:@"MaxFileSize"];
-    NSScanner *scanner = [NSScanner scannerWithString:maxFileSize];
-    unsigned long long convertedValue = 0;
-    [scanner scanUnsignedLongLong:&convertedValue];
-    return convertedValue;
+  NSString *key = @"MaxFileSize";
+  if (config != nil && [config objectForKey:key]) {
+    return [self scanValueFromConfig:config key:key];
   }
-  
+
   return DEFAULT_SERVER_MAX_FILE_SIZE;
+}
+
+-(UInt64)getMaxPostSize {
+    NSDictionary *config = [self getConfig];
+    NSString *key = @"MaxPostSize";
+    if (config != nil && [config objectForKey:key]) {
+        return [self scanValueFromConfig:config key:key];
+    }
+    
+    return DEFAULT_SERVER_MAX_POST_SIZE;
 }
 
 -(void)updateEntities:(NSString *)content {

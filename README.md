@@ -20,7 +20,7 @@ To help with testing app updates before they're released, you can:
 
 1. Sign up to be a beta tester
    - [Android](https://play.google.com/apps/testing/com.mattermost.rnbeta)
-   - [iOS](https://mattermost-fastlane.herokuapp.com/)
+   - [iOS](https://testflight.apple.com/join/Q7Rx7K9P)
 2. Install the `Mattermost Beta` app. New updates in the Beta app are released periodically. You will receive a notification when the new updates are available.
 3. File any bugs you find by filing a [GitHub issue](https://github.com/mattermost/mattermost-mobile/issues) with:
    - Device information
@@ -32,7 +32,7 @@ To help with testing app updates before they're released, you can:
 
 ### Contribute Code 
 
-1. Look in [GitHub issues](https://github.com/mattermost/mattermost-server/issues?q=label%3A"React+Native") for issues marked as [Help Wanted]
+1. Look in [GitHub issues](https://mattermost.com/pl/help-wanted-mattermost-mobile) for issues marked as [Help Wanted]
 2. Comment to let people know you’re working on it
 3. Follow [these instructions](https://developers.mattermost.com/contribute/mobile/developer-setup/) to set up your developer environment
 4. Join the [Native Mobile Apps channel](https://pre-release.mattermost.com/core/channels/native-mobile-apps) on our team site to ask questions

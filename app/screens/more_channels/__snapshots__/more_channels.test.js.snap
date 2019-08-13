@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`MoreChannels should match snapshot 1`] = `
-<KeyboardLayout>
+<ForwardRef(forwardConnectRef)>
   <Connect(StatusBar) />
   <React.Fragment>
     <View
@@ -23,6 +23,7 @@ exports[`MoreChannels should match snapshot 1`] = `
             "fontSize": 15,
           }
         }
+        leftComponent={null}
         onBlur={[Function]}
         onCancelButtonPress={[Function]}
         onChangeText={[Function]}
@@ -30,6 +31,8 @@ exports[`MoreChannels should match snapshot 1`] = `
         onSearchButtonPress={[Function]}
         onSelectionChange={[Function]}
         placeholderTextColor="rgba(61,60,64,0.5)"
+        searchIconCollapsedMargin={10}
+        searchIconExpandedMargin={10}
         tintColorDelete="rgba(61,60,64,0.5)"
         tintColorSearch="rgba(61,60,64,0.5)"
         titleCancelColor="#3d3c40"
@@ -107,5 +110,5 @@ exports[`MoreChannels should match snapshot 1`] = `
       }
     />
   </React.Fragment>
-</KeyboardLayout>
+</ForwardRef(forwardConnectRef)>
 `;

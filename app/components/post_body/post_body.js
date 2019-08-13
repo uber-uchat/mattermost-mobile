@@ -4,6 +4,7 @@
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
+    Keyboard,
     ScrollView,
     TouchableOpacity,
     View,
@@ -24,6 +25,8 @@ import {getMarkdownTextStyles, getMarkdownBlockStyles} from 'app/utils/markdown'
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
+import telemetry from 'app/telemetry';
+
 let FileAttachmentList;
 let PostAddChannelMember;
 let PostBodyAdditionalContent;
@@ -43,6 +46,7 @@ export default class PostBody extends PureComponent {
         highlight: PropTypes.bool,
         isFailed: PropTypes.bool,
         isFlagged: PropTypes.bool,
+        isLastPost: PropTypes.bool,
         isPending: PropTypes.bool,
         isPostAddChannelMember: PropTypes.bool,
         isPostEphemeral: PropTypes.bool,
@@ -57,7 +61,7 @@ export default class PostBody extends PureComponent {
         onHashtagPress: PropTypes.func,
         onPermalinkPress: PropTypes.func,
         onPress: PropTypes.func,
-        postId: PropTypes.string.isRequired,
+        post: PropTypes.object.isRequired,
         postProps: PropTypes.object,
         postType: PropTypes.string,
         replyBarStyle: PropTypes.array,
@@ -74,6 +78,7 @@ export default class PostBody extends PureComponent {
         onFailedPostPress: emptyFunction,
         onPress: emptyFunction,
         replyBarStyle: [],
+        message: '',
     };
 
     static contextTypes = {
@@ -95,14 +100,30 @@ export default class PostBody extends PureComponent {
         isLongPost: false,
     };
 
+    logTelemetry = () => {
+        telemetry.end([
+            'channel:switch_initial',
+            'channel:switch_loaded',
+            'post_list:permalink',
+            'post_list:thread',
+            'team:switch',
+            'start:overall',
+        ]);
+        telemetry.save();
+    }
+
     measurePost = (event) => {
         const {height} = event.nativeEvent.layout;
         const {showLongPost} = this.props;
 
-        if (!showLongPost && height >= this.state.maxHeight) {
+        if (!showLongPost) {
             this.setState({
-                isLongPost: true,
+                isLongPost: height >= this.state.maxHeight,
             });
+        }
+
+        if (this.props.isLastPost) {
+            this.logTelemetry();
         }
     };
 
@@ -112,7 +133,7 @@ export default class PostBody extends PureComponent {
             navigator,
             onHashtagPress,
             onPermalinkPress,
-            postId,
+            post,
         } = this.props;
 
         const options = {
@@ -126,7 +147,7 @@ export default class PostBody extends PureComponent {
                 modalPresentationStyle: 'overCurrentContext',
             },
             passProps: {
-                postId,
+                postId: post.id,
                 managedConfig,
                 onHashtagPress,
                 onPermalinkPress,
@@ -148,7 +169,7 @@ export default class PostBody extends PureComponent {
             isSystemMessage,
             managedConfig,
             navigator,
-            postId,
+            post,
             showAddReaction,
             location,
         } = this.props;
@@ -177,14 +198,17 @@ export default class PostBody extends PureComponent {
                 hasBeenDeleted,
                 isFlagged,
                 isSystemMessage,
-                postId,
+                post,
                 managedConfig,
                 showAddReaction,
                 location,
             },
         };
 
-        navigator.showModal(options);
+        Keyboard.dismiss();
+        requestAnimationFrame(() => {
+            navigator.showModal(options);
+        });
     };
 
     renderAddChannelMember = (style, messageStyle, textStyles) => {
@@ -194,6 +218,16 @@ export default class PostBody extends PureComponent {
             PostAddChannelMember = require('app/components/post_add_channel_member').default;
         }
 
+        let userIds = postProps.add_channel_member.not_in_channel_user_ids;
+        let usernames = postProps.add_channel_member.not_in_channel_usernames;
+
+        if (!userIds) {
+            userIds = postProps.add_channel_member.user_ids;
+        }
+        if (!usernames) {
+            usernames = postProps.add_channel_member.usernames;
+        }
+
         return (
             <PostAddChannelMember
                 baseTextStyle={messageStyle}
@@ -201,8 +235,9 @@ export default class PostBody extends PureComponent {
                 onPostPress={onPress}
                 textStyles={textStyles}
                 postId={postProps.add_channel_member.post_id}
-                userIds={postProps.add_channel_member.user_ids}
-                usernames={postProps.add_channel_member.usernames}
+                userIds={userIds}
+                usernames={usernames}
+                noGroupsUsernames={postProps.add_channel_member.not_in_groups_usernames}
             />
         );
     };
@@ -212,7 +247,7 @@ export default class PostBody extends PureComponent {
             fileIds,
             isFailed,
             navigator,
-            postId,
+            post,
             showLongPost,
         } = this.props;
 
@@ -231,7 +266,7 @@ export default class PostBody extends PureComponent {
                     fileIds={fileIds}
                     isFailed={isFailed}
                     onLongPress={this.showPostOptions}
-                    postId={postId}
+                    postId={post.id}
                     navigator={navigator}
                 />
             );
@@ -249,7 +284,7 @@ export default class PostBody extends PureComponent {
             navigator,
             onHashtagPress,
             onPermalinkPress,
-            postId,
+            post,
             postProps,
         } = this.props;
 
@@ -272,7 +307,7 @@ export default class PostBody extends PureComponent {
                 navigator={navigator}
                 message={message}
                 metadata={metadata}
-                postId={postId}
+                postId={post.id}
                 postProps={postProps}
                 textStyles={textStyles}
                 isReplyPost={isReplyPost}
@@ -287,7 +322,7 @@ export default class PostBody extends PureComponent {
             hasReactions,
             isSearchResult,
             navigator,
-            postId,
+            post,
             showLongPost,
         } = this.props;
 
@@ -301,7 +336,7 @@ export default class PostBody extends PureComponent {
 
         return (
             <Reactions
-                postId={postId}
+                postId={post.id}
                 navigator={navigator}
             />
         );
@@ -385,7 +420,7 @@ export default class PostBody extends PureComponent {
                         baseTextStyle={messageStyle}
                         blockStyles={blockStyles}
                         channelMentions={postProps.channel_mentions}
-                        imageMetadata={metadata?.images}
+                        imagesMetadata={metadata?.images}
                         isEdited={hasBeenEdited}
                         isReplyPost={isReplyPost}
                         isSearchResult={isSearchResult}
@@ -408,6 +443,7 @@ export default class PostBody extends PureComponent {
                         scrollEnabled={false}
                         showsVerticalScrollIndicator={false}
                         showsHorizontalScrollIndicator={false}
+                        keyboardShouldPersistTaps={'always'}
                     >
                         {messageComponent}
                     </ScrollView>

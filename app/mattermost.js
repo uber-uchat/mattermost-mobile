@@ -7,7 +7,6 @@ import {
     AppState,
     Dimensions,
     InteractionManager,
-    Keyboard,
     NativeModules,
     Platform,
     YellowBox,
@@ -45,11 +44,12 @@ import {deleteFileCache} from 'app/utils/file';
 import avoidNativeBridge from 'app/utils/avoid_native_bridge';
 import {t} from 'app/utils/i18n';
 import LocalConfig from 'assets/config';
+import telemetry from 'app/telemetry';
 
 import App from './app';
 import './fetch_preconfig';
 
-const AUTHENTICATION_TIMEOUT = 5 * 60 * 1000;
+const PROMPT_IN_APP_PIN_CODE_AFTER = 5 * 60 * 1000;
 
 // Hide warnings caused by React Native (https://github.com/facebook/react-native/issues/20841)
 YellowBox.ignoreWarnings(['Require cycle: node_modules/react-native/Libraries/Network/fetch.js']);
@@ -134,10 +134,6 @@ const resetBadgeAndVersion = () => {
 };
 
 const handleLogout = () => {
-    // Because we can logout while being offline we reset
-    // the Client online flag to true cause the network handler
-    // is not available at this point
-    Client4.setOnline(true);
     Client4.setCSRF(null);
     store.dispatch(closeWebSocket(false));
 
@@ -152,8 +148,19 @@ const restartApp = async () => {
     Navigation.dismissModal({animationType: 'none'});
 
     try {
+        const window = Dimensions.get('window');
+
+        handleOrientationChange({window});
         await store.dispatch(loadConfigAndLicense());
         await store.dispatch(loadMe());
+
+        if (Platform.OS === 'ios') {
+            StatusBarManager.getHeight(
+                (data) => {
+                    handleStatusBarHeightChange(data.height);
+                }
+            );
+        }
     } catch (e) {
         console.warn('Failed to load initial data while restarting', e); // eslint-disable-line no-console
     }
@@ -254,9 +261,9 @@ export const handleManagedConfig = async (eventFromEmmServer = false) => {
 
         if (config && Object.keys(config).length) {
             app.setEMMEnabled(true);
-            authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
-            blurApplicationScreen = config.blurApplicationScreen && config.blurApplicationScreen === 'true';
-            jailbreakProtection = config.jailbreakProtection && config.jailbreakProtection === 'true';
+            authNeeded = config.inAppPinCode === 'true';
+            blurApplicationScreen = config.blurApplicationScreen === 'true';
+            jailbreakProtection = config.jailbreakProtection === 'true';
             vendor = config.vendor || 'Mattermost';
 
             if (!state.entities.general.credentials.token) {
@@ -315,28 +322,63 @@ export const handleManagedConfig = async (eventFromEmmServer = false) => {
     return true;
 };
 
-const handleAuthentication = async (vendor) => {
+const handleAuthentication = async (vendor, prompt = true) => {
     app.setPerformingEMMAuthentication(true);
     const isSecured = await mattermostManaged.isDeviceSecure();
-
     const translations = app.getTranslations();
+
     if (isSecured) {
         try {
             mattermostBucket.setPreference('emm', vendor);
-            await mattermostManaged.authenticate({
-                reason: translations[t('mobile.managed.secured_by')].replace('{vendor}', vendor),
-                fallbackToPasscode: true,
-                suppressEnterPassword: true,
-            });
+            if (prompt) {
+                await mattermostManaged.authenticate({
+                    reason: translations[t('mobile.managed.secured_by')].replace('{vendor}', vendor),
+                    fallbackToPasscode: true,
+                    suppressEnterPassword: true,
+                });
+            }
         } catch (err) {
             mattermostManaged.quitApp();
             return false;
         }
+    } else {
+        await showNotSecuredAlert(vendor, translations);
+
+        mattermostManaged.quitApp();
+        return false;
     }
 
     app.setPerformingEMMAuthentication(false);
     return true;
 };
+
+function showNotSecuredAlert(vendor, translations) {
+    return new Promise((resolve) => {
+        const options = [];
+
+        if (Platform.OS === 'android') {
+            options.push({
+                text: translations[t('mobile.managed.settings')],
+                onPress: () => {
+                    mattermostManaged.goToSecuritySettings();
+                },
+            });
+        }
+
+        options.push({
+            text: translations[t('mobile.managed.exit')],
+            onPress: resolve,
+            style: 'cancel',
+        });
+
+        Alert.alert(
+            translations[t('mobile.managed.blocked_by')].replace('{vendor}', vendor),
+            Platform.OS === 'ios' ? translations[t('mobile.managed.not_secured.ios')] : translations[t('mobile.managed.not_secured.android')],
+            options,
+            {cancelable: false, onDismiss: resolve},
+        );
+    });
+}
 
 const handleSwitchToDefaultChannel = (teamId) => {
     store.dispatch(selectDefaultChannel(teamId));
@@ -363,7 +405,7 @@ const launchSelectServer = () => {
     });
 };
 
-const launchChannel = () => {
+const launchChannel = (skipMetrics = false) => {
     Navigation.startSingleScreenApp({
         screen: {
             screen: 'Channel',
@@ -372,6 +414,9 @@ const launchChannel = () => {
                 statusBarHidden: false,
                 statusBarHideWithNavBar: false,
                 screenBackgroundColor: 'transparent',
+            },
+            passProps: {
+                skipMetrics,
             },
         },
         appStyle: {
@@ -383,20 +428,20 @@ const launchChannel = () => {
 
 const handleAppStateChange = (appState) => {
     const isActive = appState === 'active';
+    const isBackground = appState === 'background';
 
     store.dispatch(setAppState(isActive));
 
-    if (isActive) {
+    if (isActive && app.previousAppState === 'background') {
         handleAppActive();
-        return;
+    } else if (isBackground) {
+        handleAppInActive();
     }
 
-    handleAppInActive();
+    app.previousAppState = appState;
 };
 
 const handleAppActive = async () => {
-    const authExpired = (Date.now() - app.inBackgroundSince) >= AUTHENTICATION_TIMEOUT;
-
     // This handles when the app was started in the background
     // cause of an iOS push notification reply
     if (Platform.OS === 'ios' && app.shouldRelaunchWhenActive) {
@@ -404,21 +449,20 @@ const handleAppActive = async () => {
         app.setShouldRelaunchWhenActive(false);
     }
 
-    // Once the app becomes active after more than 5 minutes in the background and is controlled by an EMM Provider
-    if (app.emmEnabled && app.inBackgroundSince && authExpired) {
-        try {
-            const config = await mattermostManaged.getConfig();
-            const authNeeded = config.inAppPinCode && config.inAppPinCode === 'true';
-            if (authNeeded) {
-                await handleAuthentication(config.vendor);
-            }
-        } catch (error) {
-            // do nothing
+    // if the app is being controlled by an EMM provider
+    if (app.emmEnabled) {
+        const config = await mattermostManaged.getConfig();
+        const authNeeded = config.inAppPinCode === 'true';
+        const authExpired = (Date.now() - app.inBackgroundSince) >= PROMPT_IN_APP_PIN_CODE_AFTER;
+
+        // Once the app becomes active we check if the device needs to have a passcode set
+        if (authNeeded) {
+            const prompt = app.inBackgroundSince && authExpired; // if more than 5 minutes have passed prompt for passcode
+            await handleAuthentication(config.vendor, prompt);
         }
     }
 
     app.setInBackgroundSince(null);
-    Keyboard.dismiss();
 };
 
 const handleAppInActive = () => {
@@ -439,6 +483,11 @@ const handleAppInActive = () => {
 AppState.addEventListener('change', handleAppStateChange);
 
 const launchEntry = () => {
+    telemetry.start([
+        'start:select_server_screen',
+        'start:channel_screen',
+    ]);
+
     Navigation.startSingleScreenApp({
         screen: {
             screen: 'Entry',
@@ -456,6 +505,8 @@ const launchEntry = () => {
         },
         animationType: 'fade',
     });
+
+    telemetry.startSinceLaunch(['start:splash_screen']);
 };
 
 configurePushNotifications();
@@ -465,14 +516,19 @@ const fromPushNotification = Platform.OS === 'android' && Initialization.replyFr
 if (startedSharedExtension || fromPushNotification) {
     // Hold on launching Entry screen
     app.setAppStarted(true);
-
-    // Listen for when the user opens the app
-    new NativeEventsReceiver().appLaunched(() => {
-        app.setAppStarted(false);
-        launchEntry();
-    });
 }
 
 if (!app.appStarted) {
     launchEntry();
 }
+
+new NativeEventsReceiver().appLaunched(() => {
+    if (startedSharedExtension || fromPushNotification) {
+        app.setAppStarted(false);
+        launchEntry();
+    } else if (app.token && app.url) {
+        launchChannel(true);
+    } else {
+        launchSelectServer();
+    }
+});

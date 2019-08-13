@@ -12,6 +12,9 @@ import {
     View,
 } from 'react-native';
 
+import {TABLET_WIDTH} from 'app/components/sidebars/drawer_layout';
+import {DeviceTypes} from 'app/constants';
+
 import ImageCacheManager from 'app/utils/image_cache_manager';
 import {previewImageAtIndex, calculateDimensions} from 'app/utils/images';
 import {getNearestPoint} from 'app/utils/opengraph';
@@ -28,7 +31,7 @@ export default class PostAttachmentOpenGraph extends PureComponent {
         }).isRequired,
         deviceHeight: PropTypes.number.isRequired,
         deviceWidth: PropTypes.number.isRequired,
-        imageMetadata: PropTypes.object,
+        imagesMetadata: PropTypes.object,
         isReplyPost: PropTypes.bool,
         link: PropTypes.string.isRequired,
         navigator: PropTypes.object.isRequired,
@@ -78,7 +81,7 @@ export default class PostAttachmentOpenGraph extends PureComponent {
             };
         }
 
-        const {imageMetadata} = this.props;
+        const {imagesMetadata} = this.props;
         const bestDimensions = {
             width: this.getViewPostWidth(),
             height: MAX_IMAGE_HEIGHT,
@@ -87,8 +90,8 @@ export default class PostAttachmentOpenGraph extends PureComponent {
         const bestImage = getNearestPoint(bestDimensions, data.images, 'width', 'height');
         const imageUrl = bestImage.secure_url || bestImage.url;
         let ogImage;
-        if (imageMetadata && imageMetadata[imageUrl]) {
-            ogImage = imageMetadata[imageUrl];
+        if (imagesMetadata && imagesMetadata[imageUrl]) {
+            ogImage = imagesMetadata[imageUrl];
         }
 
         if (!ogImage) {
@@ -124,12 +127,12 @@ export default class PostAttachmentOpenGraph extends PureComponent {
     };
 
     getImageSize = (imageUrl) => {
-        const {imageMetadata, openGraphData} = this.props;
+        const {imagesMetadata, openGraphData} = this.props;
         const {openGraphImageUrl} = this.state;
 
         let ogImage;
-        if (imageMetadata && imageMetadata[openGraphImageUrl]) {
-            ogImage = imageMetadata[openGraphImageUrl];
+        if (imagesMetadata && imagesMetadata[openGraphImageUrl]) {
+            ogImage = imagesMetadata[openGraphImageUrl];
         }
 
         if (!ogImage) {
@@ -162,8 +165,9 @@ export default class PostAttachmentOpenGraph extends PureComponent {
         const {deviceHeight, deviceWidth, isReplyPost} = this.props;
         const deviceSize = deviceWidth > deviceHeight ? deviceHeight : deviceWidth;
         const viewPortWidth = deviceSize - VIEWPORT_IMAGE_OFFSET - (isReplyPost ? VIEWPORT_IMAGE_REPLY_OFFSET : 0);
+        const tabletOffset = DeviceTypes.IS_TABLET ? TABLET_WIDTH : 0;
 
-        return viewPortWidth;
+        return viewPortWidth - tabletOffset;
     };
 
     goToLink = () => {

@@ -56,13 +56,21 @@ function mapStateToProps(state) {
     const isCurrent = currentChannel.id === state.entities.channels.currentChannelId;
     const isFavorite = favoriteChannels && favoriteChannels.indexOf(currentChannel.id) > -1;
     const roles = getCurrentUserRoles(state);
-    const canManageUsers = currentChannel.hasOwnProperty('id') ? canManageChannelMembers(state) : false;
+    let canManageUsers = currentChannel.hasOwnProperty('id') ? canManageChannelMembers(state) : false;
+    if (currentChannel.group_constrained) {
+        canManageUsers = false;
+    }
     const currentUser = getUser(state, currentUserId);
 
     let status;
+    let isBot = false;
     if (currentChannel.type === General.DM_CHANNEL) {
         const teammateId = getUserIdFromChannelName(currentUserId, currentChannel.name);
+        const teammate = getUser(state, teammateId);
         status = getStatusForUserId(state, teammateId);
+        if (teammate && teammate.is_bot) {
+            isBot = true;
+        }
     }
 
     const isAdmin = checkIsAdmin(roles);
@@ -88,6 +96,7 @@ function mapStateToProps(state) {
         status,
         theme: getTheme(state),
         canManageUsers,
+        isBot,
     };
 }
 

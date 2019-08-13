@@ -34,12 +34,6 @@ exports[`edit_profile should match snapshot 1`] = `
           "calls": Array [
             Array [
               Object {
-                "leftButtons": Array [
-                  Object {
-                    "id": "close-settings",
-                    "title": undefined,
-                  },
-                ],
                 "rightButtons": Array [
                   Object {
                     "disabled": true,
@@ -74,6 +68,7 @@ exports[`edit_profile should match snapshot 1`] = `
       }
     }
     onShowFileSizeWarning={[Function]}
+    onShowUnsupportedMimeTypeWarning={[Function]}
     removeProfileImage={[Function]}
     theme={
       Object {
@@ -104,6 +99,34 @@ exports[`edit_profile should match snapshot 1`] = `
       }
     }
     uploadFiles={[Function]}
+    validMimeTypes={
+      Array [
+        "image/jpeg",
+        "image/jpeg",
+        "image/jpg",
+        "image/jp_",
+        "application/jpg",
+        "application/x-jpg",
+        "image/pjpeg",
+        "image/pipeg",
+        "image/vnd.swiftview-jpeg",
+        "image/x-xbitmap",
+        "image/png",
+        "application/png",
+        "application/x-png",
+        "image/bmp",
+        "image/x-bmp",
+        "image/x-bitmap",
+        "image/x-xbitmap",
+        "image/x-win-bitmap",
+        "image/x-windows-bmp",
+        "image/ms-bmp",
+        "image/x-ms-bmp",
+        "application/bmp",
+        "application/x-bmp",
+        "application/x-win-bitmap",
+      ]
+    }
     wrapper={true}
   >
     <Connect(ProfilePicture)

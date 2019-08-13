@@ -19,7 +19,7 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import SafeAreaView from 'app/components/safe_area_view';
 import DrawerLayout from 'app/components/sidebars/drawer_layout';
 import UserStatus from 'app/components/user_status';
-import {NavigationTypes} from 'app/constants';
+import {DeviceTypes, NavigationTypes} from 'app/constants';
 import {confirmOutOfOfficeDisabled} from 'app/utils/status';
 import {preventDoubleTap} from 'app/utils/tap';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
@@ -30,6 +30,7 @@ import UserInfo from './user_info';
 import StatusLabel from './status_label';
 
 const DRAWER_INITIAL_OFFSET = 80;
+const DRAWER_TABLET_WIDTH = 300;
 
 export default class SettingsDrawer extends PureComponent {
     static propTypes = {
@@ -41,6 +42,7 @@ export default class SettingsDrawer extends PureComponent {
         children: PropTypes.node,
         currentUser: PropTypes.object.isRequired,
         deviceWidth: PropTypes.number.isRequired,
+        isLandscape: PropTypes.bool.isRequired,
         navigator: PropTypes.object,
         status: PropTypes.string,
         theme: PropTypes.object.isRequired,
@@ -151,11 +153,12 @@ export default class SettingsDrawer extends PureComponent {
     goToEditProfile = preventDoubleTap(() => {
         const {currentUser} = this.props;
         const {formatMessage} = this.context.intl;
+        const commandType = 'ShowModal';
 
         this.openModal(
             'EditProfile',
             formatMessage({id: 'mobile.routes.edit_profile', defaultMessage: 'Edit Profile'}),
-            {currentUser}
+            {currentUser, commandType}
         );
     });
 
@@ -174,6 +177,17 @@ export default class SettingsDrawer extends PureComponent {
         this.openModal(
             'RecentMentions',
             intl.formatMessage({id: 'search_header.title2', defaultMessage: 'Recent Mentions'}),
+        );
+    });
+
+    goToUserProfile = preventDoubleTap(() => {
+        const userId = this.props.currentUser.id;
+        const {formatMessage} = this.context.intl;
+
+        this.openModal(
+            'UserProfile',
+            formatMessage({id: 'mobile.routes.user_profile', defaultMessage: 'Profile'}),
+            {userId, fromSettings: true}
         );
     });
 
@@ -256,7 +270,7 @@ export default class SettingsDrawer extends PureComponent {
                         contentContainerStyle={style.wrapper}
                     >
                         <UserInfo
-                            onPress={this.goToEditProfile}
+                            onPress={this.goToUserProfile}
                             user={currentUser}
                         />
                         <View style={style.block}>
@@ -291,6 +305,15 @@ export default class SettingsDrawer extends PureComponent {
                         </View>
                         <View style={style.separator}/>
                         <View style={style.block}>
+                            <DrawerItem
+                                defaultMessage='Edit Profile'
+                                i18nId='mobile.routes.edit_profile'
+                                iconName='ios-person'
+                                iconType='ion'
+                                onPress={this.goToEditProfile}
+                                separator={true}
+                                theme={theme}
+                            />
                             <DrawerItem
                                 defaultMessage='Settings'
                                 i18nId='mobile.routes.settings'
@@ -349,6 +372,7 @@ export default class SettingsDrawer extends PureComponent {
 
     render() {
         const {children, deviceWidth} = this.props;
+        const drawerWidth = DeviceTypes.IS_TABLET ? DRAWER_TABLET_WIDTH : (deviceWidth - DRAWER_INITIAL_OFFSET);
 
         return (
             <DrawerLayout
@@ -357,7 +381,7 @@ export default class SettingsDrawer extends PureComponent {
                 onDrawerClose={this.handleDrawerClose}
                 onDrawerOpen={this.handleDrawerOpen}
                 drawerPosition='right'
-                drawerWidth={deviceWidth - DRAWER_INITIAL_OFFSET}
+                drawerWidth={drawerWidth}
                 useNativeAnimations={true}
             >
                 {children}
@@ -373,7 +397,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             backgroundColor: changeOpacity(theme.centerChannelColor, 0.03),
         },
         wrapper: {
-            flex: 1,
             paddingTop: 0,
         },
         block: {

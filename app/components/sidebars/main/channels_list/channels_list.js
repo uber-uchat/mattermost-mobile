@@ -49,11 +49,11 @@ export default class ChannelsList extends PureComponent {
         });
     }
 
-    componentWillReceiveProps(nextProps) {
-        if (!nextProps.drawerOpened && this.props.drawerOpened) {
-            this.cancelSearch();
+    cancelSearch = () => {
+        if (this.refs.search_bar) {
+            this.refs.search_bar.cancel();
         }
-    }
+    };
 
     onSelectChannel = (channel, currentChannelId) => {
         if (channel.fake) {
@@ -62,9 +62,7 @@ export default class ChannelsList extends PureComponent {
             this.props.onSelectChannel(channel, currentChannelId);
         }
 
-        if (this.refs.search_bar) {
-            this.refs.search_bar.cancel();
-        }
+        this.cancelSearch();
     };
 
     onSearch = (term) => {
@@ -79,7 +77,7 @@ export default class ChannelsList extends PureComponent {
         this.props.onSearchStart();
     };
 
-    cancelSearch = () => {
+    onSearchCancel = () => {
         this.props.onSearchEnds();
         this.setState({searching: false});
         this.onSearch('');
@@ -132,8 +130,9 @@ export default class ChannelsList extends PureComponent {
                     ref='search_bar'
                     placeholder={intl.formatMessage({id: 'mobile.channel_drawer.search', defaultMessage: 'Jump to...'})}
                     cancelTitle={intl.formatMessage({id: 'mobile.post.cancel', defaultMessage: 'Cancel'})}
+                    inputCollapsedMargin={0}
                     backgroundColor='transparent'
-                    inputHeight={34}
+                    inputHeight={33}
                     inputStyle={searchBarInput}
                     placeholderTextColor={changeOpacity(theme.sidebarHeaderTextColor, 0.5)}
                     tintColorSearch={changeOpacity(theme.sidebarHeaderTextColor, 0.5)}
@@ -141,10 +140,17 @@ export default class ChannelsList extends PureComponent {
                     titleCancelColor={theme.sidebarHeaderTextColor}
                     selectionColor={changeOpacity(theme.sidebarHeaderTextColor, 0.5)}
                     onSearchButtonPress={this.onSearch}
-                    onCancelButtonPress={this.cancelSearch}
+                    onCancelButtonPress={this.onSearchCancel}
                     onChangeText={this.onSearch}
                     onFocus={this.onSearchFocused}
+                    searchIconCollapsedMargin={5}
+                    searchIconExpandedMargin={5}
                     value={term}
+                    leftComponent={(
+                        <SwitchTeamsButton
+                            onShowTeams={onShowTeams}
+                        />
+                    )}
                 />
             </View>
         );
@@ -153,16 +159,8 @@ export default class ChannelsList extends PureComponent {
             <View
                 style={styles.container}
             >
-                <View style={styles.statusBar}>
-                    <View style={styles.headerContainer}>
-                        <View style={styles.switchContainer}>
-                            <SwitchTeamsButton
-                                searching={searching}
-                                onShowTeams={onShowTeams}
-                            />
-                        </View>
-                        {title}
-                    </View>
+                <View style={styles.headerContainer}>
+                    {title}
                 </View>
                 {list}
             </View>
@@ -176,13 +174,10 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
             backgroundColor: theme.sidebarBg,
             flex: 1,
         },
-        statusBar: {
-            backgroundColor: theme.sidebarHeaderBg,
-        },
         headerContainer: {
             alignItems: 'center',
             paddingLeft: 10,
-            backgroundColor: theme.sidebarHeaderBg,
+            backgroundColor: theme.sidebarBg,
             flexDirection: 'row',
             borderBottomWidth: 1,
             borderBottomColor: changeOpacity(theme.sidebarHeaderTextColor, 0.10),

@@ -2,6 +2,7 @@
 // See LICENSE.txt for license information.
 
 import React from 'react';
+import {Alert} from 'react-native';
 import {shallow} from 'enzyme';
 
 import Preferences from 'mattermost-redux/constants/preferences';
@@ -9,6 +10,12 @@ import Preferences from 'mattermost-redux/constants/preferences';
 import PostOptions from './post_options';
 
 jest.mock('react-intl');
+
+jest.mock('Alert', () => {
+    return {
+        alert: jest.fn(),
+    };
+});
 
 describe('PostOptions', () => {
     const navigator = {
@@ -25,8 +32,6 @@ describe('PostOptions', () => {
         removePost: jest.fn(),
         unflagPost: jest.fn(),
         unpinPost: jest.fn(),
-        selectPost: jest.fn(),
-        loadThreadIfNecessary: jest.fn(),
     };
 
     const post = {
@@ -89,14 +94,30 @@ describe('PostOptions', () => {
 
     test('should load thread', () => {
         const wrapper = getWrapper();
+        const instance = wrapper.instance();
+
+        instance.closeWithAnimation = jest.fn();
 
         wrapper.findWhere((node) => node.key() === 'reply').simulate('press');
-        expect(actions.loadThreadIfNecessary).toBeCalled();
+        expect(instance.closeWithAnimation).toBeCalled();
     });
 
     test('should not show reply option', () => {
         const wrapper = getWrapper({canReply: false});
 
         expect(wrapper.findWhere((node) => node.key() === 'reply')).toMatchObject({});
+    });
+
+    test('should remove post after delete', () => {
+        const wrapper = getWrapper();
+
+        wrapper.findWhere((node) => node.key() === 'delete').simulate('press');
+        expect(Alert.alert).toBeCalled();
+
+        // Trigger on press of Delete in the Alert
+        Alert.alert.mock.calls[0][2][1].onPress();
+
+        expect(actions.deletePost).toBeCalled();
+        expect(actions.removePost).toBeCalled();
     });
 });

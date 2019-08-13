@@ -1,12 +1,143 @@
 # Mattermost Mobile Apps Changelog
 
+## 1.20.1 Release
+- Release Date: June 21, 2019
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
+
+### Combatibility
+ - Mobile App v1.13+ is required for Mattermost Server v5.4+.
+ - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+ - iPhone 5s devices and later with iOS 11+ is required.
+
+### Bug Fixes
+ - Fixed an issue where some Android devices were crashing.
+ - Fixed an issue where messages were missing after reconnecting the network.
+ 
+## 1.20.0 Release
+- Release Date: June 16, 2019
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
+
+### Combatibility
+ - Mobile App v1.13+ is required for Mattermost Server v5.4+.
+ - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+ - iPhone 5s devices and later with iOS 11+ is required.
+
+### Highlights
+
+#### Tablet Improvements
+ - Channel sidebar now remains open at a fixed width on tablet devices.
+ 
+#### iOS Keyboard Dismissal
+ - If the keyboard is open, swiping down past it now closes it.
+ 
+#### Profile Telemetry for Android Beta Builds
+ - To improve Android app performance, we are collecting trace events and device information, collectively known as metrics, to identify slow performing key areas. Those metrics will be sent only from users using Android app beta build starting in version v1.20, who are logged in to servers that allow sending [diagnostic information](https://docs.mattermost.com/administration/config-settings.html#enable-diagnostics-and-error-reporting).
+
+### Improvements
+ - Increased the double tap delay for post action buttons.
+ - Implemented assets for Adaptive icons.
+ - Users are now brought to the bottom of the channel when posting a message.
+ - Users can now execute actions while the keyboard is open.
+ - Added support on iOS for IPv6 on LTE networks.
+ - Added support for LDAP Group constrained feature with v5.12 servers.
+
+### Bug Fixes
+ - Fixed an issue where a post wasn't immediately removed when deleting another user's post.
+ - Fixed an issue where the cursor jumped back when typing after auto-completing a slash command.
+ - Fixed an issue where the iOS app didn’t properly restore its connection after disconnect.
+ - Fixed an issue where the long press menu persisted after returning from a thread.
+ - Fixed an issue on Android where the "Write to [channel name]" was cut off for group messages with several users.
+ - Fixed an issue where users were not able to flag or unflag posts in a read-only channel.
+ - Fixed an issue where the progress indicator was negative while downloading a video.
+ - Fixed an issue where the edit post modal didn’t have an autocorrect.
+ - Fixed an issue where the 'I forgot my password' option was available on the mobile client even with Email Authentication disabled on the server.
+ - Fixed an issue with large separation between placeholders on iPad when a channel was loading.
+ - Fixed an issue where "Show More" was not removed after the post was edited to a single line.
+ 
+### Known Issues
+  - Buttons inside ephemeral posts are not clickable / functional on the mobile app. [MM-15084](https://mattermost.atlassian.net/browse/MM-15084)
+  - App slows down when opening a channel with large number of animated emoji. [MM-15792](https://mattermost.atlassian.net/browse/MM-15792)
+ 
+## 1.19.0 Release
+- Release Date: May 16, 2019
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
+
+### Combatibility
+ - Mobile App v1.13+ is required for Mattermost Server v5.4+.
+ - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+ - iPhone 5s devices and later with iOS 11+ is required.
+ 
+### Bug Fixes
+ - Fixed an issue where Android managed config was lost on the thread view.
+ - Fixed an issue where contents of ephemeral posts did not display on the mobile app.
+ - Fixed a few mobile app crash / fatal error issues.
+ - Fixed an issue with an expanding animation when tapping on Jump to Channel in the channel list.
+ - Fixed an issue on iOS where animated custom emoji weren't animated.
+ - Fixed an issue on iOS where users were unable to create channel name of 2 characters.
+ - Fixed an issue on iOS where emoji appeared too close, with uneven spacing, and too small in the info modal.
+ - Added an error handler when sharing text that was over server's maximum post size with the iOS Share Extension.
+ - Fixed an issue where users could upload a GIF as a profile image.
+ 
+### Known Issues
+ - Buttons inside ephemeral posts are not clickable / functional on the mobile app.
+
+## 1.18.1 Release
+- Release Date: April 18, 2019
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
+
+### Combatibility
+ - Mobile App v1.13+ is required for Mattermost Server v5.4+.
+ - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+ - iPhone 5s devices and later with iOS 11+ is required.
+
+### Bug Fixes 
+ - Fixed a crash issue caused by a malformed post textbox localize string.
+ - Fixed an issue where iOS crashed when trying to log in using SSO and the SSO provider set a cookie without an expiration date.
+
+## 1.18.0 Release
+- Release Date: April 16, 2019
+- Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
+
+### Combatibility
+ - Mobile App v1.13+ is required for Mattermost Server v5.4+.
+ - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
+ - iPhone 5s devices and later with iOS 11+ is required.
+ - ``Bot`` tags were added for bot accounts feature in server v5.10 and mobile v1.18, meaning that mobile v1.17 and earlier don't support the tags.
+ 
+### Highlights
+ - Added support for Office365 single sign-on (SSO).
+ - Added support for Integrated Windows Authentication (IWA).
+
+### Improvements
+ - Added the ability for channel links to open inside the app.
+ - Added ability for emojis and hyperlinks to render in the message attachment title.
+ - Added Chinese support for words that trigger mentions.
+ - Added a setting to the system console to change the minimum length of hashtags.
+ - Added a reply option to long press context menu.
+
+### Bug Fixes
+ - Fixed an issue where blank spaces broke markdown tables.
+ - Fixed an issue where deactivated users appeared on "Add Members" modal but not on the search results.
+ - Fixed an issue on Android where extra text in the search box appeared after using the autocomplete drop-down.
+ - Fixed an issue with multiple text entries when typing with Shift+Letter on Android.
+ - Fixed an issue where push notifications badges did not always clear when read on another device.
+ - Fixed an issue where opening a single or group notification did not take the user into the channel where the notification came from.
+ - Fixed an issue where timezone did not automatically update on Android when travelling to another timezone.
+ - Fixed an issue where the user mention autocomplete drop-down was case sensitive.
+ - Fixed an issue where system admininistrators were able to see the full long press menu when long pressing a system message.
+ - Fixed an issue where users were not able to unflag posts from "Flagged Posts" when opened from a read-only channel.
+ - Fixed an issue where users were unable to create channel names of 2 byte characters.
+ 
+### Known Issues
+ - Content for ephemeral messages is not displayed on Mattermost Mobile Apps.
+
 ## 1.17.0 Release
 - Release Date: March 20, 2019
 - Server Versions Supported: Server v4.10+ is required, Self-Signed SSL Certificates are not supported unless the user installs the CA certificate on their device
 
 ### Combatibility
  - If **DisableLegacyMfa** setting in ``config.json`` is set to ``true`` and [multi-factor authentication](https://docs.mattermost.com/deployment/auth.html) is enabled, ensure your users have upgraded to mobile app version 1.17 or later. See [Important Upgrade Notes](https://docs.mattermost.com/administration/important-upgrade-notes.html) for more details.
- - Fixed support for EMM connections using VPN on-demand to indicate that every request should wait for the VPN connection to be establish and to set the value in seconds for the timeout. See docs for more details on [setting AppConfig values](https://docs.mattermost.com/mobile/mobile-appconfig.html#mattermost-appconfig-values) for VPN support.
+ - If you are using an EMM provider via AppConfig, make sure to add two new settings, `useVPN` and `timeoutVPN`, to your AppConfig file. The settings were added for EMM connections using VPN on-demand - one to indicate if every request should wait for the VPN connection to be established, and another to set the timeout in seconds. See docs for more details on [setting AppConfig values](https://docs.mattermost.com/mobile/mobile-appconfig.html#mattermost-appconfig-values) for VPN support.
  - Mobile App v1.13+ is required for Mattermost Server v5.4+.
  - Android operating system 7+ [is required by Google](https://android-developers.googleblog.com/2017/12/improving-app-security-and-performance.html).
  - iPhone 5s devices and later with iOS 11+ is required.

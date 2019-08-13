@@ -28,6 +28,32 @@ import mattermostBucket from 'app/mattermost_bucket';
 import {getFormattedFileSize} from 'mattermost-redux/utils/file_utils';
 
 const MAX_SIZE = 20 * 1024 * 1024;
+export const VALID_MIME_TYPES = [
+    'image/jpeg',
+    'image/jpeg',
+    'image/jpg',
+    'image/jp_',
+    'application/jpg',
+    'application/x-jpg',
+    'image/pjpeg',
+    'image/pipeg',
+    'image/vnd.swiftview-jpeg',
+    'image/x-xbitmap',
+    'image/png',
+    'application/png',
+    'application/x-png',
+    'image/bmp',
+    'image/x-bmp',
+    'image/x-bitmap',
+    'image/x-xbitmap',
+    'image/x-win-bitmap',
+    'image/x-windows-bmp',
+    'image/ms-bmp',
+    'image/x-ms-bmp',
+    'application/bmp',
+    'application/x-bmp',
+    'application/x-win-bitmap',
+];
 const holders = {
     firstName: {
         id: t('user.settings.general.firstName'),
@@ -62,18 +88,18 @@ export default class EditProfile extends PureComponent {
             removeProfileImage: PropTypes.func.isRequired,
             updateUser: PropTypes.func.isRequired,
         }).isRequired,
-        config: PropTypes.object.isRequired,
         currentUser: PropTypes.object.isRequired,
+        firstNameDisabled: PropTypes.bool.isRequired,
+        lastNameDisabled: PropTypes.bool.isRequired,
         navigator: PropTypes.object.isRequired,
+        nicknameDisabled: PropTypes.bool.isRequired,
+        positionDisabled: PropTypes.bool.isRequired,
         theme: PropTypes.object.isRequired,
+        commandType: PropTypes.string.isRequired,
     };
 
     static contextTypes = {
         intl: intlShape,
-    };
-
-    leftButton = {
-        id: 'close-settings',
     };
 
     rightButton = {
@@ -87,11 +113,8 @@ export default class EditProfile extends PureComponent {
 
         const {email, first_name: firstName, last_name: lastName, nickname, position, username} = props.currentUser;
         const buttons = {
-            leftButtons: [this.leftButton],
             rightButtons: [this.rightButton],
         };
-
-        this.leftButton.title = context.intl.formatMessage({id: t('mobile.account.settings.cancel'), defaultMessage: 'Cancel'});
         this.rightButton.title = context.intl.formatMessage({id: t('mobile.account.settings.save'), defaultMessage: 'Save'});
 
         props.navigator.setOnNavigatorEvent(this.onNavigatorEvent);
@@ -138,9 +161,13 @@ export default class EditProfile extends PureComponent {
     };
 
     close = () => {
-        this.props.navigator.dismissModal({
-            animationType: 'slide-down',
-        });
+        if (this.props.commandType === 'Push') {
+            this.props.navigator.pop();
+        } else {
+            this.props.navigator.dismissModal({
+                animationType: 'slide-down',
+            });
+        }
     };
 
     emitCanUpdateAccount = (enabled) => {
@@ -226,6 +253,7 @@ export default class EditProfile extends PureComponent {
             Authorization: `Bearer ${Client4.getToken()}`,
             'X-Requested-With': 'XMLHttpRequest',
             'Content-Type': 'multipart/form-data',
+            'X-CSRF-Token': Client4.csrf,
         };
 
         const fileInfo = {
@@ -277,18 +305,26 @@ export default class EditProfile extends PureComponent {
         Alert.alert(fileSizeWarning);
     };
 
+    onShowUnsupportedMimeTypeWarning = () => {
+        const {formatMessage} = this.context.intl;
+        const fileTypeWarning = formatMessage({
+            id: 'mobile.file_upload.unsupportedMimeType',
+            defaultMessage: 'Only files of the following MIME type can be uploaded: {mimeTypes}',
+        }, {
+            mimeTypes: VALID_MIME_TYPES.join('\n'),
+        });
+
+        Alert.alert('', fileTypeWarning);
+    };
+
     renderFirstNameSettings = () => {
         const {formatMessage} = this.context.intl;
-        const {config, currentUser, theme} = this.props;
+        const {firstNameDisabled, theme} = this.props;
         const {firstName} = this.state;
-
-        const {auth_service: service} = currentUser;
-        const disabled = (service === 'ldap' && config.LdapFristNameAttributeSet === 'true') ||
-            (service === 'saml' && config.SamlFirstNameAttributeSet === 'true');
 
         return (
             <TextSetting
-                disabled={disabled}
+                disabled={firstNameDisabled}
                 id='firstName'
                 label={holders.firstName}
                 disabledText={formatMessage({
@@ -304,17 +340,13 @@ export default class EditProfile extends PureComponent {
 
     renderLastNameSettings = () => {
         const {formatMessage} = this.context.intl;
-        const {config, currentUser, theme} = this.props;
+        const {lastNameDisabled, theme} = this.props;
         const {lastName} = this.state;
-
-        const {auth_service: service} = currentUser;
-        const disabled = (service === 'ldap' && config.LdapLastNameAttributeSet === 'true') ||
-            (service === 'saml' && config.SamlLastNameAttributeSet === 'true');
 
         return (
             <View>
                 <TextSetting
-                    disabled={disabled}
+                    disabled={lastNameDisabled}
                     id='lastName'
                     label={holders.lastName}
                     disabledText={formatMessage({
@@ -416,15 +448,12 @@ export default class EditProfile extends PureComponent {
 
     renderNicknameSettings = () => {
         const {formatMessage} = this.context.intl;
-        const {config, currentUser, theme} = this.props;
+        const {nicknameDisabled, theme} = this.props;
         const {nickname} = this.state;
-
-        const {auth_service: service} = currentUser;
-        const disabled = service === 'ldap' || service === 'saml';
 
         return (
             <TextSetting
-                disabled={disabled}
+                disabled={nicknameDisabled}
                 id='nickname'
                 label={holders.nickname}
                 disabledText={formatMessage({
@@ -441,15 +470,12 @@ export default class EditProfile extends PureComponent {
 
     renderPositionSettings = () => {
         const {formatMessage} = this.context.intl;
-        const {config, currentUser, theme} = this.props;
+        const {positionDisabled, theme} = this.props;
         const {position} = this.state;
-
-        const {auth_service: service} = currentUser;
-        const disabled = (service === 'ldap' || service === 'saml');
 
         return (
             <TextSetting
-                disabled={disabled}
+                disabled={positionDisabled}
                 id='position'
                 label={holders.position}
                 disabledText={formatMessage({
@@ -498,6 +524,8 @@ export default class EditProfile extends PureComponent {
                     uploadFiles={this.handleUploadProfileImage}
                     removeProfileImage={this.handleRemoveProfileImage}
                     onShowFileSizeWarning={this.onShowFileSizeWarning}
+                    onShowUnsupportedMimeTypeWarning={this.onShowUnsupportedMimeTypeWarning}
+                    validMimeTypes={VALID_MIME_TYPES}
                 >
                     <ProfilePicture
                         userId={currentUser.id}
