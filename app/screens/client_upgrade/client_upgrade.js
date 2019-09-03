@@ -235,7 +235,7 @@ export default class ClientUpgrade extends PureComponent {
                         version: currentVersion,
                     }}
                 />
-                {isUpgradeAvailable(this.state.upgradeType) &&
+                {isUpgradeAvailable(upgradeType) &&
                     <View>
                         <TouchableOpacity
                             onPress={this.handleDownload}
