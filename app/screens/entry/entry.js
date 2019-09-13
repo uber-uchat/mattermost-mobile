@@ -21,7 +21,6 @@ import {
 } from 'app/mattermost';
 import {ViewTypes} from 'app/constants';
 import PushNotifications from 'app/push_notifications';
-import {stripTrailingSlashes} from 'app/utils/url';
 import {wrapWithContextProvider} from 'app/utils/wrap_context_provider';
 
 import ChannelLoader from 'app/components/channel_loader';
@@ -75,18 +74,11 @@ export default class Entry extends PureComponent {
             launchLogin: false,
             launchChannel: false,
         };
-
-        this.unsubscribeFromStore = null;
     }
 
     componentDidMount() {
         Client4.setUserAgent(DeviceInfo.getUserAgent());
-
-        if (store.getState().views.root.hydrationComplete) {
-            this.handleHydrationComplete();
-        } else {
-            this.unsubscribeFromStore = store.subscribe(this.listenForHydration);
-        }
+        this.unsubscribeFromStore = store.subscribe(this.listenForHydration);
 
         EventEmitter.on(ViewTypes.LAUNCH_LOGIN, this.handleLaunchLogin);
         EventEmitter.on(ViewTypes.LAUNCH_CHANNEL, this.handleLaunchChannel);
@@ -114,6 +106,14 @@ export default class Entry extends PureComponent {
     };
 
     listenForHydration = () => {
+        const {
+            actions: {
+                autoUpdateTimezone,
+                setDeviceToken,
+            },
+            enableTimezone,
+            deviceTimezone,
+        } = this.props;
         const {getState} = store;
         const state = getState();
 
@@ -122,76 +122,42 @@ export default class Entry extends PureComponent {
         }
 
         if (state.views.root.hydrationComplete) {
-            this.handleHydrationComplete();
-        }
-    };
-
-    handleHydrationComplete = () => {
-        if (this.unsubscribeFromStore) {
             this.unsubscribeFromStore();
-            this.unsubscribeFromStore = null;
-        }
 
-        this.autoUpdateTimezone();
-        this.setAppCredentials();
-        this.setStartupThemes();
-        this.handleNotification();
-        this.loadSystemEmojis();
+            if (enableTimezone) {
+                autoUpdateTimezone(deviceTimezone);
+            }
 
-        if (Platform.OS === 'android') {
-            this.launchForAndroid();
-        } else {
+            const {currentUserId} = state.entities.users;
+
+            if (app.waitForRehydration) {
+                app.waitForRehydration = false;
+            }
+
+            if (currentUserId) {
+                Client4.setUserId(currentUserId);
+            }
+
+            if (app.deviceToken) {
+                setDeviceToken(app.deviceToken);
+            }
+
+            this.setStartupThemes();
+            this.handleNotification();
+            this.loadSystemEmojis();
+
+            if (Platform.OS === 'android') {
+                this.launchForAndroid();
+                return;
+            }
+
             this.launchForiOS();
-        }
-    };
-
-    autoUpdateTimezone = () => {
-        const {
-            actions: {
-                autoUpdateTimezone,
-            },
-            enableTimezone,
-            deviceTimezone,
-        } = this.props;
-
-        if (enableTimezone) {
-            autoUpdateTimezone(deviceTimezone);
         }
     };
 
     configurePushNotifications = () => {
         const configureNotifications = lazyLoadPushNotifications();
         configureNotifications();
-    };
-
-    setAppCredentials = () => {
-        const {
-            actions: {
-                setDeviceToken,
-            },
-        } = this.props;
-        const {getState} = store;
-        const state = getState();
-
-        const {credentials} = state.entities.general;
-        const {currentUserId} = state.entities.users;
-
-        if (app.deviceToken) {
-            setDeviceToken(app.deviceToken);
-        }
-
-        if (credentials.token && credentials.url) {
-            Client4.setToken(credentials.token);
-            Client4.setUrl(stripTrailingSlashes(credentials.url));
-        } else if (app.waitForRehydration) {
-            app.waitForRehydration = false;
-        }
-
-        if (currentUserId) {
-            Client4.setUserId(currentUserId);
-        }
-
-        app.setAppCredentials(app.deviceToken, currentUserId, credentials.token, credentials.url);
     };
 
     setStartupThemes = () => {

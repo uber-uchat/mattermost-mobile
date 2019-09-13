@@ -13,7 +13,6 @@ import {isTimezoneEnabled} from 'mattermost-redux/selectors/entities/timezone';
 import Preferences from 'mattermost-redux/constants/preferences';
 import {loadBot} from 'mattermost-redux/actions/bots';
 import {getBotAccounts} from 'mattermost-redux/selectors/entities/bots';
-import {getCurrentUserId} from 'mattermost-redux/selectors/entities/users';
 
 import UserProfile from './user_profile';
 
@@ -33,7 +32,6 @@ function mapStateToProps(state, ownProps) {
         enableTimezone,
         militaryTime,
         theme: getTheme(state),
-        isMyUser: getCurrentUserId(state) === ownProps.userId,
     };
 }
 

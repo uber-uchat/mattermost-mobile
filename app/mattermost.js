@@ -419,6 +419,9 @@ const launchChannel = (skipMetrics = false) => {
                 skipMetrics,
             },
         },
+        passProps: {
+            skipMetrics,
+        },
         appStyle: {
             orientation: 'auto',
         },
@@ -511,9 +514,8 @@ const launchEntry = () => {
 
 configurePushNotifications();
 const startedSharedExtension = Platform.OS === 'android' && MattermostShare.isOpened;
-const fromPushNotification = Platform.OS === 'android' && Initialization.replyFromPushNotification;
 
-if (startedSharedExtension || fromPushNotification) {
+if (startedSharedExtension) {
     // Hold on launching Entry screen
     app.setAppStarted(true);
 }

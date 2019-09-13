@@ -7,7 +7,7 @@
 //
 
 #import "MattermostManaged.h"
-#import <UploadAttachments/MMMConstants.h>
+#import <UploadAttachments/Constants.h>
 
 @implementation MattermostManaged {
   bool hasListeners;
