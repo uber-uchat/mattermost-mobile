@@ -88,9 +88,9 @@ function loadTranslation(locale) {
 }
 
 export function getTranslations(locale) {
-    if (!TRANSLATIONS[locale]) {
-        loadTranslation(locale);
-    }
+    // if (!TRANSLATIONS[locale]) {
+    //     loadTranslation(locale);
+    // }
     return TRANSLATIONS[locale] || TRANSLATIONS[DEFAULT_LOCALE];
 }
 

@@ -140,6 +140,7 @@ export default class ClientUpgradeListener extends PureComponent {
     };
 
     handleLearnMore = () => {
+        const {theme} = this.props;
         const {intl} = this.context;
         this.props.navigator.dismissModal({animationType: 'none'});
 
@@ -150,6 +151,10 @@ export default class ClientUpgradeListener extends PureComponent {
                 navBarHidden: false,
                 statusBarHidden: false,
                 statusBarHideWithNavBar: false,
+                navBarTextColor: theme.sidebarHeaderTextColor,
+                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarButtonColor: theme.sidebarHeaderTextColor,
+                screenBackgroundColor: theme.centerChannelBg,
             },
             navigatorButtons: {
                 leftButtons: [{

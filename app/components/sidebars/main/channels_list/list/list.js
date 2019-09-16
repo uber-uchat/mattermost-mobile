@@ -317,6 +317,7 @@ export default class List extends PureComponent {
         if (DeviceTypes.IS_TABLET) {
             Keyboard.dismiss();
         }
+
         onSelectChannel(channel, currentChannelId);
     };
 

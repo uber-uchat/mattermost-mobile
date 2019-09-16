@@ -105,12 +105,13 @@ export function matchDeepLink(url, serverURL, siteURL) {
 
     const linkRoot = `(?:${escapeRegex(serverURL)}|${escapeRegex(siteURL)})?`;
 
-    let match = new RegExp('^' + linkRoot + '\\/([^\\/]+)\\/channels\\/(\\S+)').exec(url);
+    const sanitizedUrl = url.replace('/vault#', '');
+    let match = new RegExp('^' + linkRoot + '\\/([^\\/]+)\\/channels\\/(\\S+)').exec(sanitizedUrl);
     if (match) {
         return {type: DeepLinkTypes.CHANNEL, teamName: match[1], channelName: match[2]};
     }
 
-    match = new RegExp('^' + linkRoot + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(url);
+    match = new RegExp('^' + linkRoot + '\\/([^\\/]+)\\/pl\\/(\\w+)').exec(sanitizedUrl);
     if (match) {
         return {type: DeepLinkTypes.PERMALINK, teamName: match[1], postId: match[2]};
     }

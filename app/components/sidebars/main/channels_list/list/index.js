@@ -5,6 +5,7 @@ import {connect} from 'react-redux';
 
 import {General} from 'mattermost-redux/constants';
 import {
+    getCurrentChannelId,
     getSortedFavoriteChannelIds,
     getSortedUnreadChannelIds,
     getOrderedChannelIds,
@@ -35,6 +36,8 @@ function mapStateToProps(state) {
     const license = getLicense(state);
     const roles = getCurrentUserId(state) ? getCurrentUserRoles(state) : '';
     const currentTeamId = getCurrentTeamId(state);
+    const currentChannelId = getCurrentChannelId(state);
+
     const isAdmin = checkIsAdmin(roles);
     const isSystemAdmin = checkIsSystemAdmin(roles);
     const sidebarPrefs = getSidebarPreferences(state);
@@ -60,6 +63,7 @@ function mapStateToProps(state) {
             isAdmin,
             isSystemAdmin
         ),
+        currentChannelId,
         favoriteChannelIds,
         theme: getTheme(state),
         unreadChannelIds,

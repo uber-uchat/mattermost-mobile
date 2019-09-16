@@ -3,9 +3,9 @@
 
 import {batchActions} from 'redux-batched-actions';
 
-import {ViewTypes} from 'app/constants';
+import {ViewTypes, ListTypes} from 'app/constants';
 
-import {UserTypes} from 'mattermost-redux/action_types';
+import {UserTypes, ChannelTypes} from 'mattermost-redux/action_types';
 import {
     fetchMyChannelsAndMembers,
     getChannelByNameAndTeamName,
@@ -227,6 +227,8 @@ export function loadPostsIfNecessaryWithRetry(channelId) {
             }
         }
 
+        dispatch(setLoadMorePostsVisible(loadMorePostsVisible));
+
         if (received) {
             actions.push({
                 type: ViewTypes.RECEIVED_POSTS_FOR_CHANNEL_AT_TIME,
@@ -362,7 +364,7 @@ export function selectDefaultChannel(teamId) {
     };
 }
 
-export function handleSelectChannel(channelId, fromPushNotification = false) {
+export function handleSelectChannel(channelId, fromPushNotification = false, markAsRead = true) {
     return async (dispatch, getState) => {
         const state = getState();
         const channel = getChannel(state, channelId);
@@ -381,6 +383,10 @@ export function handleSelectChannel(channelId, fromPushNotification = false) {
         dispatch(batchActions([
             selectChannel(channelId),
             setChannelDisplayName(channel.display_name),
+            {
+                type: ChannelTypes.SELECT_CHANNEL,
+                data: channelId,
+            },
             {
                 type: ViewTypes.SET_INITIAL_POST_VISIBILITY,
                 data: channelId,
@@ -404,7 +410,9 @@ export function handleSelectChannel(channelId, fromPushNotification = false) {
             markPreviousChannelId = currentChannelId;
         }
 
-        dispatch(markChannelViewedAndRead(channelId, markPreviousChannelId));
+        if (markAsRead) {
+            dispatch(markChannelViewedAndRead(channelId, markPreviousChannelId));
+        }
     };
 }
 
@@ -419,6 +427,13 @@ export function handleSelectChannelByName(channelName, teamName) {
         if (channel && currentChannelId !== channel.id) {
             dispatch(handleSelectChannel(channel.id));
         }
+    };
+}
+
+export function renderChannelInBackground(channelId, currentChannelId) {
+    return async (dispatch) => {
+        dispatch(handleSelectChannel(channelId, false, false));
+        dispatch(handleSelectChannel(currentChannelId, false, false));
     };
 }
 

@@ -152,7 +152,7 @@ export default class AttachmentButton extends PureComponent {
     attachVideoFromLibraryAndroid = () => {
         const {formatMessage} = this.context.intl;
         const options = {
-            videoQuality: 'high',
+            videoQuality: 'low',
             mediaType: 'video',
             noData: true,
             permissionDenied: {

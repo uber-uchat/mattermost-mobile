@@ -86,6 +86,8 @@ export default class ChannelPostList extends PureComponent {
 
     componentDidUpdate(prevProps) {
         if (prevProps.channelId !== this.props.channelId && tracker.channelSwitch) {
+            this.isLoadingMoreTop = false;
+            this.isLoadingMoreBottom = false;
             this.props.actions.recordLoadTime('Switch Channel', 'channelSwitch');
         }
 

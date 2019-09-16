@@ -74,13 +74,13 @@ export default class ChannelBase extends PureComponent {
         }
     }
 
-    componentWillMount() {
+    async componentWillMount() {
         EventEmitter.on('leave_team', this.handleLeaveTeam);
 
         if (this.props.currentTeamId) {
             this.loadChannels(this.props.currentTeamId);
         } else {
-            this.props.actions.selectDefaultTeam();
+            await this.props.actions.selectDefaultTeam();
         }
 
         if (this.props.currentChannelId) {

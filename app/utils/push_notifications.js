@@ -24,6 +24,7 @@ import {
     store,
 } from 'app/mattermost';
 import PushNotifications from 'app/push_notifications';
+import Config from 'assets/config';
 
 const onRegisterDevice = (data) => {
     app.setIsNotificationsConfigured(true);
@@ -70,6 +71,7 @@ const onPushNotification = async (deviceNotification) => {
     const notification = {
         data,
         message,
+        userInteraction,
     };
 
     if (userInfo) {
@@ -84,7 +86,10 @@ const onPushNotification = async (deviceNotification) => {
 
         if (foreground) {
             EventEmitter.emit(ViewTypes.NOTIFICATION_IN_APP, notification);
-        } else if (userInteraction && !notification.localNotification) {
+        } else if (
+            !notification.localNotification &&
+            (userInteraction || Config.ExperimentalEagerLoadChannelOnPushNotification)
+        ) {
             EventEmitter.emit('close_channel_drawer');
             if (getState().views.root.hydrationComplete) {
                 setTimeout(() => {
