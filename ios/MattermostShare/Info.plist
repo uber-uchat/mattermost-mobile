@@ -5,11 +5,11 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mattermost</string>
+	<string>uChat</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.mattermost.rnbeta.MattermostShare</string>
+	<string>com.ubercab.uChat.Enterprise.share</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -50,5 +50,12 @@
 		<key>NSExtensionPointIdentifier</key>
 		<string>com.apple.share-services</string>
 	</dict>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Ionicons.ttf</string>
+		<string>FontAwesome.ttf</string>
+		<string>EvilIcons.ttf</string>
+		<string>OpenSans-Bold.ttf</string>
+	</array>
 </dict>
 </plist>

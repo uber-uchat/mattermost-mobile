@@ -155,7 +155,7 @@ export default class SelectServer extends PureComponent {
                 navBarHidden: LocalConfig.AutoSelectServerUrl,
                 disabledBackGesture: LocalConfig.AutoSelectServerUrl,
                 navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarBackgroundColor: '#34a28b',
                 navBarButtonColor: theme.sidebarHeaderTextColor,
             },
         });
@@ -268,7 +268,7 @@ export default class SelectServer extends PureComponent {
                 statusBarHidden: true,
                 statusBarHideWithNavBar: true,
                 navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarBackgroundColor: '#34a28b',
                 navBarButtonColor: theme.sidebarHeaderTextColor,
             },
             passProps: {

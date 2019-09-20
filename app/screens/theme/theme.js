@@ -16,9 +16,9 @@ import {changeOpacity, makeStyleSheetFromTheme, setNavigatorStyles} from 'app/ut
 import Preferences from 'mattermost-redux/constants/preferences';
 
 const thumbnailImages = {
-    default: require('assets/images/themes/mattermost.png'),
+    shift: require('assets/images/themes/uchat_light.png'),
     organization: require('assets/images/themes/organization.png'),
-    mattermostDark: require('assets/images/themes/mattermost_dark.png'),
+    monokai: require('assets/images/themes/uchat_dark.png'),
     windows10: require('assets/images/themes/windows_dark.png'),
 };
 

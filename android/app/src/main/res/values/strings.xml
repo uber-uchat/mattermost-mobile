@@ -1,19 +1,55 @@
 <resources>
-    <string name="app_name">Mattermost Beta</string>
+
+    <string name="app_name">uChat</string>
+    <string name="app_user_agent">com.ubercab.uChat.Enterprise.v2</string>
+    <string name="welcome_text">Enter uChat Server URL</string>
+    <string name="error_server_url_empty">Server URL cannot be empty</string>
+    <string name="error_server_url">The server does not exist</string>
+    <string name="error_mattermost_server">uChat server unreachable, incompatible or SSL is not properly configured.</string>
+    <string name="login_sub_title">Email address for %s</string>
+    <string name="uploads_disabled">File uploads are disabled.</string>
+    <string name="choose_upload">Choose file for upload</string>
+    <string name="gcm_sender_id">16392895801</string>
+    <string name="loading">Loading...</string>
+    <string name="error_retry">You may be offline or the uChat server you are trying to connect to is experiencing problems.</string>
+    <string name="error_refresh">Refresh</string>
+    <string name="error_logout">Logout</string>
+    <string name="team_url_hint">e.g. uchat.server.com</string>
+    <string name="select_server_button">Proceed</string>
+    <string-array name="server_prefixs">
+        <item>https://</item>
+        <item>http://</item>
+    </string-array>
+    <string name="snap">Oh Snap!</string>
+    <string name="error_loading">Something went wrong while loading.</string>
+    <string name="try_again">Try again</string>
+    <string name="software_update">Software update</string>
+    <string name="software_update_message">A new %1$s(v.%2$s) is now available for your device and is ready to install.</string>
+    <string name="install_now">Install now</string>
+    <string name="apk_url" translatable="false">https://uchat.uberinternal.com/downloads/client_apps/uchat_android.apk</string>
+    <string name="later">Later</string>
+    <string name="software_update_required">Software update required</string>
+    <string name="software_update_required_message">Please reinstall a new %1$s(v.%2$s) to join conversations."</string>
+    <string name="unable_connect_server">Unable to connect to server</string>
+    <string name="unable_connect_server_message">Please contact your local site administrator or technical support provider for further assistance</string>
+    <string name="about_message">Uber\'s internal, real-time communication platform.</string>
+    <string name="version_name">Version: %1$s</string>
+    <string name="dismiss">Dismiss</string>
+    <string name="request_permission_alert">Permissions required to execute this action</string>
     <string name="inAppPinCode_title">in-App Pincode</string>
     <string name="inAppPinCode_description">Require users to authenticate as the owner of the phone before using the app. Prompts for fingerprint or passcode when the app first opens and when the app has been in the background for more than 5 minutes.</string>
     <string name="blurApplicationScreen_title">Blur Application Screen</string>
     <string name="blurApplicationScreen_description">Blur the app when it’s set to background to protect any confidential on-screen information, it also prevents taking screenshots of the app.</string>
     <string name="jailbreakProtection_title">Jailbreak &#x2F; Root Detection</string>
     <string name="jailbreakProtection_description">Disable app launch on Jailbroken or rooted devices.</string>
-    <string name="copyAndPasteProtection_title">Copy&amp;Paste Protection</string>
     <string name="copyAndPasteProtection_description">Disable the ability to copy from or paste into any text inputs in the app.</string>
-    <string name="serverUrl_title">Mattermost Server URL</string>
-    <string name="serverUrl_description">Set a default Mattermost server URL.</string>
+    <string name="copyAndPasteProtection_title">Copy&amp;Paste Protection</string>
+    <string name="serverUrl_title">uChat Server URL</string>
+    <string name="serverUrl_description">Set a default uChat server URL.</string>
     <string name="allowOtherServers_title">Allow Other Servers</string>
     <string name="allowOtherServers_description">Allow the user to change the above server URL.</string>
     <string name="username_title">Default Username</string>
-    <string name="username_description">Set the username or email address to use to authenticate against the Mattermost Server.</string>
+    <string name="username_description">Set the username or email address to use to authenticate against the uChat Server.</string>
     <string name="vendor_title">EMM Vendor or Company Name</string>
     <string name="vendor_description">Name of the EMM vendor or company deploying the app. Used in help text when prompting for passcodes so users are aware why the app is being protected.</string>
 </resources>

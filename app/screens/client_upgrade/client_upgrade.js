@@ -6,11 +6,11 @@ import PropTypes from 'prop-types';
 import {
     Alert,
     Image,
-    Linking,
     ScrollView,
     TouchableOpacity,
     View,
 } from 'react-native';
+import Linking from 'app/utils/linking';
 import {intlShape} from 'react-intl';
 
 import FormattedText from 'app/components/formatted_text';

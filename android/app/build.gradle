@@ -103,7 +103,9 @@ def enableSeparateBuildPerCPUArchitecture = false
 /**
  * Run Proguard to shrink the Java bytecode in release builds.
  */
-def enableProguardInReleaseBuilds = false
+ 
+def enableProguardInReleaseBuilds = false 
+def getAppVersionName = "${versionMajor}.${versionMinor}.${versionPatch}"
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -119,12 +121,12 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.mattermost.rnbeta"
+        applicationId "com.ubercab.uChat.Enterprise.v2"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         missingDimensionStrategy "RNN.reactNativeVersion", "reactNative57_5"
-        versionCode 215
-        versionName "1.21.2"
+        versionCode Integer.parseInt(version)
+        versionName getAppVersionName
         multiDexEnabled = true
         ndk {
             abiFilters 'armeabi-v7a','arm64-v8a','x86','x86_64'
@@ -133,11 +135,11 @@ android {
     }
     signingConfigs {
         release {
-            if (project.hasProperty('MATTERMOST_RELEASE_STORE_FILE')) {
-                storeFile file(MATTERMOST_RELEASE_STORE_FILE)
-                storePassword MATTERMOST_RELEASE_PASSWORD
-                keyAlias MATTERMOST_RELEASE_KEY_ALIAS
-                keyPassword MATTERMOST_RELEASE_PASSWORD
+            if (System.env.KEYSTORES_RELEASE_ANDROID_UCHAT) {
+                storeFile file(System.env.KEYSTORES_RELEASE_ANDROID_UCHAT)
+                storePassword System.env.ANDROID_UCHAT_STORE_PASSWORD
+                keyAlias System.env.ANDROID_UCHAT_KEY_ALIAS
+                keyPassword System.env.ANDROID_UCHAT_KEY_PASSWORD
             }
         }
     }

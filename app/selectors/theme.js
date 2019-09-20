@@ -3,7 +3,7 @@
 
 import {createSelector} from 'reselect';
 
-import Preferences from 'mattermost-redux/constants/preferences';
+import Preferences from 'app/utils/themes';
 import {getConfig} from 'mattermost-redux/selectors/entities/general';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 

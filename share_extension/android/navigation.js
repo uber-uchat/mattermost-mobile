@@ -23,7 +23,7 @@ const Navigation = createStackNavigator({
 }, {
     defaultNavigationOptions: {
         headerStyle: {
-            backgroundColor: theme.sidebarHeaderBg,
+            backgroundColor: '#000000',
         },
         headerTitleStyle: {
             marginHorizontal: 0,

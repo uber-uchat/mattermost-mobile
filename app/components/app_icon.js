@@ -1,18 +1,18 @@
-// Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
-// See LICENSE.txt for license information.
+// Copyright (c) 2017-present Mattermost, Inc. All Rights Reserved.
+// See License.txt for license information.
 
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import Svg, {
     G,
-    Path,
+    Path
 } from 'react-native-svg';
 
-export default class AppIcon extends PureComponent {
+export default class AwayStatus extends PureComponent {
     static propTypes = {
         width: PropTypes.number.isRequired,
         height: PropTypes.number.isRequired,
-        color: PropTypes.string.isRequired,
+        color: PropTypes.string.isRequired
     };
 
     render() {
@@ -20,23 +20,22 @@ export default class AppIcon extends PureComponent {
             <Svg
                 height={this.props.height}
                 width={this.props.width}
-                viewBox='0 0 500 500'
+                viewBox='0 0 120 116'
+                fill='none'
+                fill-rule='evenodd'
             >
-                <G id='XMLID_1_'>
-                    <G id='XMLID_3_'>
+                <G id='Ver-1'>
+                    <G
+                        id='Loading'
+                        transform='translate(-741.000000, -54.000000)'
+                        fill='#8ED0BB'
+                    >
                         <Path
-                            id='XMLID_4_'
+                            id='Combined-Shape'
                             class='st0'
-                            d='M396.9,47.7l2.6,53.1c43,47.5,60,114.8,38.6,178.1c-32,94.4-137.4,144.1-235.4,110.9 S51.1,253.1,83,158.7C104.5,95.2,159.2,52,222.5,40.5l34.2-40.4C150-2.8,49.3,63.4,13.3,169.9C-31,300.6,39.1,442.5,169.9,486.7 s272.6-25.8,316.9-156.6C522.7,223.9,483.1,110.3,396.9,47.7z'
-                            fill={this.props.color}
+                            d='M756.300672,54.1197634 L844.934352,54.1197634 C853.384752,54.1197634 860.790192,60.9292255 860.790192,69.3291023 L860.790192,145.716889 L860.790192,166.598318 C860.790192,169.622893 857.111712,171.137562 854.960352,168.998827 L831.537792,145.716889 L756.856032,145.716889 C748.405632,145.716889 740.999952,138.907427 740.999952,130.507312 L740.999952,69.3291023 C740.999952,60.9292255 747.850512,54.1197634 756.300672,54.1197634 Z M816.722083,73.376075 L816.722083,104.800887 C816.722083,115.294587 812.022989,119.652475 801.000482,119.652475 C789.977252,119.652475 785.277917,115.294587 785.277917,104.800887 L785.277917,72 L774.66125,72 C773.733343,72 773.268908,72.4590875 773.268908,73.376075 L773.268908,105.316737 C773.268908,122.864187 784.581746,129 801.000482,129 C817.418254,129 828.731092,122.864187 828.731092,105.316737 L828.731092,72 L818.114425,72 C817.186518,72 816.722083,72.4590875 816.722083,73.376075 Z'
                         />
                     </G>
-                    <Path
-                        id='XMLID_2_'
-                        class='st0'
-                        d='M335.6,204.3l-1.8-74.2l-1.5-42.7l-1-37c0,0,0.2-17.8-0.4-22c-0.1-0.9-0.4-1.6-0.7-2.2 c0-0.1-0.1-0.2-0.1-0.3c0-0.1-0.1-0.2-0.1-0.2c-0.7-1.2-1.8-2.1-3.1-2.6c-1.4-0.5-2.9-0.4-4.2,0.2c0,0-0.1,0-0.1,0 c-0.2,0.1-0.3,0.1-0.4,0.2c-0.6,0.3-1.2,0.7-1.8,1.3c-3,3-13.7,17.2-13.7,17.2l-23.2,28.8l-27.1,33l-46.5,57.8 c0,0-21.3,26.6-16.6,59.4s29.1,48.7,48,55.1c18.9,6.4,48,8.5,71.6-14.7C336.4,238.4,335.6,204.3,335.6,204.3z'
-                        fill={this.props.color}
-                    />
                 </G>
             </Svg>
         );

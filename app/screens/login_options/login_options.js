@@ -49,7 +49,7 @@ class LoginOptions extends PureComponent {
             backButtonTitle: '',
             navigatorStyle: {
                 navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarBackgroundColor: '#34a28b',
                 navBarButtonColor: theme.sidebarHeaderTextColor,
                 screenBackgroundColor: theme.centerChannelBg,
             },
@@ -65,7 +65,7 @@ class LoginOptions extends PureComponent {
             backButtonTitle: '',
             navigatorStyle: {
                 navBarTextColor: theme.sidebarHeaderTextColor,
-                navBarBackgroundColor: theme.sidebarHeaderBg,
+                navBarBackgroundColor: '#34a28b',
                 navBarButtonColor: theme.sidebarHeaderTextColor,
                 screenBackgroundColor: theme.centerChannelBg,
             },

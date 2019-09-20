@@ -2,16 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>BundleEntryFilename</key>
-	<string>index.js</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>Mattermost Beta</string>
+	<string>uChat</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.mattermost.rnbeta</string>
+	<string>com.ubercab.uChat.Enterprise</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
@@ -26,10 +24,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>com.mattermost</string>
+			<string>com.ubercab.uChat.Enterprise</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>mattermost</string>
+				<string>uberchat</string>
 			</array>
 		</dict>
 	</array>
@@ -37,6 +35,10 @@
 	<string>215</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<key>LSApplicationQueriesSchemes</key>
+    <array>
+      <string>itms-services</string>
+    </array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAllowsArbitraryLoads</key>
@@ -54,26 +56,12 @@
 			</dict>
 		</dict>
 	</dict>
-	<key>NSAppleMusicUsageDescription</key>
-	<string>Let Mattermost access your Media files</string>
-	<key>NSBluetoothPeripheralUsageDescription</key>
-	<string>Share post data accross devices with Mattermost</string>
-	<key>NSCalendarsUsageDescription</key>
-	<string>Share contacts in your Mattermost instance</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Take a Photo or Video and upload it to your mattermost instance</string>
-	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Send your current location to your Mattermost instance</string>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Send your current location to your Mattermost instance</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>Capture audio when recording a video to share to your Mattermost instance</string>
-	<key>NSMotionUsageDescription</key>
-	<string>Share your route in your Mattermost instance</string>
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Upload Photos and Videos to your Mattermost instance or save them to your device</string>
-	<key>NSSpeechRecognitionUsageDescription</key>
-	<string>Send voice messages to your Mattermost instance</string>
+    <string>uChat needs permission to access your camera.</string>
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>uChat needs permission to access your location.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>uChat needs permission to access your photos.</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Entypo.ttf</string>
@@ -96,29 +84,11 @@
 		<string>OpenSans-Regular.ttf</string>
 		<string>OpenSans-Semibold.ttf</string>
 		<string>OpenSans-SemiboldItalic.ttf</string>
-		<string>Roboto-Black.ttf</string>
-		<string>Roboto-BlackItalic.ttf</string>
-		<string>Roboto-Bold.ttf</string>
-		<string>Roboto-BoldItalic.ttf</string>
-		<string>Roboto-Italic.ttf</string>
-		<string>Roboto-Light.ttf</string>
-		<string>Roboto-LightItalic.ttf</string>
-		<string>Roboto-Medium.ttf</string>
-		<string>Roboto-MediumItalic.ttf</string>
-		<string>Roboto-Regular.ttf</string>
-		<string>Roboto-Thin.ttf</string>
-		<string>Roboto-ThinItalic.ttf</string>
-		<string>AntDesign.ttf</string>
-		<string>Feather.ttf</string>
-		<string>FontAwesome5_Brands.ttf</string>
-		<string>FontAwesome5_Regular.ttf</string>
-		<string>FontAwesome5_Solid.ttf</string>
 	</array>
 	<key>UIBackgroundModes</key>
-	<array>
-		<string>fetch</string>
-		<string>remote-notification</string>
-	</array>
+    <array>
+      <string>remote-notification</string>
+    </array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

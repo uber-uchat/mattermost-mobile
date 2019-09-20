@@ -63,7 +63,7 @@ function makeMapStateToProps() {
             googleDeveloperKey: config.GoogleDeveloperKey,
             link,
             openGraphData,
-            showLinkPreviews: previewsEnabled && config.EnableLinkPreviews === 'true',
+            showLinkPreviews: true,
             theme: getTheme(state),
         };
     };

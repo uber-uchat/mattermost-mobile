@@ -38,7 +38,7 @@ export const GlobalStyles = StyleSheet.create({
     },
     signupButton: {
         borderRadius: 3,
-        borderColor: '#2389D7',
+        borderColor: '#34a28b',
         borderWidth: 1,
         alignItems: 'center',
         alignSelf: 'stretch',
@@ -47,7 +47,7 @@ export const GlobalStyles = StyleSheet.create({
     },
     signupButtonText: {
         textAlign: 'center',
-        color: '#2389D7',
+        color: '#34a28b',
         fontSize: 17,
     },
     buttonListItemText: {

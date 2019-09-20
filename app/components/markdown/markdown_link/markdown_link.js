@@ -3,7 +3,8 @@
 
 import React, {Children, PureComponent} from 'react';
 import PropTypes from 'prop-types';
-import {Clipboard, Linking, Text} from 'react-native';
+import {Clipboard, Text} from 'react-native';
+import Linking from 'app/utils/linking';
 import urlParse from 'url-parse';
 import {intlShape} from 'react-intl';
 

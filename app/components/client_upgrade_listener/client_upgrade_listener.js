@@ -6,10 +6,10 @@ import PropTypes from 'prop-types';
 import {
     Alert,
     Animated,
-    Linking,
     TouchableOpacity,
     View,
 } from 'react-native';
+import Linking from 'app/utils/linking';
 import {intlShape} from 'react-intl';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
 

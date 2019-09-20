@@ -16,6 +16,7 @@ import EventEmitter from 'mattermost-redux/utils/event_emitter';
 import {NavigationTypes, ViewTypes} from 'app/constants';
 import appReducer from 'app/reducers';
 import {throttle} from 'app/utils/general';
+import networkConnectionListener from 'app/utils/network';
 import {getSiteUrl, setSiteUrl} from 'app/utils/image_cache_manager';
 import {createSentryMiddleware} from 'app/utils/sentry/middleware';
 
@@ -24,6 +25,8 @@ import mattermostBucket from 'app/mattermost_bucket';
 import {messageRetention} from './middleware';
 import {createThunkMiddleware} from './thunk';
 import {transformSet} from './utils';
+
+import {defaultPrefs, buildDefaultPreferenceMiddleware} from './pref_middleware';
 
 function getAppReducer() {
     return require('../../app/reducers'); // eslint-disable-line global-require
@@ -142,10 +145,12 @@ export default function configureAppStore(initialState) {
 
             return effect();
         },
+        detectNetwork: (callback) => networkConnectionListener(callback),
         persist: (store, options) => {
             const persistor = persistStore(store, {storage: AsyncStorage, ...options}, () => {
                 store.dispatch({
                     type: General.STORE_REHYDRATION_COMPLETE,
+                    complete: true,
                 });
             });
 
@@ -289,11 +294,14 @@ export default function configureAppStore(initialState) {
         },
     };
 
+    const preferenceUpdater = buildDefaultPreferenceMiddleware(defaultPrefs);
+
     const clientOptions = {
         additionalMiddleware: [
             createThunkMiddleware(),
             createSentryMiddleware(),
             messageRetention,
+            preferenceUpdater,
         ],
         enableThunk: false, // We override the default thunk middleware
     };
