@@ -1,8 +1,8 @@
 // Copyright (c) 2015-present Mattermost, Inc. All Rights Reserved.
 // See LICENSE.txt for license information.
 
-import {NetInfo, Platform} from 'react-native';
-
+import {Platform} from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
 import RNFetchBlob from 'rn-fetch-blob';
 
 import {Client4} from 'mattermost-redux/client';
@@ -13,6 +13,10 @@ import mattermostManaged from 'app/mattermost_managed';
 let certificate = '';
 let previousState;
 export async function checkConnection(isConnected) {
+    if (!isConnected) {
+        return {hasInternet: false, serverReachable: false};
+    }
+
     if (!Client4.getBaseRoute().startsWith('http')) {
         // If we don't have a connection or have a server yet, return the default implementation
         return {hasInternet: isConnected, serverReachable: false};
@@ -43,6 +47,7 @@ export async function checkConnection(isConnected) {
         auto: true,
         waitsForConnectivity,
         timeoutIntervalForResource,
+        timeout: 3000,
     };
 
     if (Platform.OS === 'ios' && certificate === '') {
@@ -59,7 +64,7 @@ export async function checkConnection(isConnected) {
 }
 
 function handleConnectionChange(onChange) {
-    return async (isConnected) => {
+    return async ({isConnected}) => {
         if (isConnected !== previousState) {
             previousState = isConnected;
 
@@ -72,13 +77,7 @@ function handleConnectionChange(onChange) {
 
 export default function networkConnectionListener(onChange) {
     const connectionChanged = handleConnectionChange(onChange);
-
-    NetInfo.isConnected.fetch().then((isConnected) => {
-        NetInfo.isConnected.addEventListener('connectionChange', connectionChanged);
-        connectionChanged(isConnected);
-    });
-
-    const removeEventListener = () => NetInfo.isConnected.removeEventListener('connectionChange', connectionChanged);
+    const removeEventListener = NetInfo.addEventListener(connectionChanged);
 
     return {
         removeEventListener,

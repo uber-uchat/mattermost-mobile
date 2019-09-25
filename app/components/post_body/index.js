@@ -5,12 +5,12 @@ import {connect} from 'react-redux';
 
 import {General, Posts} from 'mattermost-redux/constants';
 import {getChannel, canManageChannelMembers, getCurrentChannelId} from 'mattermost-redux/selectors/entities/channels';
-import {getPost} from 'mattermost-redux/selectors/entities/posts';
 import {getTheme} from 'mattermost-redux/selectors/entities/preferences';
 import {getConfig, getLicense} from 'mattermost-redux/selectors/entities/general';
 import {getCurrentUserId, getCurrentUserRoles} from 'mattermost-redux/selectors/entities/users';
 import {getCurrentTeamId} from 'mattermost-redux/selectors/entities/teams';
 import {getCustomEmojisByName} from 'mattermost-redux/selectors/entities/emojis';
+import {makeGetReactionsForPost} from 'mattermost-redux/selectors/entities/posts';
 import {memoizeResult} from 'mattermost-redux/utils/helpers';
 
 import {
@@ -31,10 +31,12 @@ const POST_TIMEOUT = 20000;
 
 function makeMapStateToProps() {
     const memoizeHasEmojisOnly = memoizeResult((message, customEmojis) => hasEmojisOnly(message, customEmojis));
+    const getReactionsForPost = makeGetReactionsForPost();
 
     return (state, ownProps) => {
-        const post = getPost(state, ownProps.postId) || {};
+        const post = ownProps.post;
         const channel = getChannel(state, post.channel_id) || {};
+        const reactions = getReactionsForPost(state, post.id);
 
         let isFailed = post.failed;
         let isPending = post.id === post.pending_post_id;
@@ -84,7 +86,7 @@ function makeMapStateToProps() {
             fileIds: post.file_ids,
             hasBeenDeleted: post.state === Posts.POST_DELETED,
             hasBeenEdited: isEdited(post),
-            hasReactions: post.has_reactions,
+            hasReactions: (reactions && Object.keys(reactions).length > 0) || Boolean(post.has_reactions),
             isFailed,
             isPending,
             isPostAddChannelMember,
@@ -100,4 +102,4 @@ function makeMapStateToProps() {
     };
 }
 
-export default connect(makeMapStateToProps, null, null, {withRef: true})(PostBody);
+export default connect(makeMapStateToProps, null, null, {forwardRef: true})(PostBody);

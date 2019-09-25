@@ -8,9 +8,10 @@ import {
     Text,
     View,
 } from 'react-native';
-import Icon from 'react-native-vector-icons/FontAwesome';
 
 import {General} from 'mattermost-redux/constants';
+
+import Icon from 'app/components/vector_icon';
 
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
 
@@ -26,6 +27,7 @@ export default class ChannelIcon extends React.PureComponent {
         theme: PropTypes.object.isRequired,
         type: PropTypes.string.isRequired,
         isArchived: PropTypes.bool.isRequired,
+        isBot: PropTypes.bool.isRequired,
     };
 
     static defaultProps = {
@@ -47,6 +49,7 @@ export default class ChannelIcon extends React.PureComponent {
             theme,
             type,
             isArchived,
+            isBot,
         } = this.props;
         const style = getStyleSheet(theme);
 
@@ -83,6 +86,15 @@ export default class ChannelIcon extends React.PureComponent {
                 <Icon
                     name='archive'
                     style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                    type='fontawesome'
+                />
+            );
+        } else if (isBot) {
+            icon = (
+                <Icon
+                    name='robot'
+                    style={[style.icon, unreadIcon, activeIcon, {fontSize: size}, style.iconBot]}
+                    type='fontawesome5'
                 />
             );
         } else if (hasDraft) {
@@ -90,6 +102,7 @@ export default class ChannelIcon extends React.PureComponent {
                 <Icon
                     name='pencil'
                     style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                    type='fontawesome'
                 />
             );
         } else if (type === General.OPEN_CHANNEL) {
@@ -97,6 +110,7 @@ export default class ChannelIcon extends React.PureComponent {
                 <Icon
                     name='globe'
                     style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                    type='fontawesome'
                 />
             );
         } else if (type === General.PRIVATE_CHANNEL) {
@@ -104,6 +118,7 @@ export default class ChannelIcon extends React.PureComponent {
                 <Icon
                     name='lock'
                     style={[style.icon, unreadIcon, activeIcon, {fontSize: size}]}
+                    type='fontawesome'
                 />
             );
         } else if (type === General.GM_CHANNEL) {
@@ -176,6 +191,9 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
         },
         iconInfo: {
             color: theme.centerChannelColor,
+        },
+        iconBot: {
+            marginLeft: -5,
         },
         groupBox: {
             alignSelf: 'flex-start',

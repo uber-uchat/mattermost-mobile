@@ -21,7 +21,6 @@ import {
 } from 'app/mattermost';
 import {ViewTypes} from 'app/constants';
 import PushNotifications from 'app/push_notifications';
-import {stripTrailingSlashes} from 'app/utils/url';
 import {wrapWithContextProvider} from 'app/utils/wrap_context_provider';
 
 import ChannelLoader from 'app/components/channel_loader';
@@ -110,6 +109,7 @@ export default class Entry extends PureComponent {
         const {
             actions: {
                 autoUpdateTimezone,
+                setDeviceToken,
             },
             enableTimezone,
             deviceTimezone,
@@ -128,7 +128,20 @@ export default class Entry extends PureComponent {
                 autoUpdateTimezone(deviceTimezone);
             }
 
-            this.setAppCredentials();
+            const {currentUserId} = state.entities.users;
+
+            if (app.waitForRehydration) {
+                app.waitForRehydration = false;
+            }
+
+            if (currentUserId) {
+                Client4.setUserId(currentUserId);
+            }
+
+            if (app.deviceToken) {
+                setDeviceToken(app.deviceToken);
+            }
+
             this.setStartupThemes();
             this.handleNotification();
             this.loadSystemEmojis();
@@ -145,36 +158,6 @@ export default class Entry extends PureComponent {
     configurePushNotifications = () => {
         const configureNotifications = lazyLoadPushNotifications();
         configureNotifications();
-    };
-
-    setAppCredentials = () => {
-        const {
-            actions: {
-                setDeviceToken,
-            },
-        } = this.props;
-        const {getState} = store;
-        const state = getState();
-
-        const {credentials} = state.entities.general;
-        const {currentUserId} = state.entities.users;
-
-        if (app.deviceToken) {
-            setDeviceToken(app.deviceToken);
-        }
-
-        if (credentials.token && credentials.url) {
-            Client4.setToken(credentials.token);
-            Client4.setUrl(stripTrailingSlashes(credentials.url));
-        } else if (app.waitForRehydration) {
-            app.waitForRehydration = false;
-        }
-
-        if (currentUserId) {
-            Client4.setUserId(currentUserId);
-        }
-
-        app.setAppCredentials(app.deviceToken, currentUserId, credentials.token, credentials.url);
     };
 
     setStartupThemes = () => {

@@ -2,9 +2,11 @@
 // See LICENSE.txt for license information.
 
 /* eslint-disable global-require*/
-import {AsyncStorage, Linking, NativeModules, Platform, Text} from 'react-native';
+import {Linking, NativeModules, Platform, Text} from 'react-native';
+import AsyncStorage from '@react-native-community/async-storage';
 import {setGenericPassword, getGenericPassword, resetGenericPassword} from 'react-native-keychain';
 
+import {setDeviceToken} from 'mattermost-redux/actions/general';
 import {loadMe} from 'mattermost-redux/actions/users';
 import {Client4} from 'mattermost-redux/client';
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
@@ -30,6 +32,7 @@ export default class App {
         // Usage: app.js
         this.shouldRelaunchWhenActive = false;
         this.inBackgroundSince = null;
+        this.previousAppState = null;
 
         // Usage: screen/entry.js
         this.startAppFromPushNotification = false;
@@ -51,14 +54,6 @@ export default class App {
         this.currentUserId = null;
         this.token = null;
         this.url = null;
-
-        // Load polyfill for iOS 9
-        if (Platform.OS === 'ios') {
-            const majorVersionIOS = parseInt(Platform.Version, 10);
-            if (majorVersionIOS < 10) {
-                require('@babel/polyfill');
-            }
-        }
 
         // Usage deeplinking
         Linking.addEventListener('url', this.handleDeepLink);
@@ -133,10 +128,12 @@ export default class App {
 
                     // if for any case the url and the token aren't valid proceed with re-hydration
                     if (url && url !== 'undefined' && token && token !== 'undefined') {
-                        this.deviceToken = deviceToken;
+                        const {dispatch} = store;
+
                         this.currentUserId = currentUserId;
                         this.token = token;
                         this.url = url;
+                        dispatch(setDeviceToken(deviceToken));
                         Client4.setUrl(url);
                         Client4.setToken(token);
                         await setCSRFFromCookie(url);
@@ -204,10 +201,11 @@ export default class App {
         const username = `${deviceToken}, ${currentUserId}`;
         const password = `${token},${url}`;
 
+        this.token = token;
+        this.url = url;
+
         if (this.waitForRehydration) {
             this.waitForRehydration = false;
-            this.token = token;
-            this.url = url;
         }
 
         // Only save to keychain if the url and token are set
