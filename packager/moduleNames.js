@@ -151,7 +151,7 @@ module.exports = [
     'app/store/middleware.js',
     'app/store/thunk.js',
     'app/telemetry/index.js',
-    'app/telemetry/telemetry.android.js',
+    'app/telemetry/telemetry.js',
     'app/telemetry/telemetry_utils.js',
     'app/utils/avoid_native_bridge.js',
     'app/utils/general.js',
