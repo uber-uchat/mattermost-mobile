@@ -3,27 +3,10 @@
 
 import {Dimensions} from 'react-native';
 import DeviceInfo from 'react-native-device-info';
-
-import LocalConfig from 'assets/config';
+import {Client4} from 'mattermost-redux/client';
 
 export function saveToTelemetryServer(data) {
-    const {
-        TelemetryEnabled,
-        TelemetryUrl,
-        TelemetryApiKey,
-    } = LocalConfig;
-
-    if (TelemetryEnabled && TelemetryUrl) {
-        fetch(TelemetryUrl, {
-            method: 'post',
-            body: JSON.stringify({data}),
-            headers: {
-                Accept: 'application/json',
-                'Content-Type': 'application/json',
-                'x-api-key': TelemetryApiKey,
-            },
-        });
-    }
+    Client4.sendTelemetry(data);
 }
 
 const presetTID = {

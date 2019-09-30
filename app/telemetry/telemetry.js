@@ -33,7 +33,7 @@ class Telemetry {
 
     canSendTelemetry() {
         const {config} = store.getState().entities.general;
-        return Boolean(!__DEV__ && config.EnableDiagnostics === 'true' && LocalConfig.TelemetryEnabled);
+        return Boolean(config.EnableTelemetry === 'true');
     }
 
     start(names = [], time = 0) {
