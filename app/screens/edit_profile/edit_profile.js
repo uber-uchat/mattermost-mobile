@@ -452,6 +452,7 @@ export default class EditProfile extends PureComponent {
         const {formatMessage} = this.context.intl;
         const {nicknameDisabled, theme} = this.props;
         const {nickname} = this.state;
+        const {currentUser} = this.props;
 
         const {auth_service: service} = currentUser;
         const disabled = service === 'ldap' || service === 'saml';
@@ -477,6 +478,7 @@ export default class EditProfile extends PureComponent {
         const {formatMessage} = this.context.intl;
         const {positionDisabled, theme} = this.props;
         const {position} = this.state;
+        const {currentUser} = this.props;
 
         const {auth_service: service} = currentUser;
         const disabled = (service === 'ldap' || service === 'saml');
