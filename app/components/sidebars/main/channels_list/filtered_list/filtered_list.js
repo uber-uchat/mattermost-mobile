@@ -6,10 +6,11 @@ import React, {Component} from 'react';
 import PropTypes from 'prop-types';
 import {
     FlatList,
+    Keyboard,
+    Platform,
     Text,
     TouchableHighlight,
     View,
-    Platform,
 } from 'react-native';
 import {injectIntl, intlShape} from 'react-intl';
 import MaterialIcon from 'react-native-vector-icons/MaterialIcons';
@@ -43,6 +44,7 @@ class FilteredList extends Component {
         teammateNameDisplay: PropTypes.string,
         onSelectChannel: PropTypes.func.isRequired,
         otherChannels: PropTypes.array,
+        archivedChannels: PropTypes.array,
         profiles: PropTypes.object,
         teamProfiles: PropTypes.object,
         searchOrder: PropTypes.array.isRequired,
@@ -61,6 +63,12 @@ class FilteredList extends Component {
 
     constructor(props) {
         super(props);
+
+        this.keyboardDismissProp = {
+            keyboardDismissMode: Platform.OS === 'ios' ? 'interactive' : 'none',
+            onScrollBeginDrag: Keyboard.dismiss,
+        };
+
         this.state = {
             dataSource: this.buildData(props),
         };
@@ -112,7 +120,6 @@ class FilteredList extends Component {
     createChannelElement = (channel) => {
         return (
             <ChannelItem
-                ref={channel.id}
                 channelId={channel.id}
                 channel={channel}
                 isSearchResult={true}
@@ -170,6 +177,11 @@ class FilteredList extends Component {
             id: t('mobile.channel_list.not_member'),
             defaultMessage: 'NOT A MEMBER',
         },
+        archived: {
+            builder: this.buildArchivedForSearch,
+            id: t('mobile.channel_list.archived'),
+            defaultMessage: 'ARCHIVED',
+        },
     });
 
     buildUnreadChannelsForSearch = (props, term) => {
@@ -218,6 +230,7 @@ class FilteredList extends Component {
                 nickname: u.nickname,
                 fullname: `${u.first_name} ${u.last_name}`,
                 delete_at: u.delete_at,
+                isBot: u.is_bot,
 
                 // need name key for DM's as we use it for sortChannelsByDisplayName with same display_name
                 name: displayName,
@@ -263,6 +276,7 @@ class FilteredList extends Component {
                 nickname: u.nickname,
                 fullname: `${u.first_name} ${u.last_name}`,
                 delete_at: u.delete_at,
+                isBot: u.is_bot,
             };
         });
 
@@ -284,6 +298,19 @@ class FilteredList extends Component {
 
         return this.filterChannels([...favorites, ...publicChannels, ...privateChannels], term).
             sort(sortChannelsByDisplayName.bind(null, props.intl.locale));
+    }
+
+    buildArchivedForSearch = (props, term) => {
+        const {currentChannel, archivedChannels} = props;
+
+        return this.filterChannels(archivedChannels.reduce((acc, channel) => {
+            // when there is no search text, display an archived channel only if we are in it at the moment.
+            if (term || channel.id === currentChannel.id) {
+                acc.push({...channel});
+            }
+
+            return acc;
+        }, []), term);
     }
 
     buildOtherMembersForSearch = (props, term) => {
@@ -384,7 +411,6 @@ class FilteredList extends Component {
 
     render() {
         const {styles} = this.props;
-
         const {dataSource} = this.state;
 
         return (
@@ -392,13 +418,12 @@ class FilteredList extends Component {
                 style={styles.container}
             >
                 <FlatList
-                    ref='list'
                     data={dataSource}
                     renderItem={this.renderItem}
                     keyExtractor={(item) => item.id}
                     onViewableItemsChanged={this.updateUnreadIndicators}
-                    keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-                    keyboardShouldPersistTaps='always'
+                    {...this.keyboardDismissProp}
+                    keyboardShouldPersistTaps={'always'}
                     maxToRenderPerBatch={10}
                     viewabilityConfig={VIEWABILITY_CONFIG}
                 />

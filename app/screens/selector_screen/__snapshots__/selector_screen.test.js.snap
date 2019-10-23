@@ -30,6 +30,7 @@ exports[`SelectorScreen should match snapshot for channels 1`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -38,6 +39,8 @@ exports[`SelectorScreen should match snapshot for channels 1`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"
@@ -117,6 +120,7 @@ exports[`SelectorScreen should match snapshot for channels 2`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -125,6 +129,8 @@ exports[`SelectorScreen should match snapshot for channels 2`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"
@@ -204,6 +210,7 @@ exports[`SelectorScreen should match snapshot for explicit options 1`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -212,6 +219,8 @@ exports[`SelectorScreen should match snapshot for explicit options 1`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"
@@ -298,6 +307,7 @@ exports[`SelectorScreen should match snapshot for searching 1`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -306,6 +316,8 @@ exports[`SelectorScreen should match snapshot for searching 1`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"
@@ -385,6 +397,7 @@ exports[`SelectorScreen should match snapshot for users 1`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -393,6 +406,8 @@ exports[`SelectorScreen should match snapshot for users 1`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"
@@ -472,6 +487,7 @@ exports[`SelectorScreen should match snapshot for users 2`] = `
           "fontSize": 15,
         }
       }
+      leftComponent={null}
       onBlur={[Function]}
       onCancelButtonPress={[Function]}
       onChangeText={[Function]}
@@ -480,6 +496,8 @@ exports[`SelectorScreen should match snapshot for users 2`] = `
       onSelectionChange={[Function]}
       placeholder="Search"
       placeholderTextColor="rgba(61,60,64,0.5)"
+      searchIconCollapsedMargin={10}
+      searchIconExpandedMargin={10}
       tintColorDelete="rgba(61,60,64,0.5)"
       tintColorSearch="rgba(61,60,64,0.5)"
       titleCancelColor="#3d3c40"

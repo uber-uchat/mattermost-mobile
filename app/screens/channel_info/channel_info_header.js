@@ -6,6 +6,7 @@ import PropTypes from 'prop-types';
 import {
     Text,
     View,
+    Platform,
 } from 'react-native';
 
 import ChannelIcon from 'app/components/channel_icon';
@@ -29,6 +30,8 @@ export default class ChannelInfoHeader extends React.PureComponent {
         theme: PropTypes.object.isRequired,
         type: PropTypes.string.isRequired,
         isArchived: PropTypes.bool.isRequired,
+        isBot: PropTypes.bool.isRequired,
+        isGroupConstrained: PropTypes.bool,
     };
 
     render() {
@@ -45,11 +48,16 @@ export default class ChannelInfoHeader extends React.PureComponent {
             theme,
             type,
             isArchived,
+            isBot,
+            isGroupConstrained,
         } = this.props;
 
         const style = getStyleSheet(theme);
         const textStyles = getMarkdownTextStyles(theme);
         const blockStyles = getMarkdownBlockStyles(theme);
+        const baseTextStyle = Platform.OS === 'ios' ?
+            {...style.detail, lineHeight: 20} :
+            style.detail;
 
         return (
             <View style={style.container}>
@@ -62,6 +70,7 @@ export default class ChannelInfoHeader extends React.PureComponent {
                         theme={theme}
                         type={type}
                         isArchived={isArchived}
+                        isBot={isBot}
                     />
                     <Text
                         ellipsizeMode='tail'
@@ -81,7 +90,7 @@ export default class ChannelInfoHeader extends React.PureComponent {
                         <Markdown
                             navigator={navigator}
                             onPermalinkPress={onPermalinkPress}
-                            baseTextStyle={style.detail}
+                            baseTextStyle={baseTextStyle}
                             textStyles={textStyles}
                             blockStyles={blockStyles}
                             value={purpose}
@@ -98,12 +107,20 @@ export default class ChannelInfoHeader extends React.PureComponent {
                         <Markdown
                             navigator={navigator}
                             onPermalinkPress={onPermalinkPress}
-                            baseTextStyle={style.detail}
+                            baseTextStyle={baseTextStyle}
                             textStyles={textStyles}
                             blockStyles={blockStyles}
                             value={header}
                         />
                     </View>
+                }
+                {isGroupConstrained &&
+                    <Text style={style.createdBy}>
+                        <FormattedText
+                            id='mobile.routes.channelInfo.groupManaged'
+                            defaultMessage='Members are managed by linked groups'
+                        />
+                    </Text>
                 }
                 {creator &&
                     <Text style={style.createdBy}>

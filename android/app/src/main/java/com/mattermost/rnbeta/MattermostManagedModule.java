@@ -1,7 +1,9 @@
 package com.mattermost.rnbeta;
 
+import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 
 import com.facebook.react.bridge.Arguments;
@@ -11,6 +13,7 @@ import com.facebook.react.bridge.ReactContext;
 import com.facebook.react.bridge.ReactContextBaseJavaModule;
 import com.facebook.react.bridge.ReactMethod;
 import com.facebook.react.bridge.Promise;
+import com.facebook.react.bridge.WritableMap;
 
 public class MattermostManagedModule extends ReactContextBaseJavaModule {
     private static MattermostManagedModule instance;
@@ -56,10 +59,37 @@ public class MattermostManagedModule extends ReactContextBaseJavaModule {
                 Object result = Arguments.fromBundle(config);
                 promise.resolve(result);
             } else {
-                throw new Exception("The MDM vendor has not sent any Managed configuration");
+                promise.resolve(Arguments.createMap());
             }
         } catch (Exception e) {
-            promise.reject("no managed configuration", e);
+            promise.resolve(Arguments.createMap());
         }
+    }
+
+    @ReactMethod
+    // Close the current activity and open the security settings.
+    public void goToSecuritySettings() {
+        getReactApplicationContext().startActivity(new Intent(android.provider.Settings.ACTION_SECURITY_SETTINGS));
+        getCurrentActivity().finish();
+        System.exit(0);
+    }
+
+    @ReactMethod
+    public void isRunningInSplitView(final Promise promise) {
+        WritableMap result = Arguments.createMap();
+        Activity current = getCurrentActivity();
+        if (current != null) {
+            result.putBoolean("isSplitView", current.isInMultiWindowMode());
+        } else {
+            result.putBoolean("isSplitView", false);
+        }
+
+        promise.resolve(result);
+    }
+
+    @ReactMethod
+    public void quitApp() {
+        getCurrentActivity().finish();
+        System.exit(0);
     }
 }

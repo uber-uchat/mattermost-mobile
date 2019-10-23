@@ -36,6 +36,9 @@ export default class SearchBarIos extends PureComponent {
         inputBorderRadius: PropTypes.number,
         blurOnSubmit: PropTypes.bool,
         value: PropTypes.string,
+        leftComponent: PropTypes.element,
+        searchIconCollapsedMargin: PropTypes.number,
+        searchIconExpandedMargin: PropTypes.number,
     };
 
     static defaultProps = {
@@ -46,6 +49,9 @@ export default class SearchBarIos extends PureComponent {
         onBlur: () => true,
         onSelectionChange: () => true,
         blurOnSubmit: true,
+        leftComponent: null,
+        searchIconCollapsedMargin: 10,
+        searchIconExpandedMargin: 10,
     };
 
     cancel = () => {
@@ -100,8 +106,6 @@ export default class SearchBarIos extends PureComponent {
                 ref='search'
                 placeholderCollapsedMargin={33}
                 placeholderExpandedMargin={33}
-                searchIconCollapsedMargin={10}
-                searchIconExpandedMargin={10}
                 shadowVisible={false}
                 onCancel={this.onCancel}
                 onChangeText={this.onChangeText}

@@ -4,15 +4,19 @@
 import React, {PureComponent} from 'react';
 import PropTypes from 'prop-types';
 import {
-    Platform,
     View,
+    Dimensions,
 } from 'react-native';
-import Placeholder from 'rn-placeholder';
+import {ImageContent} from 'rn-placeholder';
 
 import EventEmitter from 'mattermost-redux/utils/event_emitter';
 
 import CustomPropTypes from 'app/constants/custom_prop_types';
 import {changeOpacity, makeStyleSheetFromTheme} from 'app/utils/theme';
+
+function calculateMaxRows(height) {
+    return Math.round(height / 100);
+}
 
 export default class ChannelLoader extends PureComponent {
     static propTypes = {
@@ -22,28 +26,35 @@ export default class ChannelLoader extends PureComponent {
         }).isRequired,
         backgroundColor: PropTypes.string,
         channelIsLoading: PropTypes.bool.isRequired,
-        maxRows: PropTypes.number,
         style: CustomPropTypes.Style,
         theme: PropTypes.object.isRequired,
+        height: PropTypes.number,
     };
 
-    static defaultProps = {
-        maxRows: 6,
-    };
+    constructor(props) {
+        super(props);
 
-    state = {
-        switch: false,
-    };
+        const height = props.height || Dimensions.get('window').height;
+        const maxRows = calculateMaxRows(height);
+
+        this.state = {
+            switch: false,
+            maxRows,
+        };
+    }
 
     static getDerivedStateFromProps(nextProps, prevState) {
+        const state = {};
+
+        if (nextProps.height) {
+            state.maxRows = calculateMaxRows(nextProps.height);
+        }
         if (!nextProps.channelIsLoading && prevState.switch) {
-            return {
-                switch: false,
-                channel: null,
-            };
+            state.switch = false;
+            state.channel = null;
         }
 
-        return null;
+        return Object.keys(state) ? state : null;
     }
 
     componentDidMount() {
@@ -76,7 +87,7 @@ export default class ChannelLoader extends PureComponent {
                 key={key}
                 style={[style.section, {backgroundColor: bg}]}
             >
-                <Placeholder.ImageContent
+                <ImageContent
                     size={32}
                     animate='fade'
                     lineNumber={3}
@@ -98,8 +109,18 @@ export default class ChannelLoader extends PureComponent {
         }
     };
 
+    handleLayout = (e) => {
+        const {height} = e.nativeEvent.layout;
+        const maxRows = calculateMaxRows(height);
+        this.setState({maxRows});
+    }
+
     render() {
-        const {channelIsLoading, maxRows, style: styleProp, theme} = this.props;
+        const {
+            channelIsLoading,
+            style: styleProp,
+            theme,
+        } = this.props;
 
         if (!channelIsLoading) {
             return null;
@@ -109,8 +130,11 @@ export default class ChannelLoader extends PureComponent {
         const bg = this.props.backgroundColor || theme.centerChannelBg;
 
         return (
-            <View style={[style.container, styleProp, {backgroundColor: bg}]}>
-                {Array(maxRows).fill().map((item, index) => this.buildSections({
+            <View
+                style={[style.container, styleProp, {backgroundColor: bg}]}
+                onLayout={this.handleLayout}
+            >
+                {Array(this.state.maxRows).fill().map((item, index) => this.buildSections({
                     key: index,
                     style,
                     bg,
@@ -125,14 +149,6 @@ const getStyleSheet = makeStyleSheetFromTheme((theme) => {
     return {
         container: {
             flex: 1,
-            ...Platform.select({
-                android: {
-                    top: 0,
-                },
-                ios: {
-                    paddingTop: 15,
-                },
-            }),
         },
         section: {
             backgroundColor: theme.centerChannelBg,

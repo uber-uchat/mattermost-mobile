@@ -76,9 +76,11 @@ post-install:
 	@# Need to copy custom RNDocumentPicker.m that implements direct access to the document picker in iOS
 	@cp ./native_modules/RNDocumentPicker.m node_modules/react-native-document-picker/ios/RNDocumentPicker/RNDocumentPicker.m
 
-	@# Need to copy custom RNCWebViewManager.java and RNCWEKWebView.m that implements IWA support for the WebView to avoid forking the lib
-	@cp ./native_modules/RNCWebViewManager.java node_modules/react-native-webview/android/src/main/java/com/reactnativecommunity/webview/RNCWebViewManager.java
-	@cp ./native_modules/RNCWKWebView.m node_modules/react-native-webview/ios/RNCWKWebView.m
+	@# Need to copy custom RNCookieManagerIOS.m that fixes a crash when cookies does not have expiration date set
+	@cp ./native_modules/RNCookieManagerIOS.m node_modules/react-native-cookies/ios/RNCookieManagerIOS/RNCookieManagerIOS.m
+
+	@# Need to copy custom RNCNetInfo.m that checks for internet connectivity instead of reaching a host by default
+	@cp ./native_modules/RNCNetInfo.m node_modules/@react-native-community/netinfo/ios/RNCNetInfo.m
 
 	@rm -f node_modules/intl/.babelrc
 	@# Hack to get react-intl and its dependencies to work with react-native
@@ -201,6 +203,7 @@ unsigned-ios: stop pre-build check-style ## Build an unsigned version of the iOS
 	@cd ios/ && xcodebuild -workspace Mattermost.xcworkspace/ -scheme Mattermost -sdk iphoneos -configuration Release -parallelizeTargets -resultBundlePath ../build-ios/result -derivedDataPath ../build-ios/ CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
 	@cd build-ios/ && mkdir -p Payload && cp -R Build/Products/Release-iphoneos/Mattermost.app Payload/ && zip -r Mattermost-unsigned.ipa Payload/
 	@mv build-ios/Mattermost-unsigned.ipa .
+	@cd fastlane && bundle exec fastlane upload_file_to_s3 file:Mattermost-unsigned.ipa os_type:iOS
 	@rm -rf build-ios/
 	$(call stop_packager)
 
@@ -213,6 +216,7 @@ ios-sim-x86_64: stop pre-build check-style ## Build an unsigned x86_64 version o
 	@cd build-ios/Build/Products/Release-iphonesimulator/ && zip -r Mattermost-simulator-x86_64.app.zip Mattermost.app/
 	@mv build-ios/Build/Products/Release-iphonesimulator/Mattermost-simulator-x86_64.app.zip .
 	@rm -rf build-ios/
+	@cd fastlane && bundle exec fastlane upload_file_to_s3 file:Mattermost-simulator-x86_64.app.zip os_type:iOS
 	$(call stop_packager)
 
 unsigned-android: stop pre-build check-style prepare-android-build ## Build an unsigned version of the Android app
@@ -220,6 +224,7 @@ unsigned-android: stop pre-build check-style prepare-android-build ## Build an u
 	@echo "Building unsigned Android app"
 	@cd fastlane && NODE_ENV=production bundle exec fastlane android unsigned
 	@mv android/app/build/outputs/apk/unsigned/app-unsigned-unsigned.apk ./Mattermost-unsigned.apk
+	@cd fastlane && bundle exec fastlane upload_file_to_s3 file:Mattermost-unsigned.apk os_type:Android
 	$(call stop_packager)
 
 test: | pre-run check-style ## Runs tests
@@ -238,9 +243,7 @@ can-build-pr:
 	fi
 
 i18n-extract: ## Extract strings for translation from the source code
-	@[[ -d $(MM_UTILITIES_DIR) ]] || echo "You must clone github.com/mattermost/mattermost-utilities repo in .. to use this command"
-	@[[ -d $(MM_UTILITIES_DIR) ]] && cd $(MM_UTILITIES_DIR) && npm install && npm run babel && node mmjstool/build/index.js i18n extract-mobile
-
+	npm run mmjstool -- i18n extract-mobile
 
 ## Help documentation https://marmelab.com/blog/2016/02/29/auto-documented-makefile.html
 help:
