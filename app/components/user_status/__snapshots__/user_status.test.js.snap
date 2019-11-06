@@ -51,6 +51,23 @@ exports[`UserStatus should match snapshot, online status 1`] = `
 />
 `;
 
+exports[`UserStatus should match snapshot, ooo status 1`] = `
+<Image
+  source={
+    Object {
+      "testUri": "../../../dist/assets/images/status/ooo.png",
+    }
+  }
+  style={
+    Object {
+      "height": 32,
+      "tintColor": "#800080",
+      "width": 32,
+    }
+  }
+/>
+`;
+
 exports[`UserStatus should match snapshot, should default to offline status 1`] = `
 <Image
   source={
