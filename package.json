@@ -19,7 +19,7 @@
     "intl": "1.2.5",
     "jail-monkey": "2.2.0",
     "jsc-android": "241213.2.0",
-    "mattermost-redux": "github:uber-uchat/mattermost-redux#8d7e0be467323b9f5340dd3757efb15b3b1d557b",
+    "mattermost-redux": "github:uber-uchat/mattermost-redux#11e5c7303d3315c6752ed8ab7d26db71e90b6085",
     "mime-db": "1.40.0",
     "moment-timezone": "0.5.25",
     "prop-types": "15.7.2",
