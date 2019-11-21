@@ -37,6 +37,7 @@ export default class SettingsDrawer extends PureComponent {
         actions: PropTypes.shape({
             logout: PropTypes.func.isRequired,
             setStatus: PropTypes.func.isRequired,
+            updateMe: PropTypes.func.isRequired,
         }).isRequired,
         blurPostTextBox: PropTypes.func.isRequired,
         children: PropTypes.node,
@@ -46,6 +47,7 @@ export default class SettingsDrawer extends PureComponent {
         navigator: PropTypes.object,
         status: PropTypes.string,
         theme: PropTypes.object.isRequired,
+        showOutOfOfficeInStatusDropdown: PropTypes.bool.isRequired,
     };
 
     static defaultProps = {
@@ -59,7 +61,6 @@ export default class SettingsDrawer extends PureComponent {
 
     constructor(props) {
         super(props);
-
         MaterialIcon.getImageSource('close', 20, props.theme.sidebarHeaderTextColor).then((source) => {
             this.closeButton = source;
         });
@@ -106,6 +107,17 @@ export default class SettingsDrawer extends PureComponent {
         Keyboard.dismiss();
     };
 
+    goToNotificationSettingsAutoResponder = () => {
+        const {intl} = this.context;
+        const {currentUser} = this.props;
+
+        this.openModal(
+            'NotificationSettingsAutoResponder',
+            intl.formatMessage({id: 'mobile.notification_settings.auto_responder_short', defaultMessage: 'Automatic Replies'}),
+            {currentUser, updateMe: this.props.actions.updateMe},
+        );
+    };
+
     handleSetStatus = preventDoubleTap(() => {
         const items = [{
             action: () => this.setStatus(General.ONLINE),
@@ -125,13 +137,29 @@ export default class SettingsDrawer extends PureComponent {
                 id: t('mobile.set_status.dnd'),
                 defaultMessage: 'Do Not Disturb',
             },
-        }, {
-            action: () => this.setStatus(General.OFFLINE),
-            text: {
-                id: t('mobile.set_status.offline'),
-                defaultMessage: 'Offline',
-            },
         }];
+
+        if (this.props.showOutOfOfficeInStatusDropdown) {
+            items.push(
+                {
+                    action: () => this.setStatus(General.OUT_OF_OFFICE),
+                    text: {
+                        id: t('mobile.set_status.ooo'),
+                        defaultMessage: 'Out Of Office',
+                    },
+                }
+            );
+        }
+
+        items.push(
+            {
+                action: () => this.setStatus(General.OFFLINE),
+                text: {
+                    id: t('mobile.set_status.offline'),
+                    defaultMessage: 'Offline',
+                },
+            }
+        );
 
         this.props.navigator.showModal({
             screen: 'OptionsModal',
@@ -337,7 +365,7 @@ export default class SettingsDrawer extends PureComponent {
     setStatus = (status) => {
         const {status: currentUserStatus, navigator} = this.props;
 
-        if (currentUserStatus === General.OUT_OF_OFFICE) {
+        if (currentUserStatus === General.OUT_OF_OFFICE && status !== General.OUT_OF_OFFICE) {
             navigator.dismissModal({
                 animationType: 'none',
             });
@@ -345,6 +373,17 @@ export default class SettingsDrawer extends PureComponent {
             this.confirmReset(status);
             return;
         }
+
+        if (status === General.OUT_OF_OFFICE) {
+            navigator.dismissModal({
+                animationType: 'none',
+            });
+            this.closeSettingsSidebar();
+            this.goToNotificationSettingsAutoResponder();
+
+            return;
+        }
+
         this.updateStatus(status);
         EventEmitter.emit(NavigationTypes.NAVIGATION_CLOSE_MODAL);
     };

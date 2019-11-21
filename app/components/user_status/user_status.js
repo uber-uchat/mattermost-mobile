@@ -13,12 +13,13 @@ import away from 'assets/images/status/away.png';
 import dnd from 'assets/images/status/dnd.png';
 import offline from 'assets/images/status/offline.png';
 import online from 'assets/images/status/online.png';
+import ooo from 'assets/images/status/ooo.png';
 
 const statusToIcon = {
     away,
     dnd,
     offline,
-    ooo: offline,
+    ooo,
     online,
 };
 
@@ -48,6 +49,9 @@ export default class UserStatus extends PureComponent {
             break;
         case General.ONLINE:
             iconColor = theme.onlineIndicator;
+            break;
+        case General.OUT_OF_OFFICE:
+            iconColor = '#800080';
             break;
         default:
             iconColor = changeOpacity(theme.centerChannelColor, 0.3);

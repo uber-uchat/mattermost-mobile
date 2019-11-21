@@ -39,11 +39,10 @@ export default class UserInfo extends PureComponent {
             i18nId = t('status_dropdown.set_online');
             defaultMessage = 'Online';
             break;
-        }
-
-        if (status === General.OUT_OF_OFFICE) {
+        case General.OUT_OF_OFFICE:
             i18nId = t('status_dropdown.set_ooo');
             defaultMessage = 'Out Of Office';
+            break;
         }
 
         return (

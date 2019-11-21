@@ -60,6 +60,7 @@ export default class ChannelIcon extends React.PureComponent {
         let activeGroup;
         let unreadGroup;
         let offlineColor = changeOpacity(theme.sidebarText, 0.5);
+        const oooColor = '#800080';
 
         if (isUnread) {
             unreadIcon = style.iconUnread;
@@ -152,6 +153,14 @@ export default class ChannelIcon extends React.PureComponent {
                     <Image
                         source={require('assets/images/status/online_avatar.png')}
                         style={{width: size, height: size, tintColor: theme.onlineIndicator}}
+                    />
+                );
+                break;
+            case General.OUT_OF_OFFICE:
+                icon = (
+                    <Image
+                        source={require('assets/images/status/offline_avatar.png')}
+                        style={{width: size, height: size, tintColor: oooColor}}
                     />
                 );
                 break;

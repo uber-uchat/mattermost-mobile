@@ -1,0 +1,43 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`DateTimePickerModalBase should match snapshot 1`] = `
+<TouchableWithoutFeedback
+  onPress={[Function]}
+>
+  <View
+    style={
+      Object {
+        "backgroundColor": "rgba(0, 0, 0, 0.8)",
+        "bottom": 0,
+        "flex": 1,
+        "position": "absolute",
+      }
+    }
+  >
+    <AnimatedComponent
+      style={
+        Object {
+          "height": 320,
+          "left": 0,
+          "top": 320,
+          "width": 120,
+        }
+      }
+    >
+      <DatePickerIOS
+        date={2019-10-09T11:29:01.253Z}
+        initialDate={2019-10-09T11:29:01.253Z}
+        is24Hour="true"
+        minimumDate={2019-10-09T11:29:01.404Z}
+        minuteInterval={30}
+        mode="datetime"
+        onDateChange={[Function]}
+      />
+      <Button
+        onPress={[Function]}
+        title="Ok"
+      />
+    </AnimatedComponent>
+  </View>
+</TouchableWithoutFeedback>
+`;

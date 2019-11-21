@@ -18,7 +18,9 @@ function mapStateToProps(state) {
     const currentUser = getCurrentUser(state) || {};
     const currentUserStatus = getStatusForUserId(state, currentUser.id);
     const serverVersion = state.entities.general.serverVersion;
-    const enableAutoResponder = isMinimumServerVersion(serverVersion, 4, 9) && config.ExperimentalEnableAutomaticReplies === 'true';
+    const showOutOfOfficeInStatusDropdown = config.ShowOutOfOfficeInStatusDropdown === 'true';
+    const enableAutoResponder = isMinimumServerVersion(serverVersion, 4, 9) &&
+        config.ExperimentalEnableAutomaticReplies === 'true' && !showOutOfOfficeInStatusDropdown;
 
     return {
         config,

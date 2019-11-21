@@ -10,6 +10,7 @@ import OfflineAvatar from './offline_avatar';
 import OfflineIcon from './offline_icon';
 import OnlineAvatar from './online_avatar';
 import OnlineIcon from './online_icon';
+import OooIcon from './ooo_icon';
 
 export {
     ArchiveIcon,
@@ -21,4 +22,5 @@ export {
     OfflineIcon,
     OnlineAvatar,
     OnlineIcon,
+    OooIcon,
 };

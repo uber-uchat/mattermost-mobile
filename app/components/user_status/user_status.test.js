@@ -55,4 +55,15 @@ describe('UserStatus', () => {
 
         expect(wrapper.getElement()).toMatchSnapshot();
     });
+
+    test('should match snapshot, ooo status', () => {
+        const wrapper = shallow(
+            <UserStatus
+                {...baseProps}
+                status={General.OUT_OF_OFFICE}
+            />
+        );
+
+        expect(wrapper.getElement()).toMatchSnapshot();
+    });
 });

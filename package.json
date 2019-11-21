@@ -21,6 +21,7 @@
     "jsc-android": "241213.2.0",
     "mattermost-redux": "github:uber-uchat/mattermost-redux#11e5c7303d3315c6752ed8ab7d26db71e90b6085",
     "mime-db": "1.40.0",
+    "moment": "2.24.0",
     "moment-timezone": "0.5.25",
     "prop-types": "15.7.2",
     "react": "16.8.6",
